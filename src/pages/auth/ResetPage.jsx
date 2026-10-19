@@ -1,7 +1,9 @@
 import { Box, Card, Typography, TextField, Button, InputAdornment, Divider, Link} from "@mui/material";
 import {MailOutlined,  ArrowForward} from "@mui/icons-material";
 import {Link as RouterLink} from "react-router-dom";
+import { useState } from "react";
 function ResetPage(){
+    const [sent, setSent] =useState(false);
     return(
         <Box sx={{
             alignItems: "center",
@@ -38,7 +40,7 @@ function ResetPage(){
                         ),
                     }
                 }}/>
-                <Button variant="contained" fullWidth sx={{mt: 2}} endIcon={<ArrowForward />}>
+                <Button variant="contained" fullWidth sx={{mt: 2}} endIcon={<ArrowForward />} onClick={() => setSent(true)} >
                     Send reset link
                 </Button>
                 <Divider sx={{mt: 3}}>
