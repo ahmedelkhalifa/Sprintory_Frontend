@@ -1,0 +1,5 @@
+add one file per route, and group them by area.
+e.g.
+pages/auth/LoginPage.jsx
+pages/auth/RegisterPage.jsx
+pages/projects/Project.jsx
