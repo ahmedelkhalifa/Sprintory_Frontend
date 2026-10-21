@@ -11,7 +11,6 @@ import {
 
 const DRAWER_WIDTH = 260;
 
-// Пункты меню. Названия и адреса согласуй с командой.
 const NAV_ITEMS = [
     { label: "Home", to: "/", icon: <HomeOutlined /> },
     { label: "Projects", to: "/projects", icon: <FolderOutlined /> },
@@ -63,7 +62,6 @@ function AppShell() {
     return (
         <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
             <Box component="nav" sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}>
-                {/* Телефон/узкое окно: выезжающее меню */}
                 <Drawer
                     variant="temporary"
                     open={mobileOpen}
@@ -73,7 +71,6 @@ function AppShell() {
                 >
                     {drawerContent}
                 </Drawer>
-                {/* Широкий экран: сайдбар всегда на месте */}
                 <Drawer
                     variant="permanent"
                     open
