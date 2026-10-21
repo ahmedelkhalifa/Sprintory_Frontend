@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import AuthProvider from "./context/AuthProvider";
 import ProtectedRoute from "./components/general/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
+import AppShell from "./components/layouts/AppShell";
 
 const App = () => {
   return (
@@ -17,6 +18,12 @@ const App = () => {
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<div>Home</div>} />
             <Route path="/projects" element={<div>Projects</div>} />
+            <Route element={<ProtectedRoute />}>
+              <Route element={<AppShell />}>
+                <Route path="/" element={<div>Home</div>} />
+                <Route path="/projects" element={<div>Projects</div>} />
+              </Route>
+            </Route>
           </Route>
 
           <Route path="*" element={<div>Page not found</div>} />
