@@ -245,8 +245,10 @@ export default function LoginPage() {
           sx={{
             width: "100%",
             maxWidth: 720,
-            mt: { xs: 1, sm: 3, md: "clamp(32px, 7vh, 72px)", lg: "auto" },
-            mb: { xs: 2, sm: 4, lg: "auto" },
+            // On phones, share leftover vertical space above and below the form.
+            // When the viewport is short, auto margins collapse and scrolling remains available.
+            mt: { xs: "auto", sm: 3, md: "clamp(32px, 7vh, 72px)", lg: "auto" },
+            mb: { xs: "auto", sm: 4, lg: "auto" },
             p: { xs: 2.5, sm: 4, md: 5, lg: 6, xl: 7.5 },
             [SHORT_DESKTOP]: { p: 4 },
             borderRadius: 3,
