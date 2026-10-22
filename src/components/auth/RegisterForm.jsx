@@ -44,17 +44,29 @@ const RegisterForm = () => {
     if (Object.keys(validationErrors).length > 0) return;
 
     setSubmitting(true);
+    const payload = {
+      ...values,
+      firstName: values.firstName.trim(),
+      lastName: values.lastName.trim(),
+      email: values.email.trim(),
+    };
     try {
-      await signUp({ ...values, email: values.email.trim() });
-      // let the login page know it can show "account created" and prefill the email
-      navigate("/login", { state: { registered: true, email: values.email.trim() } });
+      await signUp(payload);
+      // the account is inactive until the emailed link is opened
+      navigate("/activate-account", { state: { email: payload.email } });
     } catch (err) {
-      if (err.response?.status === 409) {
-        setErrors({ email: "An account with this email already exists" });
-      } else if (!err.response) {
+      const data = err.response?.data;
+      if (!err.response) {
         setServerError("Can't reach the server. Please try again.");
+      } else if (data?.code === "VALIDATION_ERROR" && data.fieldErrors) {
+        setErrors(data.fieldErrors);
+      } else if (data?.code === "CONFLICT") {
+        setErrors({ email: "An account with this email already exists" });
+      } else if (data?.code === "PROVIDER_MISMATCH") {
+        // the Google button is right above the form
+        setErrors({ email: data.message });
       } else {
-        setServerError(err.response.data?.message || "Something went wrong. Please try again.");
+        setServerError(data?.message || "Something went wrong. Please try again.");
       }
     } finally {
       setSubmitting(false);

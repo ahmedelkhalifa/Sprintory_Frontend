@@ -11,7 +11,13 @@ export const signUp = async ({ firstName, lastName, email, password }) => {
   return res.data;
 };
 
-// TODO: confirm the Google OAuth URL with the backend team
+// Activate the account with the token from the emailed link. 204 on success.
+export const verifyEmail = async (token) => {
+  await api.post("/auth/verify-email", { token });
+};
+
+// Google sign-in is handled by Spring Security outside /api/v1, so use the backend origin only
 export const continueWithGoogle = () => {
-  window.location.href = `${api.defaults.baseURL}/auth/google`;
+  const backendOrigin = new URL(api.defaults.baseURL, window.location.origin).origin;
+  window.location.href = `${backendOrigin}/oauth2/authorization/google`;
 };

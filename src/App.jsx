@@ -3,6 +3,8 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import AuthProvider from "./context/AuthProvider";
 import ProtectedRoute from "./components/general/ProtectedRoute";
 import RegisterPage from "./pages/auth/RegisterPage";
+import ActivateAccountPage from "./pages/auth/ActivateAccountPage";
+import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
 
 const App = () => {
   return (
@@ -12,6 +14,8 @@ const App = () => {
           {/* public */}
           <Route path="/login" element={<div>Login</div>} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/activate-account" element={<ActivateAccountPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
 
           {/* protected: everything inside needs a logged-in user */}
           <Route element={<ProtectedRoute />}>
