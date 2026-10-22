@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import AuthProvider from "./context/AuthProvider";
 import ProtectedRoute from "./components/general/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
+import TeamsPage from "./pages/TeamsPage";
 
 const App = () => {
   return (
@@ -17,6 +18,7 @@ const App = () => {
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<div>Home</div>} />
             <Route path="/projects" element={<div>Projects</div>} />
+            <Route path="/teams" element={<TeamsPage />} />
           </Route>
 
           <Route path="*" element={<div>Page not found</div>} />
