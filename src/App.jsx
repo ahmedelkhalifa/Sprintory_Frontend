@@ -16,14 +16,12 @@ const App = () => {
 
           {/* protected: everything inside needs a logged-in user */}
           <Route element={<ProtectedRoute />}>
+            <Route element={<AppShell />}>
+              <Route path="/" element={<div>Home</div>} />
+              <Route path="/projects" element={<div>Projects</div>} />
+            </Route>
             <Route path="/" element={<div>Home</div>} />
             <Route path="/projects" element={<div>Projects</div>} />
-            <Route element={<ProtectedRoute />}>
-              <Route element={<AppShell />}>
-                <Route path="/" element={<div>Home</div>} />
-                <Route path="/projects" element={<div>Projects</div>} />
-              </Route>
-            </Route>
           </Route>
 
           <Route path="*" element={<div>Page not found</div>} />
