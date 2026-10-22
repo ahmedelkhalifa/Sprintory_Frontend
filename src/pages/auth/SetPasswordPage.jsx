@@ -12,7 +12,7 @@ import logo from "../../assets/sprintory-logo.png";
 
 const MIN_PASSWORD_LENGTH = 8;
 
-// Общая обёртка для обоих экранов: фон, логотип, карточка, круг с иконкой, заголовок, ссылка внизу
+// A common wrapper for both screens: background, logo, card, circle with an icon, heading, and a link at the bottom
 function AuthLayout({ icon, circleColor, title, children }) {
     return (
         <Box sx={{
@@ -53,7 +53,7 @@ function AuthLayout({ icon, circleColor, title, children }) {
     );
 }
 
-// Поле пароля с иконкой замка и кнопкой «показать / скрыть»
+// Password field with a lock icon and a "show/hide" button
 function PasswordField({ label, placeholder, value, onChange, error, helperText }) {
     const [visible, setVisible] = useState(false);
 
