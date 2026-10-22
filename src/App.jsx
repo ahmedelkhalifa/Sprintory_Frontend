@@ -5,6 +5,7 @@ import ProtectedRoute from "./components/general/ProtectedRoute";
 import RegisterPage from "./pages/auth/RegisterPage";
 import ActivateAccountPage from "./pages/auth/ActivateAccountPage";
 import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
+import LoginPage from "./pages/LoginPage";
 
 const App = () => {
   return (
@@ -12,7 +13,7 @@ const App = () => {
       <AuthProvider>
         <Routes>
           {/* public */}
-          <Route path="/login" element={<div>Login</div>} />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/activate-account" element={<ActivateAccountPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
