@@ -1,10 +1,10 @@
 import { Box, Card, Typography } from "@mui/material";
-import { ChevronRight, FolderOpenOutlined, GroupsOutlined, PersonOutline, TrendingUp } from "@mui/icons-material";
+import { ChevronRight, FolderOpenOutlined, GroupsOutlined, PersonOutlined, TrendingUp } from "@mui/icons-material";
 
 const ICONS = {
     projects: <FolderOpenOutlined />,
     teams: <GroupsOutlined />,
-    members: <PersonOutline />,
+    members: <PersonOutlined />,
     active: <TrendingUp />,
 };
 
