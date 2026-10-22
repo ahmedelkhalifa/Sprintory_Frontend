@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Box, Tab, Tabs } from "@mui/material";
-import WorkspaceTopBar from "./WorkspaceTopBar";
 import WorkspaceHeader from "./WorkspaceHeader";
 import StatCards from "./StatCards";
 import ProjectsTable from "./ProjectsTable";
@@ -15,7 +14,6 @@ function WorkspacePage() {
 
     return (
         <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
-            <WorkspaceTopBar />
             <Box sx={{ maxWidth: 1440, mx: "auto", px: { xs: 2, md: 4 }, py: 4 }}>
                 <WorkspaceHeader {...WORKSPACE} />
 
