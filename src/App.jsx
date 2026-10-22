@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import AuthProvider from "./context/AuthProvider";
 import ProtectedRoute from "./components/general/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
+import WorkspacePage from "./pages/workspace/WorkspacePage";
 
 const App = () => {
   return (
@@ -15,6 +16,7 @@ const App = () => {
 
           {/* protected: everything inside needs a logged-in user */}
           <Route element={<ProtectedRoute />}>
+            <Route path="/workspace" element={<WorkspacePage />} />
             <Route path="/" element={<div>Home</div>} />
             <Route path="/projects" element={<div>Projects</div>} />
           </Route>
