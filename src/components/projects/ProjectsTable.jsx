@@ -17,7 +17,9 @@ import { formatDate } from "../../utils/format";
 
 const headCellSx = { color: "text.secondary", fontWeight: 500, borderColor: "divider" };
 // the "Updated" column is hidden on phones to keep the table narrow
-const updatedCellSx = { display: { xs: "none", sm: "table-cell" } };
+const updatedCellSx = { display: { xs: "none", sm: "table-cell" }, width: 150 };
+// room for 3 avatars + the "+N" bubble
+const membersCellSx = { width: { xs: 128, sm: 160 } };
 
 // Table of projects; clicking a row opens that project's page
 const ProjectsTable = ({ projects }) => {
@@ -25,11 +27,12 @@ const ProjectsTable = ({ projects }) => {
 
   return (
     <TableContainer>
-      <Table>
+      {/* fixed layout: column widths come from the header, so content can't stretch the table */}
+      <Table sx={{ tableLayout: "fixed" }}>
         <TableHead>
           <TableRow>
             <TableCell sx={{ ...headCellSx, pl: { xs: 2, sm: 3 } }}>Project</TableCell>
-            <TableCell sx={headCellSx}>Members</TableCell>
+            <TableCell sx={{ ...headCellSx, ...membersCellSx }}>Members</TableCell>
             <TableCell sx={{ ...headCellSx, ...updatedCellSx, pr: { xs: 2, sm: 3 } }}>Updated</TableCell>
           </TableRow>
         </TableHead>
@@ -55,7 +58,8 @@ const ProjectsTable = ({ projects }) => {
                         underline="hover"
                         color="text.primary"
                         onClick={(e) => e.stopPropagation()}
-                        sx={{ fontWeight: 600 }}
+                        noWrap
+                        sx={{ display: "block", fontWeight: 600 }}
                       >
                         {project.name}
                       </Link>
