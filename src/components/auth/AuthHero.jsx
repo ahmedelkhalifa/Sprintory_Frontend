@@ -3,7 +3,8 @@ import Logo from "../general/Logo";
 import { SHORT_SCREEN } from "../../theme/media";
 
 // Left side of the auth pages: stock photo with the marketing text on top
-const AuthHero = () => {
+// image: each auth page can show its own photo (keep the empty wall top-left for the text)
+const AuthHero = ({ image = "/images/signup.png" }) => {
   return (
     <Box
       sx={{
@@ -11,7 +12,7 @@ const AuthHero = () => {
         height: "100%",
         px: { md: 6, lg: 10 },
         py: { md: 6, lg: 7 },
-        backgroundImage: "url(/signup.png)",
+        backgroundImage: `url(${image})`,
         backgroundSize: "cover",
         backgroundPosition: "right bottom",
         [SHORT_SCREEN]: { py: 4 },
