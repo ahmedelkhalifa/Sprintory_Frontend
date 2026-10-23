@@ -33,6 +33,9 @@ import { useAuth } from "../context/AuthContext";
 // Copy the supplied photo there before starting Vite.
 const HERO_IMAGE = "/images/Login.png";
 
+// Dense desktop layouts need tighter vertical spacing without reducing touch targets on phones.
+const SHORT_DESKTOP = "@media (min-width: 1200px) and (max-height: 840px)";
+
 function Brand({ compact = false }) {
   return (
     <Stack direction="row" alignItems="center" spacing={1.4}>
@@ -75,31 +78,33 @@ function LoginHero() {
     <Box
       component="section"
       aria-label="About Sprintory"
-      sx={(theme) => ({
+      sx={{
         display: { xs: "none", lg: "flex" },
         minWidth: 0,
         minHeight: "100dvh",
         position: "relative",
         overflow: "hidden",
         flexDirection: "column",
-        pt: { md: 5, xl: 6 },
-        pb: { md: 5, xl: 6 },
-        pl: { md: 7, lg: "clamp(72px, 7vw, 120px)" },
-        pr: { md: 4, lg: 5 },
+        pt: { lg: 5, xl: 6 },
+        pb: { lg: 4, xl: 6 },
+        pl: { lg: "clamp(64px, 5.6vw, 112px)" },
+        pr: { lg: 3.5, xl: 5 },
         backgroundColor: "background.default",
-        backgroundImage: `linear-gradient(90deg, ${alpha(theme.palette.background.paper, 0.12)} 0%, ${alpha(theme.palette.background.paper, 0)} 72%), url("${HERO_IMAGE}")`,
+        // Preserve the original photo; readability comes from keeping copy on its clear wall area.
+        backgroundImage: `url("${HERO_IMAGE}")`,
+        [SHORT_DESKTOP]: { pt: 4, pb: 3 },
         backgroundPosition: "center center",
         backgroundRepeat: "no-repeat",
         backgroundSize: "cover",
-      })}
+      }}
     >
       <Brand />
 
-      <Box sx={{ mt: { md: 9, lg: 9.5 }, maxWidth: 640 }}>
+      <Box sx={{ mt: { lg: 9, xl: 9.5 }, maxWidth: "100%", [SHORT_DESKTOP]: { mt: 7 } }}>
         <Typography
           variant="overline"
           sx={{
-            fontSize: { md: "0.82rem", lg: "0.9rem" },
+            fontSize: { lg: "0.8rem", xl: "0.9rem" },
             fontWeight: 700,
             letterSpacing: "0.34em",
             color: "text.secondary",
@@ -111,25 +116,30 @@ function LoginHero() {
           component="h1"
           sx={{
             mt: 3,
-            fontSize: { md: "clamp(3rem, 4vw, 4.55rem)", xl: "4.8rem" },
+            fontSize: { lg: "clamp(2.6rem, 3.5vw, 4.55rem)", xl: "clamp(3.55rem, 4vw, 4.8rem)" },
             lineHeight: 1.07,
+            overflowWrap: "break-word",
+            [SHORT_DESKTOP]: { mt: 2.25 },
             fontWeight: 800,
             letterSpacing: "-0.045em",
             color: "text.primary",
           }}
         >
-          Turn ideas into{" "}
-          <Box component="span" sx={{ color: "primary.main" }}>
+          Turn ideas into
+          <Box component="span" sx={{ display: "block", color: "primary.main" }}>
             successful projects
           </Box>
         </Typography>
         <Typography
           sx={{
             mt: 3.5,
-            maxWidth: 510,
-            fontSize: { md: "1.13rem", lg: "1.25rem" },
+            // On narrower desktops, stop the paragraph before the busy plant/window area.
+            // Wider screens have more free wall space for the original copy layout.
+            maxWidth: { lg: "min(100%, 340px)", xl: "min(100%, 460px)" },
+            fontSize: { lg: "clamp(1rem, 1.2vw, 1.25rem)" },
             lineHeight: 1.58,
             color: "text.secondary",
+            [SHORT_DESKTOP]: { mt: 2.5 },
           }}
         >
           Sprintory helps teams plan, collaborate, and deliver with clarity. From tasks
@@ -204,8 +214,9 @@ export default function LoginPage() {
           flexDirection: "column",
           alignItems: "center",
           backgroundColor: "background.default",
-          px: { xs: 2, sm: 4, lg: 3.5 },
-          pb: { xs: 4, md: 6 },
+          px: { xs: 2, sm: 3, md: 4, lg: 3.5 },
+          pb: { xs: 2.5, sm: 4, lg: 4 },
+          [SHORT_DESKTOP]: { pb: 2 },
         }}
       >
         <Box
@@ -215,7 +226,8 @@ export default function LoginPage() {
             display: "flex",
             justifyContent: { xs: "space-between", lg: "flex-end" },
             alignItems: "center",
-            py: { xs: 3, md: 4 },
+            py: { xs: 2.5, sm: 3, lg: 3 },
+            [SHORT_DESKTOP]: { py: 2 },
           }}
         >
           <Box sx={{ display: { xs: "block", lg: "none" } }}><Brand compact /></Box>
@@ -233,18 +245,22 @@ export default function LoginPage() {
           sx={{
             width: "100%",
             maxWidth: 720,
-            my: "auto",
-            p: { xs: 3, sm: 5, lg: 7.5 },
+            // On phones, share leftover vertical space above and below the form.
+            // When the viewport is short, auto margins collapse and scrolling remains available.
+            mt: { xs: "auto", sm: 3, md: "clamp(32px, 7vh, 72px)", lg: "auto" },
+            mb: { xs: "auto", sm: 4, lg: "auto" },
+            p: { xs: 2.5, sm: 4, md: 5, lg: 6, xl: 7.5 },
+            [SHORT_DESKTOP]: { p: 4 },
             borderRadius: 3,
             border: 0,
             bgcolor: "background.paper",
             boxShadow: (theme) => `0 12px 40px ${alpha(theme.palette.text.primary, 0.07)}`,
           }}
         >
-          <Typography id="login-title" component="h2" sx={{ fontWeight: 800, fontSize: { xs: "1.9rem", sm: "2.8rem" }, lineHeight: 1.16, letterSpacing: "-0.035em" }}>
+          <Typography id="login-title" component="h2" sx={{ fontWeight: 800, fontSize: { xs: "1.9rem", sm: "2.4rem", lg: "2.55rem", xl: "2.8rem" }, lineHeight: 1.16, letterSpacing: "-0.035em", [SHORT_DESKTOP]: { fontSize: "2.3rem" } }}>
             Welcome back
           </Typography>
-          <Typography sx={{ color: "text.secondary", mt: 1.25, mb: 4.2, fontSize: "1.14rem", lineHeight: 1.48 }}>
+          <Typography sx={{ color: "text.secondary", mt: 1.25, mb: { xs: 3, sm: 3.5, lg: 3.5 }, fontSize: { xs: "0.98rem", sm: "1.05rem" }, lineHeight: 1.5, [SHORT_DESKTOP]: { mb: 2.25 } }}>
             Sign in to your Sprintory account and continue building great projects with your team.
           </Typography>
 
@@ -253,17 +269,17 @@ export default function LoginPage() {
             variant="outlined"
             size="large"
             startIcon={<Box component="img" src="/images/google-g.png" alt="" aria-hidden="true" sx={{ width: 22, height: 22, display: "block" }} />}
-            sx={{ minHeight: 58, borderColor: "divider", color: "text.primary", bgcolor: "background.paper", fontWeight: 600, fontSize: "1rem" }}
+            sx={{ minHeight: { xs: 48, sm: 52, lg: 54 }, borderColor: "divider", color: "text.primary", bgcolor: "background.paper", fontWeight: 600, fontSize: "1rem", [SHORT_DESKTOP]: { minHeight: 48 } }}
             onClick={() => setFeedback({ severity: "info", message: "Google sign-in will be available when the authentication service is connected." })}
           >
             Continue with Google
           </Button>
-          <Divider sx={{ my: 4, color: "text.secondary" }}>or</Divider>
+          <Divider sx={{ my: { xs: 2.5, sm: 3, lg: 3.25 }, color: "text.secondary", [SHORT_DESKTOP]: { my: 2.25 } }}>or</Divider>
 
           <Box component="form" onSubmit={submit}>
-            <Stack spacing={3.8}>
+            <Stack spacing={{ xs: 2.5, sm: 2.75, lg: 3 }}>
               <Box>
-                <Typography component="label" htmlFor="login-email" sx={{ display: "block", mb: 1, fontWeight: 600, fontSize: "1rem" }}>
+                <Typography component="label" htmlFor="login-email" sx={{ display: "block", mb: 0.75, fontWeight: 600, fontSize: { xs: "0.9rem", sm: "0.95rem" } }}>
                   Email address
                 </Typography>
                 <TextField
@@ -276,12 +292,12 @@ export default function LoginPage() {
                   fullWidth
                   required
                   disabled={submitting}
-                  sx={{ "& .MuiOutlinedInput-root": { minHeight: 60 } }}
+                  sx={{ "& .MuiOutlinedInput-root": { minHeight: { xs: 48, sm: 52, lg: 56 }, [SHORT_DESKTOP]: { minHeight: 48 } } }}
                   slotProps={{ input: { startAdornment: <InputAdornment position="start"><EmailOutlined fontSize="small" /></InputAdornment> } }}
                 />
               </Box>
               <Box>
-                <Typography component="label" htmlFor="login-password" sx={{ display: "block", mb: 1, fontWeight: 600, fontSize: "1rem" }}>
+                <Typography component="label" htmlFor="login-password" sx={{ display: "block", mb: 0.75, fontWeight: 600, fontSize: { xs: "0.9rem", sm: "0.95rem" } }}>
                   Password
                 </Typography>
                 <TextField
@@ -294,7 +310,7 @@ export default function LoginPage() {
                   fullWidth
                   required
                   disabled={submitting}
-                  sx={{ "& .MuiOutlinedInput-root": { minHeight: 60 } }}
+                  sx={{ "& .MuiOutlinedInput-root": { minHeight: { xs: 48, sm: 52, lg: 56 }, [SHORT_DESKTOP]: { minHeight: 48 } } }}
                   slotProps={{
                     input: {
                       startAdornment: <InputAdornment position="start"><LockOutlined fontSize="small" /></InputAdornment>,
@@ -320,13 +336,15 @@ export default function LoginPage() {
 
             <Box
               sx={{
-                mt: 3.25,
-                mb: 4.25,
+                mt: { xs: 2.5, sm: 3, lg: 3 },
+                mb: { xs: 3, sm: 3.5, lg: 3.5 },
                 display: "flex",
-                flexDirection: { xs: "column", sm: "row" },
-                alignItems: { xs: "flex-start", sm: "center" },
+                flexWrap: "wrap",
+                alignItems: "center",
                 justifyContent: "space-between",
-                gap: { xs: 1, sm: 2 },
+                columnGap: 1,
+                rowGap: 1,
+                [SHORT_DESKTOP]: { mt: 2, mb: 2.5 },
               }}
             >
               <FormControlLabel
@@ -339,7 +357,7 @@ export default function LoginPage() {
                     sx={{ p: 0.5, mr: 0.75 }}
                   />
                 }
-                label={<Typography color="text.secondary" sx={{ whiteSpace: "nowrap", fontSize: "0.95rem" }}>Keep me signed in</Typography>}
+                label={<Typography color="text.secondary" sx={{ whiteSpace: "nowrap", fontSize: "0.9rem" }}>Keep me signed in</Typography>}
                 sx={{ ml: 0, mr: 0 }}
               />
               {/* The reset-password page is owned by another teammate. */}
@@ -348,7 +366,7 @@ export default function LoginPage() {
                 to="/reset-password"
                 variant="body2"
                 underline="hover"
-                sx={{ fontWeight: 600, fontSize: "0.95rem", whiteSpace: "nowrap", ml: { sm: "auto" } }}
+                sx={{ fontWeight: 600, fontSize: "0.9rem", whiteSpace: "nowrap", ml: "auto" }}
               >
                 Forgot password?
               </Link>
@@ -356,14 +374,14 @@ export default function LoginPage() {
 
             {feedback && <Alert severity={feedback.severity} sx={{ mb: 2 }} onClose={() => setFeedback(null)}>{feedback.message}</Alert>}
 
-            <Button type="submit" variant="contained" size="large" fullWidth disabled={submitting} endIcon={!submitting && <ArrowForwardRounded />} sx={{ minHeight: 64, fontSize: "1.12rem", boxShadow: 1 }}>
+            <Button type="submit" variant="contained" size="large" fullWidth disabled={submitting} endIcon={!submitting && <ArrowForwardRounded />} sx={{ minHeight: { xs: 52, sm: 56, lg: 58 }, fontSize: "1.05rem", boxShadow: 1, [SHORT_DESKTOP]: { minHeight: 50 } }}>
               {submitting ? <><CircularProgress color="inherit" size={18} sx={{ mr: 1.5 }} />Signing in...</> : "Sign in"}
             </Button>
           </Box>
 
-          <Box sx={{ mt: 6, textAlign: "center" }}>
-            <Typography component="span" color="text.secondary" sx={{ fontSize: "1rem" }}>Don&apos;t have an account?</Typography>
-            <Link component={RouterLink} to="/register" underline="hover" sx={{ ml: 1, fontSize: "1rem", fontWeight: 700 }}>Create account</Link>
+          <Box sx={{ mt: { xs: 3.5, sm: 4, lg: 4.5 }, textAlign: "center", [SHORT_DESKTOP]: { mt: 3 } }}>
+            <Typography component="span" color="text.secondary" sx={{ fontSize: { xs: "0.9rem", sm: "1rem" } }}>Don&apos;t have an account?</Typography>
+            <Link component={RouterLink} to="/register" underline="hover" sx={{ ml: 1, fontSize: { xs: "0.9rem", sm: "1rem" }, fontWeight: 700 }}>Create account</Link>
           </Box>
         </Paper>
       </Box>
