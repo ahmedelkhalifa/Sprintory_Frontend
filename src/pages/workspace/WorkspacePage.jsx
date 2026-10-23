@@ -6,10 +6,13 @@ import ProjectsTable from "./ProjectsTable";
 import TeamsPanel from "./TeamsPanel";
 import RecentActivity from "./RecentActivity";
 import { ACTIVITY, PROJECTS, STATS, TEAMS, WORKSPACE } from "./mockData";
+import { useParams } from "react-router-dom";
 
 const TABS = ["Overview", "Projects", "Teams", "People", "Settings"];
 
 function WorkspacePage() {
+    const { workspaceId } = useParams();
+    console.log(workspaceId);
     const [tab, setTab] = useState(0);
 
     return (

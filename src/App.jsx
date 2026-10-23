@@ -16,7 +16,7 @@ const App = () => {
 
           {/* protected: everything inside needs a logged-in user */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/workspace" element={<WorkspacePage />} />
+            <Route path="/workspaces/:workspaceId" element={<WorkspacePage />} />
             <Route path="/" element={<div>Home</div>} />
             <Route path="/projects" element={<div>Projects</div>} />
           </Route>
