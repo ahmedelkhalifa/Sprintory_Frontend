@@ -14,14 +14,15 @@ export default function TeamCard({ team, selected, onSelect, onEdit, onDelete })
   return (
     <Card
       component="article"
-      sx={(theme) => ({
+      sx={{
         position: "relative",
         borderColor: selected ? "primary.main" : "divider",
-        bgcolor: selected ? alpha(theme.palette.primary.main, 0.045) : "background.paper",
-        boxShadow: selected ? `0 0 0 1px ${theme.palette.primary.main}` : "none",
+        borderWidth: selected ? 2 : 1,
+        bgcolor: "background.paper",
+        boxShadow: "none",
         borderRadius: 2,
-        transition: "border-color 130ms ease, background 130ms ease",
-      })}
+        transition: "border-color 130ms ease",
+      }}
     >
       <ButtonBase
         onClick={onSelect}

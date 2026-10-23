@@ -22,7 +22,7 @@ export default function TeamsPage() {
   const compactLayout = useMediaQuery(theme.breakpoints.down("lg"));
   const [detailOpen, setDetailOpen] = useState(false);
   const [teams, setTeams] = useState(demoTeams);
-  const [selectedId, setSelectedId] = useState(demoTeams[0].id);
+  const [selectedId, setSelectedId] = useState(null);
   const [listTab, setListTab] = useState(0);
   const [detailTab, setDetailTab] = useState(0);
   const [search, setSearch] = useState("");
@@ -44,7 +44,7 @@ export default function TeamsPage() {
   );
   const duplicateName = isDuplicateTeamName(teams, draft.name, editingId);
 
-  const selectedTeam = visibleTeams.find((team) => team.id === selectedId) || visibleTeams[0] || null;
+  const selectedTeam = visibleTeams.find((team) => team.id === selectedId) || (!compactLayout ? visibleTeams[0] : null);
   const editingTeam = teams.find((team) => team.id === editingId) || null;
   const deletionTarget = teams.find((team) => team.id === deleteId);
 
@@ -127,14 +127,14 @@ export default function TeamsPage() {
           </Stack>
         </Stack>
 
-        <Stack direction={{ xs: "column", md: "row" }} sx={{ justifyContent: "space-between", alignItems: { xs: "stretch", md: "center" }, gap: 2, mb: 2.5, width: "100%" }}>
+        <Stack direction={{ xs: "column", md: "row" }} sx={{ justifyContent: "space-between", alignItems: { xs: "stretch", md: "center" }, gap: { xs: 2.75, sm: 2, md: 2 }, mb: { xs: 3.25, md: 2.5 }, width: "100%" }}>
           <Tabs value={listTab} onChange={(_, value) => setListTab(value)} variant="scrollable" scrollButtons="auto" aria-label="Teams filters">
             <Tab label="All teams" />
             <Tab label="My teams" />
             <Tab label={`Invitations${invites.length ? ` (${invites.length})` : ""}`} />
           </Tabs>
           {listTab !== 2 && (
-            <Stack direction={{ xs: "column", sm: "row" }} sx={{ gap: 1, minWidth: 0, flexShrink: 1 }}>
+            <Stack direction={{ xs: "column", sm: "row" }} sx={{ gap: { xs: 2, sm: 1 }, minWidth: 0, flexShrink: 1 }}>
               <TextField
                 size="small"
                 value={search}
