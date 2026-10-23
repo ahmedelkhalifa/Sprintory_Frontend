@@ -6,6 +6,7 @@ import RegisterPage from "./pages/auth/RegisterPage";
 import ActivateAccountPage from "./pages/auth/ActivateAccountPage";
 import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
 import LoginPage from "./pages/LoginPage";
+import AppShell from "./components/layouts/AppShell";
 
 const App = () => {
   return (
@@ -20,6 +21,10 @@ const App = () => {
 
           {/* protected: everything inside needs a logged-in user */}
           <Route element={<ProtectedRoute />}>
+            <Route element={<AppShell />}>
+              <Route path="/" element={<div>Home</div>} />
+              <Route path="/projects" element={<div>Projects</div>} />
+            </Route>
             <Route path="/" element={<div>Home</div>} />
             <Route path="/projects" element={<div>Projects</div>} />
           </Route>
