@@ -3,6 +3,8 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import AuthProvider from "./context/AuthProvider";
 import ProtectedRoute from "./components/general/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
+import ProjectsPage from "./pages/projects/ProjectsPage";
+import ProjectPage from "./pages/projects/ProjectPage";
 
 const App = () => {
   return (
@@ -16,7 +18,8 @@ const App = () => {
           {/* protected: everything inside needs a logged-in user */}
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<div>Home</div>} />
-            <Route path="/projects" element={<div>Projects</div>} />
+            <Route path="/projects" element={<ProjectsPage />} />
+            <Route path="/projects/:projectId" element={<ProjectPage />} />
           </Route>
 
           <Route path="*" element={<div>Page not found</div>} />
