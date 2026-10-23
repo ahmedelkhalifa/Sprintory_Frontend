@@ -7,6 +7,7 @@ import ActivateAccountPage from "./pages/auth/ActivateAccountPage";
 import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
 import LoginPage from "./pages/LoginPage";
 import AppShell from "./components/layouts/AppShell";
+import TeamsPage from "./pages/TeamsPage";
 
 const App = () => {
   return (
@@ -24,9 +25,9 @@ const App = () => {
             <Route element={<AppShell />}>
               <Route path="/" element={<div>Home</div>} />
               <Route path="/projects" element={<div>Projects</div>} />
+              <Route path="/teams" element={<TeamsPage />} />
+              <Route path="/workspaces/:workspaceId/teams" element={<TeamsPage />} />
             </Route>
-            <Route path="/" element={<div>Home</div>} />
-            <Route path="/projects" element={<div>Projects</div>} />
           </Route>
 
           <Route path="*" element={<div>Page not found</div>} />

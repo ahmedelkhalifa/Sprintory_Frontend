@@ -23,7 +23,7 @@ const NAV_ITEMS = [
     { label: "Board", to: "/board", icon: <ViewColumnOutlined /> },
     { label: "Sprints", to: "/sprints", icon: <TimerOutlined /> },
     { label: "Reports", to: "/reports", icon: <BarChartOutlined /> },
-    { label: "Team", to: "/team", icon: <GroupOutlined /> },
+    { label: "Teams", to: "/teams", icon: <GroupOutlined /> },
     { label: "Settings", to: "/settings", icon: <SettingsOutlined /> },
 ];
 
