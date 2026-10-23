@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { getProject, getProjectMembers } from "../api/projectsApi";
+import { getErrorMessage } from "../utils/apiErrors";
 
-// turn an axios error into a message the page can show
-function getErrorMessage(err) {
-  if (!err.response) return "Can't reach the server. Please try again later.";
-  if (err.response.status === 404) return "Project not found.";
-  if (err.response.status === 403) return "You don't have access to this project.";
-  return "Couldn't load the project. Please try again.";
-}
+const ERROR_MESSAGES = {
+  404: "Project not found.",
+  403: "You don't have access to this project.",
+  fallback: "Couldn't load the project. Please try again.",
+};
 
 /**
  * Loads a project and its members for the project page.
@@ -29,7 +28,7 @@ export function useProjectMembers(projectId) {
         if (!ignore) setResult({ key: requestKey, project, members: members ?? [], error: "" });
       })
       .catch((err) => {
-        if (!ignore) setResult({ key: requestKey, project: null, members: [], error: getErrorMessage(err) });
+        if (!ignore) setResult({ key: requestKey, project: null, members: [], error: getErrorMessage(err, ERROR_MESSAGES) });
       });
 
     return () => {
