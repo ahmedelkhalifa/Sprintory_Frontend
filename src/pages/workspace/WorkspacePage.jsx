@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getWorkspace } from "../../api/workspaces";
 import { Box, Tab, Tabs } from "@mui/material";
 import WorkspaceHeader from "./WorkspaceHeader";
 import StatCards from "./StatCards";
@@ -12,7 +13,15 @@ const TABS = ["Overview", "Projects", "Teams", "People", "Settings"];
 
 function WorkspacePage() {
     const { workspaceId } = useParams();
-    console.log(workspaceId);
+    const [workspace, setWorkspace] = useState(null);
+
+    useEffect(() => {
+        getWorkspace(workspaceId)
+            .then((data) => setWorkspace(data))
+            .catch((err) => console.log("error:", err));
+    }, [workspaceId]);
+
+    console.log(workspace);
     const [tab, setTab] = useState(0);
 
     return (
