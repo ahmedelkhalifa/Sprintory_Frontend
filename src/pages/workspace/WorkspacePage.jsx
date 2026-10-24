@@ -1,11 +1,13 @@
 
+
+import { getTeams, getTeamMembers } from "../../api/teams";
 import { Box, Tab, Tabs } from "@mui/material";
 import WorkspaceHeader from "./WorkspaceHeader";
 import StatCards from "./StatCards";
 import ProjectsTable from "./ProjectsTable";
 import TeamsPanel from "./TeamsPanel";
 import RecentActivity from "./RecentActivity";
-import { ACTIVITY, PROJECTS, STATS, TEAMS } from "./mockData";
+import { ACTIVITY, PROJECTS, STATS } from "./mockData";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Alert, CircularProgress } from "@mui/material";
@@ -19,6 +21,20 @@ function WorkspacePage() {
     const [workspace, setWorkspace] = useState(null);
     const [error, setError] = useState(null);
     const [tab, setTab] = useState(0);
+    const [teams, setTeams] = useState([]);
+
+    useEffect(() => {
+        getTeams(workspaceId, { size: 5 })
+            .then(async (page) => {
+                const withMembers = await Promise.all(
+                    page.content.map(async (t) => {
+                        const m = await getTeamMembers(t.id, { size: 3 });
+                        return { ...t, memberCount: m.totalElements, memberPreview: m.content };
+                    })
+                );
+                setTeams(withMembers);
+            })
+    }, [workspaceId]);
 
     useEffect(() => {
         getWorkspace(workspaceId)
@@ -54,7 +70,7 @@ function WorkspacePage() {
                             <ProjectsTable projects={PROJECTS} />
                         </Box>
                         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                            <TeamsPanel teams={TEAMS} />
+                            <TeamsPanel teams={teams} />
                             <RecentActivity items={ACTIVITY} />
                         </Box>
                     </Box>

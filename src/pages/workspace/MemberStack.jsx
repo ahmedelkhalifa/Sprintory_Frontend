@@ -1,11 +1,15 @@
 import { Avatar, Box } from "@mui/material";
 
 const TONES = ["primary", "success", "warning"];
-const INITIALS = ["AM", "SC", "JD"];
+const FAKE_INITIALS = ["AM", "SC", "JD"];
 
-// TODO: подставить реальных участников из API
-function MemberStack({ count }) {
-    const extra = Math.max(count - 3, 0);
+function MemberStack({ count = 0, members, total }) {
+    const letters = members
+        ? members.map((m) => `${m.firstName?.[0] ?? ""}${m.lastName?.[0] ?? ""}`.toUpperCase())
+        : FAKE_INITIALS;
+    const all = members ? total : count;
+    const extra = Math.max(all - letters.length, 0);
+
     const avatarSx = (i, bg) => (theme) => ({
         width: 28, height: 28, fontSize: 11, ml: i ? -1 : 0,
         border: 2, borderColor: "background.paper",
@@ -14,11 +18,11 @@ function MemberStack({ count }) {
 
     return (
         <Box sx={{ display: "flex", alignItems: "center" }}>
-            {INITIALS.map((l, i) => (
-                <Avatar key={l} sx={avatarSx(i, (t) => t.palette[TONES[i]].main)}>{l}</Avatar>
+            {letters.map((l, i) => (
+                <Avatar key={i} sx={avatarSx(i, (t) => t.palette[TONES[i % TONES.length]].main)}>{l}</Avatar>
             ))}
             {extra > 0 && (
-                <Avatar sx={{ ...avatarSx(3, () => "transparent"), bgcolor: "background.default", color: "text.secondary" }}>
+                <Avatar sx={{ ...avatarSx(letters.length, () => "transparent"), bgcolor: "background.default", color: "text.secondary" }}>
                     +{extra}
                 </Avatar>
             )}
