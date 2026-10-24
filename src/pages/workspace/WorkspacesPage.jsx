@@ -1,18 +1,20 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Alert, Box, Button, Card, CardActionArea, Chip, CircularProgress, Typography } from "@mui/material";
-import { Add } from "@mui/icons-material";
+import { Alert, Box, Button, Card, CardActionArea, Chip, CircularProgress, Typography, IconButton } from "@mui/material";
+import { Add, SettingsOutlined } from "@mui/icons-material";
 import NameDialog from "./NameDialog";
 import { createWorkspace, getWorkspaces } from "../../api/workspaces";
 import { errorMessage } from "../../utils/apiError";
+import WorkspaceSettingsDialog from "./WorkspaceSettingsDialog";
 
 const ROLE_LABEL = { WORKSPACE_ADMIN: "Admin", WORKSPACE_MEMBER: "Member" };
 
-function WorkspaceCard({ workspace, onOpen }) {
+function WorkspaceCard({ workspace, onOpen, onSettings }) {
+    const isAdmin = workspace.role === "WORKSPACE_ADMIN";
     return (
-        <Card variant="outlined">
+        <Card variant="outlined" sx={{ position: "relative" }}>
             <CardActionArea onClick={onOpen} sx={{ p: 2.5 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2, pr: isAdmin ? 5 : 0 }}>
                     <Box sx={{
                         width: 44, height: 44, borderRadius: 2, flexShrink: 0,
                         bgcolor: "navActive.background", color: "navActive.text",
@@ -29,6 +31,15 @@ function WorkspaceCard({ workspace, onOpen }) {
                     </Box>
                 </Box>
             </CardActionArea>
+            {isAdmin && (
+                <IconButton
+                    aria-label="Workspace settings"
+                    onClick={onSettings}
+                    sx={{ position: "absolute", top: 8, right: 8 }}
+                >
+                    <SettingsOutlined />
+                </IconButton>
+            )}
         </Card>
     );
 }
@@ -38,6 +49,7 @@ function WorkspacesPage() {
     const [workspaces, setWorkspaces] = useState(null);
     const [error, setError] = useState(null);
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [settingsFor, setSettingsFor] = useState(null);
 
     useEffect(() => {
         getWorkspaces()
@@ -58,7 +70,12 @@ function WorkspacesPage() {
             gap: 2,
         }}>
             {list.map((w) => (
-                <WorkspaceCard key={w.id} workspace={w} onOpen={() => navigate(`/workspaces/${w.id}`)} />
+                <WorkspaceCard
+                    key={w.id}
+                    workspace={w}
+                    onOpen={() => navigate(`/workspaces/${w.id}`)}
+                    onSettings={() => setSettingsFor(w)}
+                />
             ))}
         </Box>
     );
@@ -94,9 +111,26 @@ function WorkspacesPage() {
                 onClose={() => setDialogOpen(false)}
                 onSubmit={async (name) => {
                     const created = await createWorkspace(name);
-                    navigate(`/workspaces/${created.id}`);
+                    setWorkspaces((list) =>
+                        [...list, created].sort((a, b) => a.name.localeCompare(b.name))
+                    );
                 }}
             />
+            {settingsFor && (
+                <WorkspaceSettingsDialog
+                    open
+                    workspace={settingsFor}
+                    onClose={() => setSettingsFor(null)}
+                    onChanged={(updated) => {
+                        setWorkspaces((list) => list.map((w) => (w.id === updated.id ? updated : w)));
+                        setSettingsFor(updated);
+                    }}
+                    onDeleted={() => {
+                        setWorkspaces((list) => list.filter((w) => w.id !== settingsFor.id));
+                        setSettingsFor(null);
+                    }}
+                />
+            )}
         </Box>
     );
 }
