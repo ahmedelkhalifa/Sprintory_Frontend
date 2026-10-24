@@ -8,6 +8,7 @@ import { errorMessage } from "../../utils/apiError";
 import WorkspaceSettingsDialog from "./WorkspaceSettingsDialog";
 
 const ROLE_LABEL = { WORKSPACE_ADMIN: "Admin", WORKSPACE_MEMBER: "Member" };
+const byName = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
 
 function WorkspaceCard({ workspace, onOpen, onSettings }) {
     const isAdmin = workspace.role === "WORKSPACE_ADMIN";
@@ -53,7 +54,7 @@ function WorkspacesPage() {
 
     useEffect(() => {
         getWorkspaces()
-            .then(setWorkspaces)
+            .then((list) => setWorkspaces([...list].sort(byName)))
             .catch((err) => setError(errorMessage(err)));
     }, []);
 
@@ -111,9 +112,7 @@ function WorkspacesPage() {
                 onClose={() => setDialogOpen(false)}
                 onSubmit={async (name) => {
                     const created = await createWorkspace(name);
-                    setWorkspaces((list) =>
-                        [...list, created].sort((a, b) => a.name.localeCompare(b.name))
-                    );
+                    setWorkspaces((list) => [...list, created].sort(byName));
                 }}
             />
             {settingsFor && (
@@ -122,7 +121,8 @@ function WorkspacesPage() {
                     workspace={settingsFor}
                     onClose={() => setSettingsFor(null)}
                     onChanged={(updated) => {
-                        setWorkspaces((list) => list.map((w) => (w.id === updated.id ? updated : w)));
+                        setWorkspaces((list) =>
+                            list.map((w) => (w.id === updated.id ? updated : w)).sort(byName));
                         setSettingsFor(updated);
                     }}
                     onDeleted={() => {

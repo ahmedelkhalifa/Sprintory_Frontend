@@ -1,11 +1,13 @@
-import { useState } from "react";
+
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from "@mui/material";
 import { errorMessage } from "../../utils/apiError";
+import { useRef, useState } from "react";
 
 function NameDialog({ open, title, label, submitLabel = "Create", onClose, onSubmit }) {
     const [name, setName] = useState("");
     const [error, setError] = useState(null);
     const [busy, setBusy] = useState(false);
+    const inputRef = useRef(null);
 
     const close = () => {
         setName("");
@@ -32,11 +34,15 @@ function NameDialog({ open, title, label, submitLabel = "Create", onClose, onSub
 
     return (
         <Dialog open={open} onClose={close} fullWidth maxWidth="xs"
-                slotProps={{ paper: { component: "form", onSubmit: submit } }}>
+                slotProps={{
+                    paper: { component: "form", onSubmit: submit },
+                    transition: { onEntered: () => inputRef.current?.focus() },
+                }}>
             <DialogTitle>{title}</DialogTitle>
             <DialogContent>
                 {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-                <TextField autoFocus fullWidth margin="dense" label={label}
+                <TextField fullWidth margin="dense" label={label}
+                           inputRef={inputRef}
                            value={name} onChange={(e) => setName(e.target.value)} />
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>

@@ -14,13 +14,13 @@ import {
 } from "@mui/icons-material";
 import Logo from "../general/Logo";
 import { useAuth } from "../../context/AuthContext";
+import WorkspaceSwitcher from "./WorkspaceSwitcher";
 
 const DRAWER_WIDTH = 270;
 const HEADER_HEIGHT = 80;
 
 const NAV_ITEMS = [
   { label: "Home", to: "/", icon: <HomeOutlined /> },
-  { label: "Workspaces", to: "/workspaces/", icon: <WorkspacesOutlined /> },
   { label: "Projects", to: "/projects", icon: <FolderOpenOutlined /> },
   { label: "Backlog", to: "/backlog", icon: <ViewListOutlined /> },
   { label: "Board", to: "/board", icon: <ViewColumnOutlined /> },
@@ -88,6 +88,9 @@ const AppShell = () => {
     <Box>
       <Box sx={{ display: "flex", alignItems: "center", px: 3, height: HEADER_HEIGHT }}>
         <Logo size={24} inverted />
+      </Box>
+      <Box sx={{ px: 2, pb: 2 }}>
+        <WorkspaceSwitcher />
       </Box>
       <List sx={{ px: 1.5, display: "flex", flexDirection: "column", gap: 0.5 }}>
         {NAV_ITEMS.map((item) => (
