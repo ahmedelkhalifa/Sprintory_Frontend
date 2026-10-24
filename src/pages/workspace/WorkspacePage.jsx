@@ -18,6 +18,7 @@ function WorkspacePage() {
     const { workspaceId } = useParams();
     const [workspace, setWorkspace] = useState(null);
     const [error, setError] = useState(null);
+    const [tab, setTab] = useState(0);
 
     useEffect(() => {
         getWorkspace(workspaceId)
@@ -28,12 +29,10 @@ function WorkspacePage() {
     if (error) return <Alert severity="error">Could not load workspace ({error})</Alert>;
     if (!workspace) return <CircularProgress />;
 
-    const [tab, setTab] = useState(0);
-
     return (
-        <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+        <Box sx={{ }}>
 
-            <Box sx={{ maxWidth: 1440, mx: "auto", px: { xs: 2, md: 4 }, py: 25 }}>
+            <Box sx={{ maxWidth: 1440, mx: "auto", px: { xs: 2, md: 4 }, py: 0 }}>
                 <WorkspaceHeader name={workspace.name} role={ROLE_LABEL[workspace.role]} />
                 <Box sx={{ borderBottom: 1, borderColor: "divider", mt: 3, mb: 3 }}>
                     <Tabs value={tab} onChange={(_, v) => setTab(v)}>
