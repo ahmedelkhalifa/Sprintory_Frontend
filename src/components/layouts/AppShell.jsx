@@ -90,6 +90,20 @@ const AppShell = () => {
         <Logo size={24} inverted />
       </Box>
       <Box sx={{ px: 2, pb: 2 }}>
+        <Typography
+            variant="caption"
+            sx={(theme) => ({
+              display: "block",
+              px: 1,
+              pb: 0.5,
+              fontWeight: 600,
+              letterSpacing: 0.5,
+              textTransform: "uppercase",
+              color: alpha(theme.palette.common.white, 0.55),
+            })}
+        >
+          Workspaces
+        </Typography>
         <WorkspaceSwitcher />
       </Box>
       <List sx={{ px: 1.5, display: "flex", flexDirection: "column", gap: 0.5 }}>

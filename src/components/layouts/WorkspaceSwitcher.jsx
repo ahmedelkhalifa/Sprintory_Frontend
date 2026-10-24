@@ -66,10 +66,13 @@ function WorkspaceSwitcher() {
                 sx={(theme) => ({
                     width: "100%", p: 1, borderRadius: 2, textAlign: "left",
                     justifyContent: "flex-start", gap: 1.5,
-                    color: alpha(theme.palette.common.white, 0.85),
-                    transition: "background-color 0.15s",
+                    color: alpha(theme.palette.common.white, 0.9),
+                    bgcolor: alpha(theme.palette.common.white, 0.08),
+                    border: 1,
+                    borderColor: "transparent",
+                    transition: "border-color 0.15s",
                     "&:hover, &[aria-expanded='true']": {
-                        bgcolor: alpha(theme.palette.common.white, 0.08),
+                        borderColor: "primary.main",
                     },
                 })}
                 aria-expanded={Boolean(anchor)}
