@@ -1,40 +1,12 @@
 import {
-    Box, Button, Card, Chip, IconButton, InputAdornment, Pagination, Table, TableBody,
+    Box, Button, Card, IconButton, InputAdornment, Pagination, Table, TableBody,
     TableCell, TableHead, TableRow, TextField, Typography,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { Add, FilterList, FolderOpenOutlined, MoreHoriz, SearchOutlined } from "@mui/icons-material";
 import MemberStack from "./MemberStack";
-import { toneColor } from "./mockData";
 
-const STATUS_TONE = {
-    "In Progress": "success",
-    Planning: "primary",
-    "On Hold": "error",
-    "Not Started": "neutral",
-};
-
-function StatusChip({ status }) {
-    const tone = STATUS_TONE[status];
-    return (
-        <Chip
-            size="small"
-            sx={(t) => ({
-                bgcolor: alpha(toneColor(t, tone), 0.12),
-                color: "text.primary",
-                fontWeight: 500,
-            })}
-            label={
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-                    <Box sx={(t) => ({ width: 8, height: 8, borderRadius: "50%", bgcolor: toneColor(t, tone) })} />
-                    {status}
-                </Box>
-            }
-        />
-    );
-}
-
-function ProjectsTable({ projects }) {
+function ProjectsTable({ projects, total, totalPages, page, onPageChange, search, onSearch }) {
     return (
         <Card sx={{ p: 3 }}>
             <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 2 }}>
@@ -51,6 +23,8 @@ function ProjectsTable({ projects }) {
                     <TextField
                         size="small"
                         placeholder="Search projects..."
+                        value={search}
+                        onChange={(e) => onSearch(e.target.value)}
                         slotProps={{
                             input: {
                                 startAdornment: (
@@ -70,7 +44,7 @@ function ProjectsTable({ projects }) {
                 <Table size="medium">
                     <TableHead>
                         <TableRow>
-                            {["Name", "Status", "Team", "Members", "Updated", ""].map((h) => (
+                            {["Name", "Members", ""].map((h) => (
                                 <TableCell key={h} sx={{ color: "text.secondary", fontWeight: 500, borderColor: "divider" }}>
                                     {h}
                                 </TableCell>
@@ -78,29 +52,32 @@ function ProjectsTable({ projects }) {
                         </TableRow>
                     </TableHead>
                     <TableBody>
+                        {projects.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={3} sx={{ color: "text.secondary", borderColor: "divider" }}>
+                                    No projects found.
+                                </TableCell>
+                            </TableRow>
+                        )}
                         {projects.map((p) => (
-                            <TableRow key={p.code} hover sx={{ "& td": { borderColor: "divider" } }}>
+                            <TableRow key={p.id} hover sx={{ "& td": { borderColor: "divider" } }}>
                                 <TableCell>
                                     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                                         <Box sx={(t) => ({
                                             width: 44, height: 44, borderRadius: 1.5, flexShrink: 0,
                                             display: "flex", alignItems: "center", justifyContent: "center",
                                             fontWeight: 700, fontSize: 14,
-                                            bgcolor: alpha(toneColor(t, p.tone), 0.15),
-                                            color: "text.primary",
+                                            bgcolor: alpha(t.palette.primary.main, 0.12),
+                                            color: "primary.main",
                                         })}>
-                                            {p.code}
+                                            {p.name.slice(0, 2).toUpperCase()}
                                         </Box>
-                                        <Box>
-                                            <Typography sx={{ fontWeight: 600 }}>{p.name}</Typography>
-                                            <Typography variant="body2" color="text.secondary">{p.desc}</Typography>
-                                        </Box>
+                                        <Typography sx={{ fontWeight: 600 }}>{p.name}</Typography>
                                     </Box>
                                 </TableCell>
-                                <TableCell><StatusChip status={p.status} /></TableCell>
-                                <TableCell>{p.team}</TableCell>
-                                <TableCell><MemberStack count={p.members} /></TableCell>
-                                <TableCell>{p.updated}</TableCell>
+                                <TableCell>
+                                    <MemberStack members={p.memberPreview} total={p.memberCount} />
+                                </TableCell>
                                 <TableCell align="right">
                                     <IconButton size="small" aria-label="More"><MoreHoriz /></IconButton>
                                 </TableCell>
@@ -112,9 +89,15 @@ function ProjectsTable({ projects }) {
 
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 2 }}>
                 <Typography variant="body2" color="text.secondary">
-                    Showing {projects.length} of 12 projects
+                    Showing {projects.length} of {total} projects
                 </Typography>
-                <Pagination count={2} shape="rounded" color="primary" />
+                <Pagination
+                    count={Math.max(totalPages, 1)}
+                    page={page + 1}
+                    onChange={(_, value) => onPageChange(value - 1)}
+                    shape="rounded"
+                    color="primary"
+                />
             </Box>
         </Card>
     );

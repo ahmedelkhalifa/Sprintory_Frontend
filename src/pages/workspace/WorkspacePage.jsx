@@ -1,5 +1,5 @@
 
-
+import { getProjects, getProjectMembers } from "../../api/projects";
 import { getTeams, getTeamMembers } from "../../api/teams";
 import { Box, Tab, Tabs } from "@mui/material";
 import WorkspaceHeader from "./WorkspaceHeader";
@@ -7,7 +7,7 @@ import StatCards from "./StatCards";
 import ProjectsTable from "./ProjectsTable";
 import TeamsPanel from "./TeamsPanel";
 import RecentActivity from "./RecentActivity";
-import { ACTIVITY, PROJECTS, STATS } from "./mockData";
+import { ACTIVITY, STATS } from "./mockData";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Alert, CircularProgress } from "@mui/material";
@@ -22,6 +22,23 @@ function WorkspacePage() {
     const [error, setError] = useState(null);
     const [tab, setTab] = useState(0);
     const [teams, setTeams] = useState([]);
+    const [projects, setProjects] = useState({ content: [], totalPages: 1, totalElements: 0 });
+    const [projectPage, setProjectPage] = useState(0);
+    const [search, setSearch] = useState("");
+
+    useEffect(() => {
+        getProjects(workspaceId, { page: projectPage, size: 8, q: search || undefined })
+            .then(async (res) => {
+                const content = await Promise.all(
+                    res.content.map(async (p) => {
+                        const m = await getProjectMembers(p.id, { size: 3 });
+                        return { ...p, memberCount: m.totalElements, memberPreview: m.content };
+                    })
+                );
+                setProjects({ ...res, content });
+            })
+            .catch(() => setProjects({ content: [], totalPages: 1, totalElements: 0 }));
+    }, [workspaceId, projectPage, search]);
 
     useEffect(() => {
         getTeams(workspaceId, { size: 5 })
@@ -67,7 +84,15 @@ function WorkspacePage() {
                     }}>
                         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
                             <StatCards stats={STATS} />
-                            <ProjectsTable projects={PROJECTS} />
+                            <ProjectsTable
+                                projects={projects.content}
+                                total={projects.totalElements}
+                                totalPages={projects.totalPages}
+                                page={projectPage}
+                                onPageChange={setProjectPage}
+                                search={search}
+                                onSearch={(value) => { setSearch(value); setProjectPage(0); }}
+                            />
                         </Box>
                         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
                             <TeamsPanel teams={teams} />
