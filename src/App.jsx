@@ -5,7 +5,7 @@ import ProtectedRoute from "./components/general/ProtectedRoute";
 import RegisterPage from "./pages/auth/RegisterPage";
 import ActivateAccountPage from "./pages/auth/ActivateAccountPage";
 import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
-import LoginPage from "./pages/LoginPage";
+import LoginPage from "./pages/auth/LoginPage";
 import AppShell from "./components/layouts/AppShell";
 import TeamsPage from "./pages/TeamsPage";
 
@@ -27,6 +27,12 @@ const App = () => {
               <Route path="/projects" element={<div>Projects</div>} />
               <Route path="/teams" element={<TeamsPage />} />
               <Route path="/workspaces/:workspaceId/teams" element={<TeamsPage />} />
+              {/* placeholders until these pages exist, so the sidebar links stay inside the shell */}
+              <Route path="/backlog" element={<div>Backlog</div>} />
+              <Route path="/board" element={<div>Board</div>} />
+              <Route path="/sprints" element={<div>Sprints</div>} />
+              <Route path="/reports" element={<div>Reports</div>} />
+              <Route path="/settings" element={<div>Settings</div>} />
             </Route>
           </Route>
 

@@ -8,7 +8,8 @@ import LanguageSelect from "../general/LanguageSelect";
 // mobile/tablet: photo hidden, logo on top, form below
 // The page is exactly one screen tall (100dvh). If the form ever doesn't fit
 // (small laptop, phone), only the form column scrolls, never the whole page.
-const AuthLayout = ({ children }) => {
+// heroImage: optional photo for the left side, AuthHero has a default
+const AuthLayout = ({ heroImage, children }) => {
   return (
     <Box
       sx={{
@@ -20,7 +21,7 @@ const AuthLayout = ({ children }) => {
       }}
     >
       <Box sx={{ display: { xs: "none", md: "block" }, minHeight: 0 }}>
-        <AuthHero />
+        <AuthHero image={heroImage} />
       </Box>
 
       <Box
