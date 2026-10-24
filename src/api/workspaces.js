@@ -10,3 +10,6 @@ export const restoreWorkspace = (id) => api.post(`/workspaces/${id}/restore`).th
 export const deleteWorkspace = (id) => api.delete(`/workspaces/${id}`);
 export const inviteMembers = (id, emails) =>
     api.post(`/workspaces/${id}/invitations`, { emails }).then((r) => r.data);
+export const getWorkspaces = () => api.get("/workspaces").then((r) => r.data);
+export const createWorkspace = (name) =>
+    api.post("/workspaces", { name }).then((r) => r.data);

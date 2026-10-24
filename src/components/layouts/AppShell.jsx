@@ -10,7 +10,7 @@ import {
   HomeOutlined, FolderOpenOutlined, ViewListOutlined, ViewColumnOutlined,
   TimerOutlined, BarChartOutlined, GroupOutlined, SettingsOutlined,
   SearchOutlined, NotificationsNoneOutlined, KeyboardArrowDown,
-  LogoutOutlined, Menu as MenuIcon,
+  LogoutOutlined, Menu as MenuIcon, WorkspacesOutlined,
 } from "@mui/icons-material";
 import Logo from "../general/Logo";
 import { useAuth } from "../../context/AuthContext";
@@ -20,6 +20,7 @@ const HEADER_HEIGHT = 80;
 
 const NAV_ITEMS = [
   { label: "Home", to: "/", icon: <HomeOutlined /> },
+  { label: "Workspaces", to: "/workspaces/", icon: <WorkspacesOutlined /> },
   { label: "Projects", to: "/projects", icon: <FolderOpenOutlined /> },
   { label: "Backlog", to: "/backlog", icon: <ViewListOutlined /> },
   { label: "Board", to: "/board", icon: <ViewColumnOutlined /> },

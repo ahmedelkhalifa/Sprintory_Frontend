@@ -3,7 +3,7 @@ import { alpha } from "@mui/material/styles";
 import { Add, ChevronRight, GroupsOutlined } from "@mui/icons-material";
 import MemberStack from "./MemberStack";
 
-function TeamsPanel({ teams }) {
+function TeamsPanel({ teams, canCreate, onCreate }) {
     return (
         <Card>
             <Box sx={{ p: 2.5, pb: 1.5 }}>
@@ -12,7 +12,9 @@ function TeamsPanel({ teams }) {
                         <GroupsOutlined />
                         <Typography variant="h6" sx={{ fontWeight: 700 }}>Teams</Typography>
                     </Box>
-                    <Button size="small" startIcon={<Add />}>Create team</Button>
+                    {canCreate && (
+                        <Button size="small" startIcon={<Add />} onClick={onCreate}>Create team</Button>
+                    )}
                 </Box>
                 <Typography variant="body2" color="text.secondary">Teams in this workspace.</Typography>
             </Box>

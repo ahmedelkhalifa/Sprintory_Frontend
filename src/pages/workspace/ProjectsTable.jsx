@@ -6,7 +6,7 @@ import { alpha } from "@mui/material/styles";
 import { Add, FilterList, FolderOpenOutlined, MoreHoriz, SearchOutlined } from "@mui/icons-material";
 import MemberStack from "./MemberStack";
 
-function ProjectsTable({ projects, total, totalPages, page, onPageChange, search, onSearch }) {
+function ProjectsTable({ projects, total, totalPages, page, onPageChange, search, onSearch, canCreate, onCreate }) {
     return (
         <Card sx={{ p: 3 }}>
             <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 2 }}>
@@ -36,7 +36,9 @@ function ProjectsTable({ projects, total, totalPages, page, onPageChange, search
                     <Button variant="outlined" color="inherit" startIcon={<FilterList />} sx={{ borderColor: "divider" }}>
                         Filter
                     </Button>
-                    <Button variant="contained" startIcon={<Add />}>Create project</Button>
+                    {canCreate && (
+                        <Button variant="contained" startIcon={<Add />} onClick={onCreate}>Create project</Button>
+                    )}
                 </Box>
             </Box>
 

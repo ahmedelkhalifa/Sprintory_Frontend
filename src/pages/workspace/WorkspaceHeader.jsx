@@ -1,7 +1,7 @@
 import { Box, Button, Chip, Typography } from "@mui/material";
 import { Add, PersonAddAltOutlined, SettingsOutlined } from "@mui/icons-material";
 
-function WorkspaceHeader({ name, role, description }) {
+function WorkspaceHeader({ name, role, archived, isAdmin, onInvite, onSettings, onCreateProject }) {
     return (
         <Box sx={{
             display: "flex",
@@ -10,24 +10,30 @@ function WorkspaceHeader({ name, role, description }) {
             alignItems: { md: "flex-start" },
             gap: 2,
         }}>
-            <Box>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                    <Typography variant="h4" sx={{ fontWeight: 700 }}>{name}</Typography>
-                    <Chip
-                        label={role}
-                        size="small"
-                        sx={{ bgcolor: "navActive.background", color: "navActive.text", fontWeight: 500 }}
-                    />
-                </Box>
-                <Typography color="text.secondary" sx={{ mt: 0.5 }}>{description}</Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+                <Typography variant="h4" sx={{ fontWeight: 700 }}>{name}</Typography>
+                <Chip label={role} size="small"
+                      sx={{ bgcolor: "navActive.background", color: "navActive.text", fontWeight: 500 }} />
+                {archived && <Chip label="Archived" size="small" color="warning" />}
             </Box>
 
             <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
-                <Button variant="outlined" startIcon={<PersonAddAltOutlined />}>Invite people</Button>
-                <Button variant="outlined" color="inherit" startIcon={<SettingsOutlined />} sx={{ borderColor: "divider" }}>
-                    Workspace settings
-                </Button>
-                <Button variant="contained" startIcon={<Add />}>Create project</Button>
+                {isAdmin && !archived && (
+                    <Button variant="outlined" startIcon={<PersonAddAltOutlined />} onClick={onInvite}>
+                        Invite people
+                    </Button>
+                )}
+                {isAdmin && (
+                    <Button variant="outlined" color="inherit" startIcon={<SettingsOutlined />}
+                            sx={{ borderColor: "divider" }} onClick={onSettings}>
+                        Workspace settings
+                    </Button>
+                )}
+                {!archived && (
+                    <Button variant="contained" startIcon={<Add />} onClick={onCreateProject}>
+                        Create project
+                    </Button>
+                )}
             </Box>
         </Box>
     );
