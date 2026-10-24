@@ -5,3 +5,5 @@ export const getTeams = (workspaceId, params) =>
 
 export const getTeamMembers = (teamId, params) =>
     api.get(`/teams/${teamId}/members`, { params }).then((r) => r.data);
+export const createTeam = (workspaceId, name) =>
+    api.post(`/workspaces/${workspaceId}/teams`, { name }).then((r) => r.data);

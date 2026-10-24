@@ -5,3 +5,5 @@ export const getProjects = (workspaceId, params) =>
 
 export const getProjectMembers = (projectId, params) =>
     api.get(`/projects/${projectId}/members`, { params }).then((r) => r.data);
+export const createProject = (workspaceId, name) =>
+    api.post(`/workspaces/${workspaceId}/projects`, { name }).then((r) => r.data);
