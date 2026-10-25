@@ -15,11 +15,11 @@ const ProtectedRoute = () => {
   }
 
   if (!user) {
-    // rembmers where they were going so a login send them back
+    // Remember the requested URL so login can return there.
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-    return <Outlet />; // render the child routes if the user is authenticated
+  return <Outlet />; // Render children only while authenticated.
 };
 
 export default ProtectedRoute;

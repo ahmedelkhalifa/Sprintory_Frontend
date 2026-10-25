@@ -6,7 +6,7 @@ const notify = (data) => {
     return data;
 };
 
-export const getWorkspace = (id) => api.get(`/workspaces/${id}`).then((r) => r.data);
+export const getWorkspace = (id, signal) => api.get(`/workspaces/${id}`, { signal }).then((r) => r.data);
 export const getWorkspaces = () => api.get("/workspaces").then((r) => r.data);
 export const getWorkspaceMembers = (id, params) =>
     api.get(`/workspaces/${id}/members`, { params }).then((r) => r.data);
