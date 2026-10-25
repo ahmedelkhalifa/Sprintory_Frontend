@@ -2,6 +2,7 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import AuthProvider from "./context/AuthProvider";
 import ProtectedRoute from "./components/general/ProtectedRoute";
+import ResetPage from "./pages/auth/ResetPage";
 import WorkspacePage from "./pages/workspace/WorkspacePage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import ActivateAccountPage from "./pages/auth/ActivateAccountPage";
@@ -18,6 +19,7 @@ const App = () => {
         <Routes>
           {/* public */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/reset" element={<ResetPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/activate-account" element={<ActivateAccountPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
