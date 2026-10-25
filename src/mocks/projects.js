@@ -40,7 +40,10 @@ const membersOf = (projectId) =>
   }));
 
 // looks like an axios 404, so the hooks handle it the same way as a real one
-const notFound = () => Object.assign(new Error("Not found"), { response: { status: 404 } });
+const notFound = () =>
+  Object.assign(new Error("Not found"), {
+    response: { status: 404, data: { status: 404, code: "RESOURCE_NOT_FOUND", message: "Project not found." } },
+  });
 
 // small delay so loading states are visible, like a real request
 const delay = (value) => new Promise((resolve) => setTimeout(() => resolve(value), 400));

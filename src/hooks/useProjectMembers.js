@@ -3,8 +3,8 @@ import { getProject, getProjectMembers } from "../api/projectsApi";
 import { getErrorMessage } from "../utils/apiErrors";
 
 const ERROR_MESSAGES = {
-  404: "Project not found.",
-  403: "You don't have access to this project.",
+  RESOURCE_NOT_FOUND: "Project not found.",
+  ACCESS_DENIED: "You don't have access to this project.",
   fallback: "Couldn't load the project. Please try again.",
 };
 
