@@ -3,7 +3,6 @@ import { USE_MOCKS } from "./useMocks";
 import { pageParams, toPage } from "../utils/paging";
 import { PROJECT_STATUS } from "../constants/projects";
 import * as mock from "../mocks/handlers";
-import { mockGetProject, mockGetProjectMembers, mockGetProjects } from "../mocks/projects";
 
 /**
  * Projects API, see projects-docs.md and roles-docs.md. Paths are relative to VITE_API_URL (…/api/v1).
@@ -52,9 +51,7 @@ export async function createProject(workspaceId, { name, template }) {
 }
 
 export async function getProject(projectId) {
-  // TEMP: the old mock until the pages switch to the new hooks; then mock.mockGetProject
-  if (USE_MOCKS) return mockGetProject(projectId);
-  const { data } = await api.get(`/projects/${projectId}`);
+  const data = USE_MOCKS ? await mock.mockGetProject(projectId) : (await api.get(`/projects/${projectId}`)).data;
   return toProject(data);
 }
 
@@ -118,20 +115,4 @@ export async function restoreProject(projectId) {
 export async function deleteProject(projectId) {
   if (USE_MOCKS) return mock.mockDeleteProject(projectId);
   await api.delete(`/projects/${projectId}`);
-}
-
-// ---------------------------------------------------------------------------------------------
-// TEMP: the old guessed endpoints, still used by useProjects / useProjectMembers.
-// Removed when the pages switch to the functions above.
-// ---------------------------------------------------------------------------------------------
-export async function getProjects() {
-  if (USE_MOCKS) return mockGetProjects();
-  const { data } = await api.get("/projects");
-  return data;
-}
-
-export async function getProjectMembers(projectId) {
-  if (USE_MOCKS) return mockGetProjectMembers(projectId);
-  const { data } = await api.get(`/projects/${projectId}/members`);
-  return data;
 }

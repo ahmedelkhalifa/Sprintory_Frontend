@@ -13,8 +13,9 @@ const colorFor = (seed = "") => {
 
 // Round avatar: the user's photo, or their initials on a theme color
 const UserAvatar = ({ user, size = 36, sx }) => {
-  const { firstName, lastName, avatarUrl, id } = user;
-  const color = colorFor(id ?? `${firstName}${lastName}`);
+  // the backend sends people as { userId, ... }; `id` is kept for any older data
+  const { firstName, lastName, avatarUrl } = user;
+  const color = colorFor(user.userId ?? user.id ?? `${firstName}${lastName}`);
 
   return (
     <Avatar

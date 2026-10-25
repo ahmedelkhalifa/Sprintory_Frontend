@@ -26,9 +26,13 @@ const PageHeader = ({ title, subtitle, breadcrumb, avatar, actions }) => {
             >
               {title}
             </Typography>
-            {subtitle && (
-              <Typography sx={{ mt: 0.5, color: "text.secondary", fontSize: 15 }}>{subtitle}</Typography>
-            )}
+            {/* text goes in a paragraph; anything else (e.g. chips) in a plain box */}
+            {subtitle &&
+              (typeof subtitle === "string" ? (
+                <Typography sx={{ mt: 0.5, color: "text.secondary", fontSize: 15 }}>{subtitle}</Typography>
+              ) : (
+                <Box sx={{ mt: 0.75 }}>{subtitle}</Box>
+              ))}
           </Box>
         </Box>
 

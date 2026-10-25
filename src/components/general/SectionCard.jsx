@@ -1,8 +1,8 @@
 import { Box, Chip, Divider, Paper, Typography } from "@mui/material";
 
-// White bordered card for a page section: a title with an optional count,
+// White bordered card for a page section: a title with an optional count (or a custom `header`, e.g. tabs),
 // an optional toolbar on the right (e.g. a search field), then the content
-const SectionCard = ({ title, count, toolbar, children }) => {
+const SectionCard = ({ title, count, header, toolbar, children }) => {
   return (
     <Paper
       elevation={0}
@@ -24,18 +24,20 @@ const SectionCard = ({ title, count, toolbar, children }) => {
           py: 2,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
-            {title}
-          </Typography>
-          {count !== undefined && (
-            <Chip
-              label={count}
-              size="small"
-              sx={{ bgcolor: "navActive.background", color: "navActive.text", fontWeight: 600 }}
-            />
-          )}
-        </Box>
+        {header ?? (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
+              {title}
+            </Typography>
+            {count !== undefined && (
+              <Chip
+                label={count}
+                size="small"
+                sx={{ bgcolor: "navActive.background", color: "navActive.text", fontWeight: 600 }}
+              />
+            )}
+          </Box>
+        )}
         {toolbar}
       </Box>
 

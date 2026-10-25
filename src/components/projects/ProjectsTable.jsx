@@ -3,6 +3,7 @@ import {
   AvatarGroup,
   Box,
   Link,
+  Skeleton,
   Table,
   TableBody,
   TableCell,
@@ -12,17 +13,43 @@ import {
   Typography,
 } from "@mui/material";
 import ProjectAvatar from "./ProjectAvatar";
+import TemplateChip from "./TemplateChip";
+import StatusChip from "./StatusChip";
 import UserAvatar from "../general/UserAvatar";
-import { formatDate } from "../../utils/format";
 
 const headCellSx = { color: "text.secondary", fontWeight: 500, borderColor: "divider" };
-// the "Updated" column is hidden on phones to keep the table narrow
-const updatedCellSx = { display: { xs: "none", sm: "table-cell" }, width: 150 };
-// room for 3 avatars + the "+N" bubble
-const membersCellSx = { width: { xs: 128, sm: 160 } };
+// smaller screens drop the less important columns, so the table never scrolls sideways
+const keyCellSx = { display: { xs: "none", lg: "table-cell" }, width: 110 };
+const templateCellSx = { display: { xs: "none", sm: "table-cell" }, width: 120 };
+const membersCellSx = { display: { xs: "none", md: "table-cell" }, width: 150 };
+const statusCellSx = { width: { xs: 132, sm: 136 } };
 
-// Table of projects; clicking a row opens that project's page
-const ProjectsTable = ({ projects }) => {
+// avatars of the first members with "N members" under them; a skeleton until the preview arrives
+const MembersPreview = ({ preview }) => {
+  if (!preview) return <Skeleton width={100} />;
+  if (preview.total === 0) return <Typography variant="body2" color="text.secondary">No members</Typography>;
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.5 }}>
+      <AvatarGroup
+        max={4}
+        total={preview.total}
+        sx={{ "& .MuiAvatar-root": { width: 26, height: 26, fontSize: 10, borderColor: "background.paper" } }}
+      >
+        {preview.members.map((member) => (
+          <UserAvatar key={member.userId} user={member} size={26} />
+        ))}
+      </AvatarGroup>
+      <Typography variant="caption" color="text.secondary" noWrap>
+        {preview.total} {preview.total === 1 ? "member" : "members"}
+      </Typography>
+    </Box>
+  );
+};
+
+// Table of projects: name, key, template, members and status. Clicking a row opens the project.
+// `previews` is { [projectId]: { members, total } } from useMembersPreview.
+const ProjectsTable = ({ projects, previews = {} }) => {
   const navigate = useNavigate();
 
   return (
@@ -31,9 +58,11 @@ const ProjectsTable = ({ projects }) => {
       <Table sx={{ tableLayout: "fixed" }}>
         <TableHead>
           <TableRow>
-            <TableCell sx={{ ...headCellSx, pl: { xs: 2, sm: 3 } }}>Project</TableCell>
+            <TableCell sx={{ ...headCellSx, pl: { xs: 2, sm: 3 } }}>Name</TableCell>
+            <TableCell sx={{ ...headCellSx, ...keyCellSx }}>Key</TableCell>
+            <TableCell sx={{ ...headCellSx, ...templateCellSx }}>Template</TableCell>
             <TableCell sx={{ ...headCellSx, ...membersCellSx }}>Members</TableCell>
-            <TableCell sx={{ ...headCellSx, ...updatedCellSx, pr: { xs: 2, sm: 3 } }}>Updated</TableCell>
+            <TableCell sx={{ ...headCellSx, ...statusCellSx, pr: { xs: 2, sm: 3 } }}>Status</TableCell>
           </TableRow>
         </TableHead>
 
@@ -50,46 +79,33 @@ const ProjectsTable = ({ projects }) => {
                 <TableCell sx={{ pl: { xs: 2, sm: 3 } }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 }}>
                     <ProjectAvatar project={project} />
-                    <Box sx={{ minWidth: 0 }}>
-                      {/* a real link too, so the row works with the keyboard and "open in new tab" */}
-                      <Link
-                        component={RouterLink}
-                        to={to}
-                        underline="hover"
-                        color="text.primary"
-                        onClick={(e) => e.stopPropagation()}
-                        noWrap
-                        sx={{ display: "block", fontWeight: 600 }}
-                      >
-                        {project.name}
-                      </Link>
-                      {project.description && (
-                        <Typography variant="body2" color="text.secondary" noWrap>
-                          {project.description}
-                        </Typography>
-                      )}
-                    </Box>
+                    {/* a real link too, so the row works with the keyboard and "open in new tab" */}
+                    <Link
+                      component={RouterLink}
+                      to={to}
+                      underline="hover"
+                      color="text.primary"
+                      onClick={(e) => e.stopPropagation()}
+                      noWrap
+                      sx={{ fontWeight: 600, minWidth: 0 }}
+                    >
+                      {project.name}
+                    </Link>
                   </Box>
                 </TableCell>
 
-                <TableCell>
-                  <AvatarGroup
-                    max={4}
-                    total={project.memberCount ?? project.membersPreview?.length ?? 0}
-                    sx={{
-                      justifyContent: "flex-end",
-                      width: "fit-content",
-                      "& .MuiAvatar-root": { width: 28, height: 28, fontSize: 11, borderColor: "background.paper" },
-                    }}
-                  >
-                    {(project.membersPreview ?? []).map((member) => (
-                      <UserAvatar key={member.id} user={member} size={28} />
-                    ))}
-                  </AvatarGroup>
+                <TableCell sx={{ ...keyCellSx, color: "text.secondary", fontWeight: 600 }}>{project.key ?? "—"}</TableCell>
+
+                <TableCell sx={templateCellSx}>
+                  <TemplateChip template={project.template} />
                 </TableCell>
 
-                <TableCell sx={{ ...updatedCellSx, pr: { xs: 2, sm: 3 }, color: "text.secondary", whiteSpace: "nowrap" }}>
-                  {formatDate(project.updatedAt)}
+                <TableCell sx={membersCellSx}>
+                  <MembersPreview preview={previews[project.id]} />
+                </TableCell>
+
+                <TableCell sx={{ ...statusCellSx, pr: { xs: 2, sm: 3 } }}>
+                  <StatusChip status={project.status} />
                 </TableCell>
               </TableRow>
             );
