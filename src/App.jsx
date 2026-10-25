@@ -2,11 +2,13 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import AuthProvider from "./context/AuthProvider";
 import ProtectedRoute from "./components/general/ProtectedRoute";
+import WorkspacePage from "./pages/workspace/WorkspacePage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import ActivateAccountPage from "./pages/auth/ActivateAccountPage";
 import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
 import LoginPage from "./pages/auth/LoginPage";
 import AppShell from "./components/layouts/AppShell";
+import WorkspacesPage from "./pages/workspace/WorkspacesPage";
 
 const App = () => {
   return (
@@ -31,6 +33,8 @@ const App = () => {
               <Route path="/reports" element={<div>Reports</div>} />
               <Route path="/team" element={<div>Team</div>} />
               <Route path="/settings" element={<div>Settings</div>} />
+              <Route path="/workspaces/:workspaceId" element={<WorkspacePage />} />
+              <Route path="/workspaces" element={<WorkspacesPage />} />
             </Route>
           </Route>
 
