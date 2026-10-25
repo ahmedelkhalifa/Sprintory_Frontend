@@ -9,7 +9,7 @@ import { getErrorCode, getErrorMessage } from "../utils/apiErrors";
  */
 export function useAsync(load, deps, { enabled = true, messages } = {}) {
   const [reloadCount, setReloadCount] = useState(0);
-  const [result, setResult] = useState({ key: null, data: null, error: "", errorCode: null });
+  const [result, setResult] = useState({ key: null, depsKey: null, data: null, error: "", errorCode: null });
 
   // always call the latest `load` and `messages`, without re-running the effect on every render
   const latest = useRef({ load, messages });
@@ -17,6 +17,7 @@ export function useAsync(load, deps, { enabled = true, messages } = {}) {
     latest.current = { load, messages };
   });
 
+  const depsKey = enabled ? JSON.stringify(deps) : null;
   const key = enabled ? JSON.stringify([...deps, reloadCount]) : null;
 
   useEffect(() => {
@@ -27,26 +28,27 @@ export function useAsync(load, deps, { enabled = true, messages } = {}) {
     latest.current
       .load()
       .then((data) => {
-        if (!ignore) setResult({ key, data, error: "", errorCode: null });
+        if (!ignore) setResult({ key, depsKey, data, error: "", errorCode: null });
       })
       .catch((err) => {
         if (!ignore) {
           const error = getErrorMessage(err, latest.current.messages);
-          setResult({ key, data: null, error, errorCode: getErrorCode(err) });
+          setResult({ key, depsKey, data: null, error, errorCode: getErrorCode(err) });
         }
       });
 
     return () => {
       ignore = true;
     };
-  }, [key]);
+  }, [key, depsKey]);
 
   // still loading until the result of the current request arrives
   const loading = key === null || result.key !== key;
   const reload = useCallback(() => setReloadCount((count) => count + 1), []);
 
   return {
-    data: loading ? null : result.data,
+    // during a reload() the previous data stays visible; when the inputs change it doesn't
+    data: result.depsKey === depsKey ? result.data : null,
     loading,
     error: loading ? "" : result.error,
     errorCode: loading ? null : result.errorCode,

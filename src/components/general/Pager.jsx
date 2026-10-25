@@ -1,13 +1,14 @@
 import { Box, Pagination, Typography } from "@mui/material";
 
 // Footer of a paginated list: "Showing 1–20 of 45 projects" and the page buttons.
-// `noun` is singular ("project"); `page` is 0-based like the backend, MUI's Pagination counts from 1.
-const Pager = ({ page, size, total, totalPages, shown, noun = "item", onPageChange }) => {
+// `noun` is singular ("project"); pass `nounPlural` when adding "s" is wrong ("person" -> "people").
+// `page` is 0-based like the backend; MUI's Pagination counts from 1.
+const Pager = ({ page, size, total, totalPages, shown, noun = "item", nounPlural = `${noun}s`, onPageChange }) => {
   if (total === 0) return null;
   const from = page * size + 1;
   const to = page * size + shown;
   const range = from === to ? `${from}` : `${from}–${to}`;
-  const label = total === 1 ? noun : `${noun}s`;
+  const label = total === 1 ? noun : nounPlural;
 
   return (
     <Box

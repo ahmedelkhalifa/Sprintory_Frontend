@@ -22,7 +22,8 @@ const headCellSx = { color: "text.secondary", fontWeight: 500, borderColor: "div
 const keyCellSx = { display: { xs: "none", lg: "table-cell" }, width: 110 };
 const templateCellSx = { display: { xs: "none", sm: "table-cell" }, width: 120 };
 const membersCellSx = { display: { xs: "none", md: "table-cell" }, width: 150 };
-const statusCellSx = { width: { xs: 132, sm: 136 } };
+const statusCellSx = { width: { xs: 120, sm: 130 } };
+const actionsCellSx = { width: { xs: 52, sm: 84 }, pr: { xs: 1, sm: 3 }, textAlign: "right" };
 
 // avatars of the first members with "N members" under them; a skeleton until the preview arrives
 const MembersPreview = ({ preview }) => {
@@ -47,9 +48,10 @@ const MembersPreview = ({ preview }) => {
   );
 };
 
-// Table of projects: name, key, template, members and status. Clicking a row opens the project.
-// `previews` is { [projectId]: { members, total } } from useMembersPreview.
-const ProjectsTable = ({ projects, previews = {} }) => {
+// Table of projects: name, key, template, members, status and actions. Clicking a row opens the project.
+// `previews` is { [projectId]: { members, total } } from useMembersPreview;
+// `renderActions(project)` fills the last column (the ⋮ menu), or leave it out for no actions column.
+const ProjectsTable = ({ projects, previews = {}, renderActions }) => {
   const navigate = useNavigate();
 
   return (
@@ -62,7 +64,17 @@ const ProjectsTable = ({ projects, previews = {} }) => {
             <TableCell sx={{ ...headCellSx, ...keyCellSx }}>Key</TableCell>
             <TableCell sx={{ ...headCellSx, ...templateCellSx }}>Template</TableCell>
             <TableCell sx={{ ...headCellSx, ...membersCellSx }}>Members</TableCell>
-            <TableCell sx={{ ...headCellSx, ...statusCellSx, pr: { xs: 2, sm: 3 } }}>Status</TableCell>
+            <TableCell sx={{ ...headCellSx, ...statusCellSx, ...(!renderActions && { pr: { xs: 2, sm: 3 } }) }}>
+              Status
+            </TableCell>
+            {renderActions && (
+              <TableCell sx={{ ...headCellSx, ...actionsCellSx }}>
+                {/* the word only fits from tablet width; phones keep the column narrow */}
+                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                  Actions
+                </Box>
+              </TableCell>
+            )}
           </TableRow>
         </TableHead>
 
@@ -104,9 +116,11 @@ const ProjectsTable = ({ projects, previews = {} }) => {
                   <MembersPreview preview={previews[project.id]} />
                 </TableCell>
 
-                <TableCell sx={{ ...statusCellSx, pr: { xs: 2, sm: 3 } }}>
+                <TableCell sx={{ ...statusCellSx, ...(!renderActions && { pr: { xs: 2, sm: 3 } }) }}>
                   <StatusChip status={project.status} />
                 </TableCell>
+
+                {renderActions && <TableCell sx={actionsCellSx}>{renderActions(project)}</TableCell>}
               </TableRow>
             );
           })}

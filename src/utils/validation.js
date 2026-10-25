@@ -12,6 +12,13 @@ export const validatePassword = (password) => {
   return "";
 };
 
+// project names: required, at most 100 characters (projects-docs.md §2); spaces around it don't count
+export const validateProjectName = (name) => {
+  if (!name.trim()) return "Project name is required";
+  if (name.trim().length > 100) return "Use at most 100 characters";
+  return "";
+};
+
 // keep only the fields that have an error
 const onlyErrors = (errors) =>
   Object.fromEntries(Object.entries(errors).filter(([, message]) => message));
