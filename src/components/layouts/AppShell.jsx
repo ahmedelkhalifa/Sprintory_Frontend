@@ -10,7 +10,7 @@ import {
   HomeOutlined, FolderOpenOutlined, ViewListOutlined, ViewColumnOutlined,
   TimerOutlined, BarChartOutlined, GroupOutlined, SettingsOutlined,
   SearchOutlined, NotificationsNoneOutlined, KeyboardArrowDown,
-  LogoutOutlined, Menu as MenuIcon, WorkspacesOutlined,
+  LogoutOutlined, Menu as MenuIcon,
 } from "@mui/icons-material";
 import Logo from "../general/Logo";
 import { useAuth } from "../../context/AuthContext";
