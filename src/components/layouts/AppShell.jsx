@@ -14,6 +14,7 @@ import {
 } from "@mui/icons-material";
 import Logo from "../general/Logo";
 import { useAuth } from "../../context/AuthContext";
+import WorkspaceSwitcher from "./WorkspaceSwitcher";
 
 const DRAWER_WIDTH = 270;
 const HEADER_HEIGHT = 80;
@@ -25,7 +26,7 @@ const NAV_ITEMS = [
   { label: "Board", to: "/board", icon: <ViewColumnOutlined /> },
   { label: "Sprints", to: "/sprints", icon: <TimerOutlined /> },
   { label: "Reports", to: "/reports", icon: <BarChartOutlined /> },
-  { label: "Team", to: "/team", icon: <GroupOutlined /> },
+  { label: "Teams", to: "/teams", icon: <GroupOutlined /> },
   { label: "Settings", to: "/settings", icon: <SettingsOutlined /> },
 ];
 
@@ -87,6 +88,23 @@ const AppShell = () => {
     <Box>
       <Box sx={{ display: "flex", alignItems: "center", px: 3, height: HEADER_HEIGHT }}>
         <Logo size={24} inverted />
+      </Box>
+      <Box sx={{ px: 2, pb: 2 }}>
+        <Typography
+            variant="caption"
+            sx={(theme) => ({
+              display: "block",
+              px: 1,
+              pb: 0.5,
+              fontWeight: 600,
+              letterSpacing: 0.5,
+              textTransform: "uppercase",
+              color: alpha(theme.palette.common.white, 0.55),
+            })}
+        >
+          Workspaces
+        </Typography>
+        <WorkspaceSwitcher />
       </Box>
       <List sx={{ px: 1.5, display: "flex", flexDirection: "column", gap: 0.5 }}>
         {NAV_ITEMS.map((item) => (
