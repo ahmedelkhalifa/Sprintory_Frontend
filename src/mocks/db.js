@@ -60,6 +60,14 @@ const PROJECT_NAMES = ["Sprintory Platform", "Mobile App", "Website & Marketing"
   "Help Center", "Reporting", "Data Pipeline", "Security Audit", "Performance", "Accessibility", "Localization",
   "Customer Portal", "Partner Program"];
 const ARCHIVED_PROJECTS = [6, 14, 19];
+const DESCRIPTIONS = {
+  "Sprintory Platform": "Core platform development and shared services.",
+  "Mobile App": "iOS and Android application for teams on the go.",
+  "Website & Marketing": "Redesigning the main website with a modern UI/UX and improved performance.",
+  "Design System": "UI components and design guidelines for every product.",
+  "Backend Services": "APIs, infrastructure and integrations.",
+  Analytics: "Product analytics and monitoring.",
+};
 
 // 22 projects in workspace 3 (more than one page), 1 in workspace 4; every third one is Kanban
 export const projects = [];
@@ -71,6 +79,9 @@ export const projects = [];
       template: p.id % 3 === 0 ? "KANBAN" : "SCRUM",
       key: makeKey(p.name, takenKeys),
       status: ARCHIVED_PROJECTS.includes(p.id) ? "ARCHIVED" : "ACTIVE",
+      // ASSUMED (story 8): description and created date
+      description: DESCRIPTIONS[p.name] ?? `Planning and delivery for ${p.name}.`,
+      createdAt: new Date(Date.UTC(2026, (p.id * 5) % 9, 1 + ((p.id * 11) % 27))).toISOString(),
     });
   });
 

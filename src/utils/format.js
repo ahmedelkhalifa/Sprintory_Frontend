@@ -9,6 +9,27 @@ export function getInitials(firstName = "", lastName = "") {
 }
 
 /**
+ * How long ago something happened, for activity feeds.
+ * timeAgo(twoHoursAgo) -> "2 hours ago"; older than a week -> the date ("Oct 1, 2026")
+ */
+export function timeAgo(date, now = Date.now()) {
+  const time = new Date(date).getTime();
+  if (Number.isNaN(time)) return "";
+  const seconds = Math.max(0, Math.round((now - time) / 1000));
+  const units = [
+    [60 * 60 * 24, "day"],
+    [60 * 60, "hour"],
+    [60, "minute"],
+  ];
+  if (seconds >= 60 * 60 * 24 * 7) return formatDate(date);
+  for (const [size, name] of units) {
+    const count = Math.floor(seconds / size);
+    if (count >= 1) return `${count} ${name}${count === 1 ? "" : "s"} ago`;
+  }
+  return "just now";
+}
+
+/**
  * Readable date for tables and lists.
  * formatDate("2026-03-09") -> "Mar 9, 2026"
  */

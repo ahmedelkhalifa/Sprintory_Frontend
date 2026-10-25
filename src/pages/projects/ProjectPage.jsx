@@ -1,69 +1,76 @@
 import { useState } from "react";
-import { Link as RouterLink, useParams } from "react-router-dom";
-import { Alert, Box, Breadcrumbs, Button, Link, Skeleton, Typography } from "@mui/material";
-import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
-import GroupAddOutlinedIcon from "@mui/icons-material/GroupAddOutlined";
+import { useNavigate, useParams } from "react-router-dom";
+import { Alert, Box, Button, Skeleton, Stack } from "@mui/material";
 import PageLayout from "../../components/layouts/PageLayout";
-import PageHeader from "../../components/general/PageHeader";
-import SectionCard from "../../components/general/SectionCard";
-import SearchField from "../../components/general/SearchField";
-import LoadState from "../../components/general/LoadState";
-import Pager from "../../components/general/Pager";
-import ProjectAvatar from "../../components/projects/ProjectAvatar";
 import ProjectNotFound from "../../components/projects/ProjectNotFound";
-import MembersTable from "../../components/projects/MembersTable";
-import TemplateChip from "../../components/projects/TemplateChip";
-import StatusChip from "../../components/projects/StatusChip";
-import RoleChip from "../../components/projects/RoleChip";
+import ProjectMembersTab from "../../components/projects/ProjectMembersTab";
 import AddPeopleDialog from "../../components/projects/AddPeopleDialog";
 import AddTeamDialog from "../../components/projects/AddTeamDialog";
 import RemoveMemberDialog from "../../components/projects/RemoveMemberDialog";
+import EditProjectDialog from "../../components/projects/EditProjectDialog";
+import ProjectStatusDialog from "../../components/projects/ProjectStatusDialog";
+import ProjectOverviewHeader from "../../components/projects/overview/ProjectOverviewHeader";
+import QuickActionsMenu from "../../components/projects/overview/QuickActionsMenu";
+import ProjectSettingsMenu from "../../components/projects/overview/ProjectSettingsMenu";
+import ProjectTabs from "../../components/projects/overview/ProjectTabs";
+import ProjectStats from "../../components/projects/overview/ProjectStats";
+import RecentActivityCard from "../../components/projects/overview/RecentActivityCard";
+import ProjectDetailsCard from "../../components/projects/overview/ProjectDetailsCard";
+import ProjectMembersCard from "../../components/projects/overview/ProjectMembersCard";
+import ComingSoonPanel from "../../components/projects/overview/ComingSoonPanel";
+import { tabsFor } from "../../components/projects/overview/tabList";
 import { getProject, listProjectMembers } from "../../api/projectsApi";
 import { getWorkspace } from "../../api/workspacesApi";
 import { useAsync } from "../../hooks/useAsync";
-import { usePagedList } from "../../hooks/usePagedList";
 import { can } from "../../utils/permissions";
 import { PERMISSIONS, PROJECT_STATUS } from "../../constants/projects";
 
 const PROJECT_ERRORS = { fallback: "Couldn't load the project. Please try again." };
-const MEMBER_ERRORS = { fallback: "Couldn't load the members. Please try again." };
+// the overview loads one page of members (to find the Project Managers and name people in the activity)
+// and the members card shows the first 5, Project Managers first
+const MEMBERS_PREVIEW_SIZE = 20;
 
-// template, status and the user's own roles under the project name
-const ProjectDetails = ({ project }) => (
-  <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
-    <TemplateChip template={project.template} />
-    <StatusChip status={project.status} />
-    {project.roles.length > 0 && (
-      <>
-        <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
-          Your role:
-        </Typography>
-        {project.roles.map((role) => (
-          <RoleChip key={role} role={role} template={project.template} />
-        ))}
-      </>
-    )}
+// skeleton of the header and the stat cards while the project loads
+const PageSkeleton = () => (
+  <Box>
+    <Skeleton width={140} />
+    <Box sx={{ display: "flex", gap: 2.5, alignItems: "center", mt: 2, mb: 4 }}>
+      <Skeleton variant="rounded" width={72} height={72} />
+      <Box sx={{ flex: 1 }}>
+        <Skeleton width="40%" height={40} />
+        <Skeleton width="60%" />
+      </Box>
+    </Box>
+    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(4, 1fr)" }, gap: 2 }}>
+      {[0, 1, 2, 3].map((i) => (
+        <Skeleton key={i} variant="rounded" height={96} />
+      ))}
+    </Box>
   </Box>
 );
 
-// /projects/:projectId: one project and its members.
-// Project Managers and workspace admins (permission MANAGE_MEMBERS) can add people, add a team and remove people.
+// /projects/:projectId: one project. Overview (stats, activity, details, members), Members, and tabs that are
+// coming soon. Kanban projects have no Backlog / Sprints. Project Managers and workspace admins
+// (MANAGE_MEMBERS) can add and remove people; EDIT_SETTINGS / ARCHIVE_PROJECT unlock the settings menu.
 const ProjectPage = () => {
   const { projectId } = useParams();
-  // which window is open: { type: "add-people" | "add-team" } or { type: "remove", member }
+  const navigate = useNavigate();
+  const [tab, setTab] = useState("overview");
+  // which window is open: add-people / add-team / remove (+ member) / edit / archive / restore / delete
   const [dialog, setDialog] = useState(null);
+  // bumped after every membership change, so member lists load again
+  const [version, setVersion] = useState(0);
 
   const projectState = useAsync(() => getProject(projectId), [projectId], { messages: PROJECT_ERRORS });
   const project = projectState.data;
-  // the project's workspace: archived workspaces are read-only
   const workspaceState = useAsync(() => getWorkspace(project.workspaceId), [project?.workspaceId], {
     enabled: Boolean(project),
   });
-
-  const members = usePagedList((params) => listProjectMembers(projectId, params), [projectId], {
-    enabled: Boolean(project),
-    messages: MEMBER_ERRORS,
-  });
+  const previewState = useAsync(
+    () => listProjectMembers(projectId, { size: MEMBERS_PREVIEW_SIZE }),
+    [projectId, version],
+    { enabled: Boolean(project) },
+  );
 
   if (projectState.errorCode === "RESOURCE_NOT_FOUND") {
     return (
@@ -73,56 +80,64 @@ const ProjectPage = () => {
     );
   }
 
-  const workspaceArchived = Boolean(workspaceState.data?.isArchived);
-  const projectArchived = project?.status === PROJECT_STATUS.ARCHIVED;
+  if (!project) {
+    return (
+      <PageLayout>
+        {projectState.error ? (
+          <Alert
+            severity="error"
+            action={
+              <Button color="inherit" size="small" onClick={projectState.reload}>
+                Try again
+              </Button>
+            }
+          >
+            {projectState.error}
+          </Alert>
+        ) : (
+          <PageSkeleton />
+        )}
+      </PageLayout>
+    );
+  }
+
+  const workspace = workspaceState.data;
+  const workspaceArchived = Boolean(workspace?.isArchived);
+  const projectArchived = project.status === PROJECT_STATUS.ARCHIVED;
   // hiding is only for usability: the backend refuses these changes anyway
-  const canManage =
-    can(project, PERMISSIONS.MANAGE_MEMBERS) && Boolean(workspaceState.data) && !workspaceArchived && !projectArchived;
+  const canManage = can(project, PERMISSIONS.MANAGE_MEMBERS) && Boolean(workspace) && !workspaceArchived && !projectArchived;
+  const canEdit = can(project, PERMISSIONS.EDIT_SETTINGS) && Boolean(workspace) && !workspaceArchived && !projectArchived;
+  // a Kanban project has no Backlog / Sprints tab: fall back to Overview
+  const tabs = tabsFor(project.template);
+  const currentTab = tabs.some((t) => t.id === tab) ? tab : "overview";
 
   const closeDialog = () => setDialog(null);
   const afterChange = () => {
     closeDialog();
-    members.reload();
-    projectState.reload(); // the user's own roles may have changed (or they removed themselves)
+    setVersion((v) => v + 1);
+    projectState.reload(); // roles, name or status may have changed (or the user removed themselves)
   };
-
-  const query = members.search.trim();
+  const afterStatusChange = () => {
+    if (dialog?.type === "delete") navigate("/projects", { replace: true });
+    else afterChange();
+  };
 
   return (
     <PageLayout>
-      <PageHeader
-        breadcrumb={
-          <Breadcrumbs>
-            <Link component={RouterLink} to="/projects" underline="hover" color="text.secondary">
-              Projects
-            </Link>
-            <Typography color="text.primary">{project?.name ?? "…"}</Typography>
-          </Breadcrumbs>
-        }
-        avatar={
-          project ? (
-            <ProjectAvatar project={project} size={56} />
-          ) : (
-            projectState.loading && <Skeleton variant="rounded" width={56} height={56} />
-          )
-        }
-        title={project?.name ?? (projectState.loading ? <Skeleton width={240} /> : "Project")}
-        subtitle={project && <ProjectDetails project={project} />}
+      <ProjectOverviewHeader
+        project={project}
+        preview={previewState.data}
         actions={
-          canManage && (
-            <>
-              <Button variant="outlined" startIcon={<GroupAddOutlinedIcon />} onClick={() => setDialog({ type: "add-team" })}>
-                Add team
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<PersonAddAlt1OutlinedIcon />}
-                onClick={() => setDialog({ type: "add-people" })}
-              >
-                Add people
-              </Button>
-            </>
-          )
+          <>
+            <QuickActionsMenu
+              template={project.template}
+              canInvite={canManage}
+              onInvite={() => setDialog({ type: "add-people" })}
+            />
+            {workspace && !workspaceArchived && (
+              <ProjectSettingsMenu project={project} onAction={(type) => setDialog({ type })} />
+            )}
+          </>
         }
       />
 
@@ -130,43 +145,67 @@ const ProjectPage = () => {
         <Alert severity="info" sx={{ mb: 2 }}>
           {workspaceArchived
             ? "This workspace is archived. Projects are read-only."
-            : "This project is archived. Restore it from the projects list to make changes."}
+            : "This project is archived. Restore it from Project settings to make changes."}
         </Alert>
       )}
 
-      <SectionCard
-        title="Members"
-        count={members.loading || members.error || !project ? undefined : members.total}
-        toolbar={<SearchField value={members.search} onChange={members.setSearch} placeholder="Search members" />}
-      >
-        <LoadState
-          loading={(!project && projectState.loading) || (Boolean(project) && members.loading)}
-          error={projectState.error || members.error}
-          onRetry={projectState.error ? projectState.reload : members.reload}
-          isEmpty={members.items.length === 0}
-          emptyMessage={query ? `No members match "${query}".` : "This project has no members yet."}
-        >
-          <MembersTable
-            members={members.items}
-            template={project?.template}
-            onRemove={canManage ? (member) => setDialog({ type: "remove", member }) : undefined}
-          />
-          <Pager
-            page={members.page}
-            size={members.size}
-            total={members.total}
-            totalPages={members.totalPages}
-            shown={members.items.length}
-            noun="member"
-            onPageChange={members.setPage}
-          />
-        </LoadState>
-      </SectionCard>
+      <ProjectTabs value={currentTab} onChange={setTab} template={project.template} />
+
+      {currentTab === "overview" && (
+        <Stack spacing={3}>
+          <ProjectStats project={project} />
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 2fr) minmax(0, 1fr)" },
+              gap: 3,
+              alignItems: "start",
+            }}
+          >
+            <RecentActivityCard project={project} members={previewState.data?.items} loading={!previewState.data} />
+            <Stack spacing={3}>
+              <ProjectDetailsCard
+                project={project}
+                workspace={workspace}
+                canEdit={canEdit}
+                onEdit={() => setDialog({ type: "edit" })}
+              />
+              <ProjectMembersCard
+                project={project}
+                preview={previewState.data}
+                loading={!previewState.data}
+                canManage={canManage}
+                onSeeAll={() => setTab("members")}
+                onAdd={() => setDialog({ type: "add-people" })}
+              />
+            </Stack>
+          </Box>
+        </Stack>
+      )}
+
+      {currentTab === "members" && (
+        <ProjectMembersTab
+          project={project}
+          version={version}
+          canManage={canManage}
+          onAddPeople={() => setDialog({ type: "add-people" })}
+          onAddTeam={() => setDialog({ type: "add-team" })}
+          onRemove={(member) => setDialog({ type: "remove", member })}
+        />
+      )}
+
+      {!["overview", "members"].includes(currentTab) && (
+        <ComingSoonPanel title={tabs.find((t) => t.id === currentTab).label} />
+      )}
 
       {dialog?.type === "add-people" && <AddPeopleDialog project={project} onClose={closeDialog} onAdded={afterChange} />}
       {dialog?.type === "add-team" && <AddTeamDialog project={project} onClose={closeDialog} onAdded={afterChange} />}
       {dialog?.type === "remove" && (
         <RemoveMemberDialog project={project} member={dialog.member} onClose={closeDialog} onRemoved={afterChange} />
+      )}
+      {dialog?.type === "edit" && <EditProjectDialog project={project} onClose={closeDialog} onSaved={afterChange} />}
+      {["archive", "restore", "delete"].includes(dialog?.type) && (
+        <ProjectStatusDialog action={dialog.type} project={project} onClose={closeDialog} onDone={afterStatusChange} />
       )}
     </PageLayout>
   );

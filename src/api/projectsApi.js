@@ -19,9 +19,12 @@ const toProject = (raw) => ({
   template: raw.template,
   roles: raw.roles ?? [],
   permissions: raw.permissions ?? [],
-  // ASSUMED until story 8 (key) and R30 (status): missing today, so no key and every project counts as active
+  // ASSUMED until story 8 (key, description, created date) and R30 (status): missing today,
+  // so no key / description / date are shown and every project counts as active
   key: raw.key ?? null,
   status: raw.status ?? PROJECT_STATUS.ACTIVE,
+  description: raw.description ?? "",
+  createdAt: raw.createdAt ?? null,
 });
 const toProjectMember = (raw) => ({
   userId: raw.userId,

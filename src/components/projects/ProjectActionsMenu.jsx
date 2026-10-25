@@ -1,30 +1,13 @@
 import { useState } from "react";
 import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
-import UnarchiveOutlinedIcon from "@mui/icons-material/UnarchiveOutlined";
-import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
-import { can } from "../../utils/permissions";
-import { PERMISSIONS, PROJECT_STATUS } from "../../constants/projects";
-
-// the menu items this user may use on this project, by permission and status
-const itemsFor = (project) => {
-  const active = project.status !== PROJECT_STATUS.ARCHIVED;
-  const mayArchive = can(project, PERMISSIONS.ARCHIVE_PROJECT);
-  return [
-    active && can(project, PERMISSIONS.EDIT_SETTINGS) && { action: "edit", label: "Edit", Icon: EditOutlinedIcon },
-    active && mayArchive && { action: "archive", label: "Archive", Icon: ArchiveOutlinedIcon },
-    !active && mayArchive && { action: "restore", label: "Restore", Icon: UnarchiveOutlinedIcon },
-    mayArchive && { action: "delete", label: "Delete", Icon: DeleteOutlinedIcon, danger: true },
-  ].filter(Boolean);
-};
+import { projectActionsFor } from "./projectActions";
 
 // ⋮ button at the end of a project row: Edit, Archive / Restore, Delete.
 // Shows nothing when the user may do none of them. Clicks never open the row underneath.
 const ProjectActionsMenu = ({ project, onAction }) => {
   const [anchor, setAnchor] = useState(null);
-  const items = itemsFor(project);
+  const items = projectActionsFor(project);
   if (items.length === 0) return null;
 
   const choose = (action) => {

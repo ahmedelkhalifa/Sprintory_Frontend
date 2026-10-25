@@ -182,6 +182,8 @@ export const mockCreateProject = async (workspaceId, { name, template } = {}) =>
     template,
     key: makeKey(trimmed, takenKeys),
     status: "ACTIVE",
+    description: "",
+    createdAt: new Date().toISOString(),
   };
   projects.push(project);
   projectMembers[project.id] = [{ userId: ME, roles: ["PROJECT_MANAGER"] }]; // the creator is Project Manager
