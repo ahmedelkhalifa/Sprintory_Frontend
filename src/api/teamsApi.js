@@ -1,5 +1,7 @@
 import api from "./client";
+import { USE_MOCKS } from "./useMocks";
 import { pageParams, toPage } from "../utils/paging";
+import * as mock from "../mocks/handlers";
 
 /**
  * Teams API, see teams-docs.md (R02). Only what the projects pages need (the "Add team" picker).
@@ -13,6 +15,9 @@ const toTeam = (raw) => ({ id: raw.id, workspaceId: raw.workspaceId, name: raw.n
 
 // one page of the workspace's teams (admins get all, members only their own); q matches the name
 export async function listWorkspaceTeams(workspaceId, { q, page, size } = {}) {
-  const { data } = await api.get(`/workspaces/${workspaceId}/teams`, { params: pageParams({ q, page, size }) });
+  const params = pageParams({ q, page, size });
+  const data = USE_MOCKS
+    ? await mock.mockListWorkspaceTeams(workspaceId, params)
+    : (await api.get(`/workspaces/${workspaceId}/teams`, { params })).data;
   return toPage(data, toTeam);
 }

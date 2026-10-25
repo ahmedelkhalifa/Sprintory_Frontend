@@ -1,5 +1,7 @@
 import api from "./client";
+import { USE_MOCKS } from "./useMocks";
 import { pageParams, toPage } from "../utils/paging";
+import * as mock from "../mocks/handlers";
 import { WORKSPACE_ADMIN } from "../constants/roles";
 
 /**
@@ -30,17 +32,22 @@ const toWorkspaceMember = (raw) => ({
 
 // every workspace the user is in (not paginated, includes archived ones)
 export async function listMyWorkspaces() {
-  const { data } = await api.get("/workspaces");
+  const data = USE_MOCKS ? await mock.mockListMyWorkspaces() : (await api.get("/workspaces")).data;
   return data.map(toWorkspace);
 }
 
 export async function getWorkspace(workspaceId) {
-  const { data } = await api.get(`/workspaces/${workspaceId}`);
+  const data = USE_MOCKS
+    ? await mock.mockGetWorkspace(workspaceId)
+    : (await api.get(`/workspaces/${workspaceId}`)).data;
   return toWorkspace(data);
 }
 
 // one page of the workspace's people; q matches first name, last name or email
 export async function listWorkspaceMembers(workspaceId, { q, page, size } = {}) {
-  const { data } = await api.get(`/workspaces/${workspaceId}/members`, { params: pageParams({ q, page, size }) });
+  const params = pageParams({ q, page, size });
+  const data = USE_MOCKS
+    ? await mock.mockListWorkspaceMembers(workspaceId, params)
+    : (await api.get(`/workspaces/${workspaceId}/members`, { params })).data;
   return toPage(data, toWorkspaceMember);
 }
