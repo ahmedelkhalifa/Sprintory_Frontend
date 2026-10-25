@@ -9,6 +9,7 @@ import VerifyEmailPage from "./pages/auth/VerifyEmailPage";
 import LoginPage from "./pages/auth/LoginPage";
 import AppShell from "./components/layouts/AppShell";
 import TeamsPage from "./pages/TeamsPage";
+import WorkspacesPage from "./pages/workspace/WorkspacesPage";
 
 const App = () => {
   return (
