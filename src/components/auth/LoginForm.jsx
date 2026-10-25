@@ -23,8 +23,14 @@ const LoginForm = () => {
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  // VerifyEmailPage sends the user here with state.verified after activation
-  const [showVerified, setShowVerified] = useState(Boolean(location.state?.verified));
+  // VerifyEmailPage / ResetPasswordForm send the user here with state.verified / state.passwordReset
+  const [notice, setNotice] = useState(
+    location.state?.verified
+      ? "Your account is activated. You can sign in now."
+      : location.state?.passwordReset
+        ? "Your password was changed. Sign in with the new password."
+        : "",
+  );
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,7 +49,7 @@ const LoginForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setServerError("");
-    setShowVerified(false);
+    setNotice("");
 
     const validationErrors = validateLogin(values);
     setErrors(validationErrors);
@@ -88,9 +94,9 @@ const LoginForm = () => {
 
   return (
     <Box component="form" noValidate onSubmit={handleSubmit}>
-      {showVerified && (
-        <Alert severity="success" onClose={() => setShowVerified(false)} sx={{ mb: 2 }}>
-          Your account is activated. You can sign in now.
+      {notice && (
+        <Alert severity="success" onClose={() => setNotice("")} sx={{ mb: 2 }}>
+          {notice}
         </Alert>
       )}
 
@@ -135,7 +141,6 @@ const LoginForm = () => {
             slotProps={{ typography: { fontSize: 14, color: "text.secondary" } }}
             sx={{ ml: -0.75, mr: 0 }}
           />
-          {/* TODO: the reset-password page is owned by another teammate */}
           <Link
             component={RouterLink}
             to="/reset-password"

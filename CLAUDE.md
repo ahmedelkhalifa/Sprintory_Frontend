@@ -6,10 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `npm run dev` — Vite dev server on http://localhost:5173 (must match the backend's `FRONTEND_URL`, or CORS/cookies fail)
 - `npm run lint` — ESLint (flat config, `react-hooks` + `react-refresh` rules)
+- `npm test` — unit tests for the pure helpers in `src/utils/` with Node's built-in runner (`node --test`, files in [tests/](tests/))
 - `npm run build` — production build
 - `npm run preview` — serve the built `dist/`
 
-There is no test runner. CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs `npm ci`, `npm run lint`, `npm run build` on Node 24 for PRs and pushes to `main`; both must pass.
+There are no component tests. CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs `npm ci`, `npm run lint`, `npm test`, `npm run build` on Node 24 for PRs and pushes to `main`; all must pass.
 
 ## Environment
 
@@ -23,7 +24,7 @@ React 19 + Vite, plain JavaScript (`.jsx`, no TypeScript), MUI v9 with Emotion, 
 
 ## Architecture
 
-**Backend contract.** The Spring backend (separate repo) owns the auth contract: everything under `/api/v1/auth`, JSON in camelCase, errors shaped `{ status, code, message, path, fieldErrors? }`. Branch on `err.response.data.code` (`VALIDATION_ERROR`, `CONFLICT`, `PROVIDER_MISMATCH`, `INVALID_TOKEN`, `AUTHENTICATION_ERROR`, ...), never on `message`; messages are safe to display. `VALIDATION_ERROR` carries `fieldErrors` as `{ field: message }`, which maps straight onto form `errors` state.
+**Backend contract.** The Spring backend (separate repo, `../sprintory_backend`, full docs in its `docs/`) owns every `/api/v1` contract. Frontend-focused summaries of the workspace, team, project and role contracts, plus a list of where the frontend is still behind them, are in [dev-docs/](dev-docs/) (start at [dev-docs/README.md](dev-docs/README.md)); read the relevant one before touching those API modules or pages, and update it when the backend doc changes. Auth: everything under `/api/v1/auth`, JSON in camelCase, errors shaped `{ status, code, message, path, fieldErrors? }`. Branch on `err.response.data.code` (`VALIDATION_ERROR`, `CONFLICT`, `PROVIDER_MISMATCH`, `INVALID_TOKEN`, `AUTHENTICATION_ERROR`, ...), never on `message`; messages are safe to display. `VALIDATION_ERROR` carries `fieldErrors` as `{ field: message }`, which maps straight onto form `errors` state.
 
 **Auth is cookie-based.** Access and refresh tokens live in HttpOnly cookies set by the backend; the frontend never reads or stores tokens. Login state is known only through `GET /auth/me`.
 - [src/api/client.js](src/api/client.js) — the single axios instance (`withCredentials: true`). Its response interceptor does a single-flight `POST /auth/refresh` on `401` with code `AUTHENTICATION_ERROR` and retries once; other 401s (e.g. `INVALID_TOKEN` from email links) pass through to the caller. Endpoints in `AUTH_PATHS` are never refreshed. On refresh failure it hard-redirects to `/login` (except for `/auth/me`).
@@ -32,14 +33,22 @@ React 19 + Vite, plain JavaScript (`.jsx`, no TypeScript), MUI v9 with Emotion, 
 
 **Registration flow:** `/register` → `POST /auth/register` (no cookies, not logged in) → `/activate-account` ("check your inbox", email passed via router state) → user opens the emailed link `/verify-email?token=...` → `POST /auth/verify-email` once (guarded with a `useRef` because the token is single-use and StrictMode double-runs effects) → `/login` with `state.verified`. Re-registering an unverified email is how a user gets a new link; there is no resend endpoint. Google sign-in is a full-page navigation to `{backend origin}/oauth2/authorization/google`, outside `/api/v1`.
 
-**API modules.** One file per backend area in [src/api/](src/api/) (see [authApi.js](src/api/authApi.js)), each importing the shared `api` client and returning `res.data`.
+**Password reset:** `/reset-password` (linked from the login form) → `POST /auth/forgot-password`, which always answers `202` so the page never claims an email was sent → the emailed link opens `/reset-password?token=...` → `POST /auth/reset-password { token, newPassword }` → `/login` with `state.passwordReset`. `INVALID_TOKEN` means the link expired or was used.
 
-**Pages vs. components.** `src/pages/<area>/` holds route-level components that compose a layout and a card/form, e.g. `RegisterPage` = `AuthLayout` → `AuthCard` → `RegisterForm`. Form logic lives in `src/components/<area>/`; reusable inputs (`FormField`, `PasswordField`) in `src/components/forms/`. Validation helpers in [src/utils/validation.js](src/utils/validation.js) return `{ field: message }` with only the invalid fields, so the same object works for both client and server errors.
+**Workspaces.** Roles are per workspace (`WORKSPACE_ADMIN` / `WORKSPACE_MEMBER`, read from the workspace response's `role`); an archived workspace (`archivedAt` set) is read-only. Workspace pages live under `/workspaces/:workspaceId/...`.
+- [src/context/WorkspaceProvider.jsx](src/context/WorkspaceProvider.jsx) — wraps `AppShell`; loads `GET /workspaces` and exposes `{ workspaces, loading, error, current, currentId }` through `useWorkspaces()` ([WorkspaceContext.js](src/context/WorkspaceContext.js)). The current workspace is the one in the url, else the last one opened (localStorage). Sidebar links to workspace pages (e.g. Teams) are built from `currentId`.
+- Mutations in [workspacesApi.js](src/api/workspacesApi.js) dispatch `WORKSPACES_CHANGED` and the provider reloads the list, so pages don't patch it by hand.
+- Helpers: [utils/workspace.js](src/utils/workspace.js) (`isWorkspaceAdmin`, `isWorkspaceArchived`, `parseWorkspaceId`, `ROLE_LABEL`), [utils/people.js](src/utils/people.js) (`initials`, `memberLabel`), [utils/page.js](src/utils/page.js) (`EMPTY_PAGE` for paginated lists).
+
+**API modules.** One file per backend area in [src/api/](src/api/), named `<area>Api.js` (`authApi`, `workspacesApi`, `teamsApi`, `projectsApi`), each importing the shared `api` client and returning `res.data`. Don't redefine an endpoint in another area's file. List/get functions take an optional `AbortSignal` last; effects pass one and abort in their cleanup so a stale response never lands. For error text outside the auth forms use `errorMessage(err, fallback)` / `isAbort(err)` from [utils/apiError.js](src/utils/apiError.js).
+
+**Pages vs. components.** `src/pages/<area>/` holds route-level components that compose a layout and a card/form, e.g. `RegisterPage` = `AuthLayout` → `AuthCard` → `RegisterForm`. Form logic and page pieces live in `src/components/<area>/` (`auth`, `teams`, `workspace`); reusable inputs (`FormField`, `PasswordField`) in `src/components/forms/`. Validation helpers in [src/utils/validation.js](src/utils/validation.js) return `{ field: message }` with only the invalid fields, so the same object works for both client and server errors.
 
 **Styling.** Use MUI components with `sx` and theme tokens from [src/theme/theme.js](src/theme/theme.js) (custom palette keys `navActive`, `ai`; buttons are not uppercased). For short viewports use the `SHORT_SCREEN` media-query key from [src/theme/media.js](src/theme/media.js) inside `sx`. `AuthLayout` is exactly one screen tall; only the form column scrolls.
 
 ## Conventions
 
-- Functional components as `const X = () => {}` with `export default X`, double quotes, semicolons.
+- Functional components as `const X = () => {}` with `export default X`, 2-space indent, double quotes, semicolons.
+- MUI: use `slotProps` (`slotProps={{ input: ... }}`, `slotProps={{ paper: ... }}`), not the deprecated `InputProps` / `PaperProps` / `inputProps` / `primaryTypographyProps`.
 - Short lowercase comments explaining *why*.
 - Git: feature branches named like `pages/register-page`, `setup/skeleton-app`; PRs into `main`.

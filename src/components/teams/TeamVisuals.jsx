@@ -1,9 +1,9 @@
 import { Avatar } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import { initials } from "../../utils/people";
 
-const initials = (name) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
-
-export function TeamIcon({ name, size = 52 }) {
+// rounded square with the team's initials
+export const TeamIcon = ({ name, size = 52 }) => {
   return (
     <Avatar
       variant="rounded"
@@ -22,12 +22,13 @@ export function TeamIcon({ name, size = 52 }) {
       {initials(name)}
     </Avatar>
   );
-}
+};
 
-export function PersonAvatar({ member, size = 34 }) {
+// round avatar with a person's initials
+export const PersonAvatar = ({ name, size = 34 }) => {
   return (
     <Avatar
-      alt={member.name}
+      alt={name}
       sx={(theme) => ({
         width: size,
         height: size,
@@ -38,8 +39,7 @@ export function PersonAvatar({ member, size = 34 }) {
         border: `2px solid ${theme.palette.background.paper}`,
       })}
     >
-      {initials(member.name)}
+      {initials(name)}
     </Avatar>
   );
-}
-
+};
