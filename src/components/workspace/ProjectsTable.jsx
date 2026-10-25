@@ -1,10 +1,12 @@
+import { Link as RouterLink } from "react-router-dom";
 import {
-  Box, Button, Card, InputAdornment, Pagination, Table, TableBody, TableCell, TableHead, TableRow,
+  Box, Button, Card, InputAdornment, Link, Pagination, Table, TableBody, TableCell, TableHead, TableRow,
   TextField, Typography,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { Add, FolderOpenOutlined, SearchOutlined } from "@mui/icons-material";
 import { initials } from "../../utils/people";
+import { projectPath } from "../../utils/project";
 import MemberStack from "./MemberStack";
 
 // one page of the workspace's projects, with search and paging done by the backend
@@ -83,7 +85,15 @@ const ProjectsTable = ({ projects, total, totalPages, page, onPageChange, search
                     >
                       {initials(p.name)}
                     </Box>
-                    <Typography sx={{ fontWeight: 600 }}>{p.name}</Typography>
+                    <Link
+                      component={RouterLink}
+                      to={projectPath(p)}
+                      underline="hover"
+                      color="text.primary"
+                      sx={{ fontWeight: 600 }}
+                    >
+                      {p.name}
+                    </Link>
                   </Box>
                 </TableCell>
                 <TableCell>

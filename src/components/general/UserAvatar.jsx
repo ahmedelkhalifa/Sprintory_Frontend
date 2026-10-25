@@ -1,0 +1,38 @@
+import { Avatar } from "@mui/material";
+import { initials, memberLabel } from "../../utils/people";
+
+// theme colors dark enough for white initials to stay readable
+const TONES = ["primary.main", "primary.dark", "success.main", "text.secondary"];
+
+// pick a color from the user's id or name, so the same person always gets the same color
+const colorFor = (seed = "") => {
+  let hash = 0;
+  for (const ch of String(seed)) hash = (hash * 31 + ch.charCodeAt(0)) | 0;
+  return TONES[Math.abs(hash) % TONES.length];
+};
+
+// Round avatar: the user's photo, or their initials on a theme color.
+// `user` is a member response ({ userId, firstName, lastName, email })
+const UserAvatar = ({ user, size = 36, sx }) => {
+  const label = memberLabel(user);
+
+  return (
+    <Avatar
+      src={user.avatarUrl || undefined}
+      alt={label}
+      sx={{
+        width: size,
+        height: size,
+        fontSize: size * 0.4,
+        fontWeight: 600,
+        bgcolor: colorFor(user.userId ?? label),
+        color: "common.white",
+        ...sx,
+      }}
+    >
+      {initials(label)}
+    </Avatar>
+  );
+};
+
+export default UserAvatar;

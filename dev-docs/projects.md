@@ -27,13 +27,13 @@ These membership changes need the `MANAGE_MEMBERS` permission.
 
 | Method | Path | Body | Success | Frontend |
 | --- | --- | --- | --- | --- |
-| POST | `/workspaces/{workspaceId}/projects` | `{ name, template }` | `201` ProjectResponse | `createProject` ⚠ sends no `template` yet |
+| POST | `/workspaces/{workspaceId}/projects` | `{ name, template }` | `201` ProjectResponse | `createProject` |
 | GET | `/workspaces/{workspaceId}/projects?q=&page=&size=` | — | `200` PageResponse<ProjectResponse> | `listProjects` |
-| GET | `/projects/{projectId}` | — | `200` ProjectResponse | *not built* |
+| GET | `/projects/{projectId}` | — | `200` ProjectResponse | `getProject` |
 | GET | `/projects/{projectId}/members?q=&page=&size=` | — | `200` PageResponse<ProjectMemberResponse> | `listProjectMembers` |
-| POST | `/projects/{projectId}/members` | `{ userIds: [...] }` | `204` | *not built* |
-| POST | `/projects/{projectId}/teams` | `{ teamId }` | `204` | *not built* |
-| DELETE | `/projects/{projectId}/members/{userId}` | — | `204` | *not built* |
+| POST | `/projects/{projectId}/members` | `{ userIds: [...] }` | `204` | `addProjectMembers` |
+| POST | `/projects/{projectId}/teams` | `{ teamId }` | `204` | `addTeamToProject` |
+| DELETE | `/projects/{projectId}/members/{userId}` | — | `204` | `removeProjectMember` |
 | PUT | `/projects/{projectId}/members/{userId}/roles` | `{ roles: [...] }` | `200` ProjectMemberResponse | *not built*, see [roles.md](roles.md#endpoints) |
 
 Frontend functions are in [src/api/projectsApi.js](../src/api/projectsApi.js).
@@ -94,3 +94,18 @@ A workspace admin who isn't a project member gets `roles: []`, but `permissions`
 | 8 (R06) | project key (unique per workspace), default board columns per template, editing name and description, settings page |
 | 9 (R09) | tasks (`EDIT_TASKS` / `VIEW_WORK`) |
 | R30 | completing and archiving a project |
+
+### Assumed by the frontend (not in the backend yet)
+
+The projects pages already have UI for story 8 and R30, built against the shapes below (the `ASSUMED` block in [projectsApi.js](../src/api/projectsApi.js)). They copy the workspace (archive/restore) and team (PATCH rename, DELETE) patterns. **Backend: please implement these shapes, or tell us what changed.** Until then, these buttons fail with an error and the Archived tab shows every project.
+
+| Method | Path | Body | Success | Needs | Frontend |
+| --- | --- | --- | --- | --- | --- |
+| PATCH | `/projects/{projectId}` | `{ name }` | `200` ProjectResponse | `EDIT_SETTINGS` | `updateProject` |
+| POST | `/projects/{projectId}/archive` | — | `200` ProjectResponse | `ARCHIVE_PROJECT` | `archiveProject` |
+| POST | `/projects/{projectId}/restore` | — | `200` ProjectResponse | `ARCHIVE_PROJECT` | `restoreProject` |
+| DELETE | `/projects/{projectId}` | — | `204` | `ARCHIVE_PROJECT` (no delete permission exists yet) | `deleteProject` |
+| GET | `/workspaces/{workspaceId}/projects?status=ACTIVE\|ARCHIVED` | — | filtered list; no `status` = all | — | `listProjects` |
+
+- New `ProjectResponse` fields: `key` (story 8, unique per workspace), `description`, `createdAt`, `status` (`ACTIVE` / `ARCHIVED`). A missing `status` is treated as active.
+- New error: `409 PROJECT_ARCHIVED` for any change to an archived project other than restore and delete.

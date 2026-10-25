@@ -67,9 +67,8 @@ Where the frontend is behind these contracts. Fix them, then update this table.
 
 | Gap | Contract | Affects |
 | --- | --- | --- |
-| **Create project sends no `template`.** It's required (`SCRUM`/`KANBAN`), so creating a project currently fails with 400 | [projects.md](projects.md#create) | `createProject` in [projectsApi.js](../src/api/projectsApi.js), the "Create project" dialog on [WorkspacePage](../src/pages/workspace/WorkspacePage.jsx) |
-| Project UI should use the caller's `permissions` from `ProjectResponse` (e.g. `MANAGE_MEMBERS`), not role checks | [roles.md](roles.md#frontend-notes) | future project pages |
+| Edit / archive / restore / delete a project, project `key` / `status`, and the Archived tab are built against **assumed** endpoints the backend doesn't have yet | [projects.md](projects.md#assumed-by-the-frontend-not-in-the-backend-yet) | the `ASSUMED` block in [projectsApi.js](../src/api/projectsApi.js) |
 | No accept-invite page (`/accept-invite?token=...`, the backend's default `INVITE_PATH`) | [workspaces.md](workspaces.md#accepting-an-invitation) | new route in [App.jsx](../src/App.jsx), `workspacesApi.js` needs `lookupInvitation` / `acceptInvitation` |
 | No UI for changing a member's workspace role, removing a member, or leaving | [roles.md](roles.md#endpoints) | `workspacesApi.js`, a future People tab |
-| No project role picker | [roles.md](roles.md#endpoints) | future project members UI |
+| No project role picker (`PUT /projects/{id}/members/{userId}/roles` exists in the backend now) | [roles.md](roles.md#endpoints) | Members tab, [MembersTable](../src/components/projects/MembersTable.jsx) |
 | New error codes not handled specially: `LAST_WORKSPACE_ADMIN`, `LAST_PROJECT_MANAGER`, `INVALID_PROJECT_ROLES` (their backend messages are shown as-is via `errorMessage`, which is fine for now) | above | [utils/apiError.js](../src/utils/apiError.js) |

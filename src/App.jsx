@@ -11,6 +11,9 @@ import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import WorkspacesPage from "./pages/workspace/WorkspacesPage";
 import WorkspacePage from "./pages/workspace/WorkspacePage";
 import TeamsPage from "./pages/teams/TeamsPage";
+import ProjectsPage from "./pages/projects/ProjectsPage";
+import ProjectPage from "./pages/projects/ProjectPage";
+import ProjectsRedirect from "./pages/projects/ProjectsRedirect";
 
 const App = () => {
   return (
@@ -35,10 +38,12 @@ const App = () => {
               }
             >
               <Route path="/" element={<div>Home</div>} />
-              <Route path="/projects" element={<div>Projects</div>} />
+              <Route path="/projects" element={<ProjectsRedirect />} />
               <Route path="/workspaces" element={<WorkspacesPage />} />
               <Route path="/workspaces/:workspaceId" element={<WorkspacePage />} />
               <Route path="/workspaces/:workspaceId/teams" element={<TeamsPage />} />
+              <Route path="/workspaces/:workspaceId/projects" element={<ProjectsPage />} />
+              <Route path="/workspaces/:workspaceId/projects/:projectId" element={<ProjectPage />} />
               {/* placeholders until these pages exist, so the sidebar links stay inside the shell */}
               <Route path="/backlog" element={<div>Backlog</div>} />
               <Route path="/board" element={<div>Board</div>} />

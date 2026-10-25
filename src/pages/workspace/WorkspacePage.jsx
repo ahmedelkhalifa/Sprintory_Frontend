@@ -3,9 +3,10 @@ import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import { Alert, Box, CircularProgress, Tab, Tabs } from "@mui/material";
 import { getWorkspace, listWorkspaceMembers } from "../../api/workspacesApi";
 import { createTeam, listTeamMembers, listTeams } from "../../api/teamsApi";
-import { createProject, listProjectMembers, listProjects } from "../../api/projectsApi";
+import { listProjectMembers, listProjects } from "../../api/projectsApi";
 import { errorMessage, isAbort } from "../../utils/apiError";
 import { EMPTY_PAGE } from "../../utils/page";
+import { projectsPath } from "../../utils/project";
 import { ROLE_LABEL, isWorkspaceAdmin, isWorkspaceArchived, parseWorkspaceId } from "../../utils/workspace";
 import WorkspaceHeader from "../../components/workspace/WorkspaceHeader";
 import StatCards from "../../components/workspace/StatCards";
@@ -15,6 +16,7 @@ import RecentActivity from "../../components/workspace/RecentActivity";
 import NameDialog from "../../components/workspace/NameDialog";
 import InviteDialog from "../../components/workspace/InviteDialog";
 import WorkspaceSettingsDialog from "../../components/workspace/WorkspaceSettingsDialog";
+import CreateProjectDialog from "../../components/projects/CreateProjectDialog";
 import { ACTIVITY } from "../../components/workspace/mockData";
 
 const PROJECTS_PAGE_SIZE = 8;
@@ -121,7 +123,7 @@ const WorkspaceOverview = ({ workspaceId }) => {
   const teamsPath = `/workspaces/${workspace.id}/teams`;
 
   const stats = [
-    { key: "projects", value: counts.projects, label: "Projects" },
+    { key: "projects", value: counts.projects, label: "Projects", to: projectsPath(workspace.id) },
     { key: "teams", value: counts.teams, label: "Teams", to: teamsPath },
     { key: "members", value: counts.members, label: "Members" },
     { key: "active", value: "—", label: "Active this week" }, // TODO: no endpoint yet
@@ -146,6 +148,13 @@ const WorkspaceOverview = ({ workspaceId }) => {
       <Box sx={{ borderBottom: 1, borderColor: "divider", mt: 3, mb: 3 }}>
         <Tabs value="overview">
           <Tab value="overview" label="Overview" sx={{ textTransform: "none", fontWeight: 500 }} />
+          <Tab
+            value="projects"
+            label="Projects"
+            component={RouterLink}
+            to={projectsPath(workspace.id)}
+            sx={{ textTransform: "none", fontWeight: 500 }}
+          />
           <Tab
             value="teams"
             label="Teams"
@@ -201,16 +210,10 @@ const WorkspaceOverview = ({ workspaceId }) => {
           onDeleted={() => navigate("/workspaces")}
         />
       )}
-      <NameDialog
-        open={projectDialogOpen}
-        title="Create project"
-        label="Project name"
-        onClose={() => setProjectDialogOpen(false)}
-        onSubmit={async (name) => {
-          await createProject(workspace.id, name);
-          reload();
-        }}
-      />
+      {/* opens the new project once it's created */}
+      {projectDialogOpen && (
+        <CreateProjectDialog workspaceId={workspace.id} onClose={() => setProjectDialogOpen(false)} />
+      )}
       <NameDialog
         open={teamDialogOpen}
         title="Create team"

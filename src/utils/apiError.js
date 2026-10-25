@@ -13,8 +13,11 @@ const GENERIC = "Something went wrong. Please try again.";
 // no response at all means the request never reached the backend
 export const errorCode = (err) => (err?.response ? err.response.data?.code : "NETWORK_ERROR");
 
-export const errorMessage = (err, fallback = GENERIC) =>
-  MESSAGES[errorCode(err)] ?? err?.response?.data?.message ?? fallback;
+// `overrides` are a page's own texts by code, e.g. { BAD_REQUEST: "This team no longer exists." }
+export const errorMessage = (err, fallback = GENERIC, overrides = {}) => {
+  const code = errorCode(err);
+  return overrides[code] ?? MESSAGES[code] ?? err?.response?.data?.message ?? fallback;
+};
 
 // a request cancelled by an effect cleanup, not a real failure
 export const isAbort = (err) => err?.code === "ERR_CANCELED";
