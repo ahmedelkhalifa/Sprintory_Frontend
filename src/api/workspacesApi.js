@@ -1,53 +1,40 @@
 import api from "./client";
-import { USE_MOCKS } from "./useMocks";
-import { pageParams, toPage } from "../utils/paging";
-import * as mock from "../mocks/handlers";
-import { WORKSPACE_ADMIN } from "../constants/roles";
 
-/**
- * Workspaces API, see workspaces-docs.md (R02). Only what the projects pages need.
- * TEMP: the workspace page (branch workspace-page) has its own workspaces API file;
- * once it is merged into main, use that one and delete these functions.
- * WorkspaceResponse        { id, name, slug, role, archivedAt }   (role is the caller's role)
- * WorkspaceMemberResponse  { userId, firstName, lastName, email, role }
- */
+// fired after any change to the workspace list, so WorkspaceProvider can reload it
+export const WORKSPACES_CHANGED = "workspaces:changed";
 
-// translators: the only place that knows the backend's field names
-const toWorkspace = (raw) => ({
-  id: raw.id,
-  name: raw.name,
-  slug: raw.slug,
-  role: raw.role,
-  archivedAt: raw.archivedAt,
-  isAdmin: raw.role === WORKSPACE_ADMIN,
-  isArchived: raw.archivedAt != null,
-});
-const toWorkspaceMember = (raw) => ({
-  userId: raw.userId,
-  firstName: raw.firstName,
-  lastName: raw.lastName,
-  email: raw.email,
-  role: raw.role,
-});
+const notifyChanged = (data) => {
+  window.dispatchEvent(new Event(WORKSPACES_CHANGED));
+  return data;
+};
 
-// every workspace the user is in (not paginated, includes archived ones)
-export async function listMyWorkspaces() {
-  const data = USE_MOCKS ? await mock.mockListMyWorkspaces() : (await api.get("/workspaces")).data;
-  return data.map(toWorkspace);
-}
+// every workspace the user belongs to; each one carries the user's role and archivedAt
+export const listWorkspaces = (signal) =>
+  api.get("/workspaces", { signal }).then((res) => res.data);
 
-export async function getWorkspace(workspaceId) {
-  const data = USE_MOCKS
-    ? await mock.mockGetWorkspace(workspaceId)
-    : (await api.get(`/workspaces/${workspaceId}`)).data;
-  return toWorkspace(data);
-}
+export const getWorkspace = (workspaceId, signal) =>
+  api.get(`/workspaces/${workspaceId}`, { signal }).then((res) => res.data);
 
-// one page of the workspace's people; q matches first name, last name or email
-export async function listWorkspaceMembers(workspaceId, { q, page, size } = {}) {
-  const params = pageParams({ q, page, size });
-  const data = USE_MOCKS
-    ? await mock.mockListWorkspaceMembers(workspaceId, params)
-    : (await api.get(`/workspaces/${workspaceId}/members`, { params })).data;
-  return toPage(data, toWorkspaceMember);
-}
+// params: { q, page, size }
+export const listWorkspaceMembers = (workspaceId, params, signal) =>
+  api.get(`/workspaces/${workspaceId}/members`, { params, signal }).then((res) => res.data);
+
+export const createWorkspace = (name) =>
+  api.post("/workspaces", { name }).then((res) => notifyChanged(res.data));
+
+export const renameWorkspace = (workspaceId, name) =>
+  api.patch(`/workspaces/${workspaceId}`, { name }).then((res) => notifyChanged(res.data));
+
+export const archiveWorkspace = (workspaceId) =>
+  api.post(`/workspaces/${workspaceId}/archive`).then((res) => notifyChanged(res.data));
+
+export const restoreWorkspace = (workspaceId) =>
+  api.post(`/workspaces/${workspaceId}/restore`).then((res) => notifyChanged(res.data));
+
+// only allowed once the workspace is archived (otherwise WORKSPACE_NOT_ARCHIVED)
+export const deleteWorkspace = (workspaceId) =>
+  api.delete(`/workspaces/${workspaceId}`).then(() => notifyChanged());
+
+// returns { invited: [...emails], alreadyMembers: [...emails] }
+export const inviteMembers = (workspaceId, emails) =>
+  api.post(`/workspaces/${workspaceId}/invitations`, { emails }).then((res) => res.data);

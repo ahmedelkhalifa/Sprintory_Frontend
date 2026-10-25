@@ -14,6 +14,9 @@ import {
 } from "@mui/icons-material";
 import Logo from "../general/Logo";
 import { useAuth } from "../../context/AuthContext";
+import { useWorkspaces } from "../../context/WorkspaceContext";
+import { initials } from "../../utils/people";
+import WorkspaceSwitcher from "./WorkspaceSwitcher";
 
 const DRAWER_WIDTH = 270;
 const HEADER_HEIGHT = 80;
@@ -25,7 +28,8 @@ const NAV_ITEMS = [
   { label: "Board", to: "/board", icon: <ViewColumnOutlined /> },
   { label: "Sprints", to: "/sprints", icon: <TimerOutlined /> },
   { label: "Reports", to: "/reports", icon: <BarChartOutlined /> },
-  { label: "Team", to: "/team", icon: <GroupOutlined /> },
+  // workspace pages live under /workspaces/:id, see linkTo below
+  { label: "Teams", workspacePath: "teams", icon: <GroupOutlined /> },
   { label: "Settings", to: "/settings", icon: <SettingsOutlined /> },
 ];
 
@@ -51,14 +55,6 @@ const itemSx = (theme) => ({
 const displayName = (user) =>
   [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.name || user?.email || "";
 
-const initials = (name) =>
-  name
-    .split(/[\s@]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join("");
-
 // app layout for logged-in pages: dark sidebar + top bar, page content in <Outlet />
 // desktop: permanent sidebar, mobile: sidebar opens from the menu button
 const AppShell = () => {
@@ -67,6 +63,7 @@ const AppShell = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { currentId } = useWorkspaces();
   const name = displayName(user);
 
   const handleLogout = async () => {
@@ -83,18 +80,43 @@ const AppShell = () => {
   const isSelected = (to) =>
     to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`);
 
+  // without a current workspace, workspace pages send the user to pick one first
+  const linkTo = (item) => {
+    if (!item.workspacePath) return item.to;
+    return currentId ? `/workspaces/${currentId}/${item.workspacePath}` : "/workspaces";
+  };
+  const isItemSelected = (item) =>
+    item.workspacePath ? Boolean(currentId) && isSelected(linkTo(item)) : isSelected(item.to);
+
   const drawerContent = (
     <Box>
       <Box sx={{ display: "flex", alignItems: "center", px: 3, height: HEADER_HEIGHT }}>
         <Logo size={24} inverted />
       </Box>
+      <Box sx={{ px: 2, pb: 2 }}>
+        <Typography
+          variant="caption"
+          sx={(theme) => ({
+            display: "block",
+            px: 1,
+            pb: 0.5,
+            fontWeight: 600,
+            letterSpacing: 0.5,
+            textTransform: "uppercase",
+            color: alpha(theme.palette.common.white, 0.55),
+          })}
+        >
+          Workspaces
+        </Typography>
+        <WorkspaceSwitcher />
+      </Box>
       <List sx={{ px: 1.5, display: "flex", flexDirection: "column", gap: 0.5 }}>
         {NAV_ITEMS.map((item) => (
           <ListItemButton
-            key={item.to}
+            key={item.label}
             component={NavLink}
-            to={item.to}
-            selected={isSelected(item.to)}
+            to={linkTo(item)}
+            selected={isItemSelected(item)}
             onClick={() => setMobileOpen(false)}
             sx={itemSx}
           >

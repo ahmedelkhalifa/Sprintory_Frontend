@@ -1,23 +1,28 @@
 import api from "./client";
-import { USE_MOCKS } from "./useMocks";
-import { pageParams, toPage } from "../utils/paging";
-import * as mock from "../mocks/handlers";
 
-/**
- * Teams API, see teams-docs.md (R02). Only what the projects pages need (the "Add team" picker).
- * TEMP: the teams page (branch pages/teams_page) has its own teamsApi.js;
- * once it is merged into main, keep one file and delete the duplicate.
- * TeamResponse { id, workspaceId, name }   (no member count)
- */
+// admins get every team in the workspace, members only the teams they are in
+// params: { q, page, size }
+export const listTeams = (workspaceId, params, signal) =>
+  api.get(`/workspaces/${workspaceId}/teams`, { params, signal }).then((res) => res.data);
 
-// translator: the only place that knows the backend's field names
-const toTeam = (raw) => ({ id: raw.id, workspaceId: raw.workspaceId, name: raw.name });
+export const getTeam = (teamId, signal) =>
+  api.get(`/teams/${teamId}`, { signal }).then((res) => res.data);
 
-// one page of the workspace's teams (admins get all, members only their own); q matches the name
-export async function listWorkspaceTeams(workspaceId, { q, page, size } = {}) {
-  const params = pageParams({ q, page, size });
-  const data = USE_MOCKS
-    ? await mock.mockListWorkspaceTeams(workspaceId, params)
-    : (await api.get(`/workspaces/${workspaceId}/teams`, { params })).data;
-  return toPage(data, toTeam);
-}
+export const createTeam = (workspaceId, name) =>
+  api.post(`/workspaces/${workspaceId}/teams`, { name }).then((res) => res.data);
+
+export const renameTeam = (teamId, name) =>
+  api.patch(`/teams/${teamId}`, { name }).then((res) => res.data);
+
+export const deleteTeam = (teamId) => api.delete(`/teams/${teamId}`);
+
+// params: { q, page, size }
+export const listTeamMembers = (teamId, params, signal) =>
+  api.get(`/teams/${teamId}/members`, { params, signal }).then((res) => res.data);
+
+// userIds must already be workspace members, at most 100 per request
+export const addTeamMembers = (teamId, userIds) =>
+  api.post(`/teams/${teamId}/members`, { userIds });
+
+export const removeTeamMember = (teamId, userId) =>
+  api.delete(`/teams/${teamId}/members/${userId}`);
