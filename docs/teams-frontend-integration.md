@@ -4,18 +4,18 @@ Source of truth: backend `docs/teams-docs.md` (23 October 2026).
 
 ## Implemented
 
-- API requests go through `src/api/client.js` (cookies and refresh already handled there).
+- API requests go through `src/api/teamsApi.js` / `workspacesApi.js` and the shared `src/api/client.js` (cookies and refresh already handled there).
 - Workspace-scoped team list, backend search (`q`), fixed sort and pagination (`page`/`size`).
 - View a team's members; server-side member search and paginated loading.
 - Workspace admins can create and rename teams and delete teams after confirmation.
 - Workspace admins can add existing workspace members (up to 100 per request) and remove team memberships.
 - Role and `archivedAt` control write actions in the UI; the server remains authoritative.
-- Error codes `RESOURCE_NOT_FOUND`, `ACCESS_DENIED`, `CONFLICT`, `WORKSPACE_ARCHIVED`, etc. have safe UI messages.
+- Error codes `RESOURCE_NOT_FOUND`, `ACCESS_DENIED`, `CONFLICT`, `WORKSPACE_ARCHIVED`, etc. get their text from the shared `src/utils/apiError.js` (same text as the workspace pages).
 
 ## Explicit dependencies / limitations
 
-- Teams require a *real numeric workspace ID*: open `/workspaces/<id>/teams` or `/teams?workspaceId=<id>`. There is no shared selected-workspace context in the supplied frontend snapshot. Do not hardcode a demo ID.
-- Workspace role is read from `GET /api/v1/workspaces/{id}`; workspace member picker calls `GET /api/v1/workspaces/{id}/members?q=&page=&size=`. These two response contracts are referenced in `teams-docs.md` but their complete definitions are in `workspaces-docs.md`, which was not supplied. Confirm the `WorkspaceResponse.role`, `archivedAt`, and `WorkspaceMemberResponse` fields against that document before merge.
+- The page lives at `/workspaces/<id>/teams`. The sidebar "Teams" link points there for the current workspace (from `WorkspaceProvider`: the workspace in the url, else the last one opened); with no workspace it goes to `/workspaces` to pick one.
+- Workspace role is read from `GET /api/v1/workspaces/{id}`; the workspace member picker calls `GET /api/v1/workspaces/{id}/members?q=&page=&size=` (both in `workspacesApi.js`). Fields match backend `workspaces-docs.md` (`role`, `archivedAt`, `WorkspaceMemberResponse`).
 - `TeamResponse` contains only `id`, `workspaceId`, `name`. Team descriptions, per-team project assignments, invitation flows, and sortable team lists are **not** part of R02 and were removed from the preview.
 - Team creation is initially empty; member addition happens as a separate request. Name uniqueness is case-sensitive on the server.
 - `VITE_SKIP_AUTH=true` bypasses frontend route protection only. It does not authenticate API requests. Running against a real backend requires a login session cookie, a configured `VITE_API_URL`, and appropriate CORS credentials support.

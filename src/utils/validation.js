@@ -32,3 +32,10 @@ export const validateLogin = (values) =>
     email: validateEmail(values.email),
     password: values.password ? "" : "Password is required",
   });
+
+// keys match the backend's ResetPasswordRequest, so server fieldErrors land on the same fields
+export const validateResetPassword = (values) =>
+  onlyErrors({
+    newPassword: validatePassword(values.newPassword),
+    confirmPassword: values.confirmPassword === values.newPassword ? "" : "Passwords don't match",
+  });
