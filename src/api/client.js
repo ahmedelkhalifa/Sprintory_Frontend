@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080/api",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080/api/v1",
   withCredentials: true,
 });
 
@@ -14,8 +14,10 @@ api.interceptors.response.use(
   async (err) => {
     const config = err.config;
     const isAuthPath = AUTH_PATHS.some((path) => config?.url?.includes(path));
+    // only an expired/missing access token is worth a refresh (not e.g. INVALID_TOKEN)
+    const isAuthError = err.response?.data?.code === "AUTHENTICATION_ERROR";
 
-    if (err.response?.status !== 401 || isAuthPath || config._retry) {
+    if (err.response?.status !== 401 || !isAuthError || isAuthPath || config._retry) {
       return Promise.reject(err);
     }
     config._retry = true;

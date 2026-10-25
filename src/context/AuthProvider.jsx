@@ -21,10 +21,14 @@ const AuthProvider = ({ children }) => {
   }, []);
 
   const logout = async () => {
-    if (!SKIP_AUTH) {
-      await api.post("/auth/logout"); // the backend should clear the cookies
+    try {
+      if (!SKIP_AUTH) {
+        await api.post("/auth/logout"); // the backend should clear the cookies
+      }
+    } finally {
+      // log out on the frontend even if the request failed
+      setUser(null);
     }
-    setUser(null);
   };
 
   return (
