@@ -4,16 +4,18 @@ import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOu
 import AddIcon from "@mui/icons-material/Add";
 import OverviewCard from "./OverviewCard";
 import UserAvatar from "../../general/UserAvatar";
-import { PROJECT_MANAGER, projectRoleLabel } from "../../../constants/roles";
+import { memberLabel } from "../../../utils/people";
+import { isProjectManager, projectRoleLabel } from "../../../utils/project";
 
 const SHOWN = 5;
-const isManager = (member) => member.roles.includes(PROJECT_MANAGER);
 
 // "Project members" card: up to 5 members with their role, Project Managers first (with a crown).
-// "See all" opens the Members tab, "Add member" opens the Add people window.
+// "See all" opens the Members tab, "Add member" opens the Add people window. `preview` is a PageResponse.
 const ProjectMembersCard = ({ project, preview, loading, canManage, onSeeAll, onAdd }) => {
   // sort is stable, so people keep the backend's alphabetical order within each group
-  const shown = loading ? [] : [...preview.items].sort((a, b) => isManager(b) - isManager(a)).slice(0, SHOWN);
+  const shown = loading
+    ? []
+    : [...preview.content].sort((a, b) => isProjectManager(b) - isProjectManager(a)).slice(0, SHOWN);
 
   return (
     <OverviewCard
@@ -21,7 +23,7 @@ const ProjectMembersCard = ({ project, preview, loading, canManage, onSeeAll, on
       title="Project members"
       action={
         <Button size="small" onClick={onSeeAll} sx={{ fontWeight: 600 }}>
-          See all{preview ? ` (${preview.total})` : ""}
+          See all{preview ? ` (${preview.totalElements})` : ""}
         </Button>
       }
     >
@@ -34,13 +36,13 @@ const ProjectMembersCard = ({ project, preview, loading, canManage, onSeeAll, on
                   <UserAvatar user={member} size={38} />
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography sx={{ fontWeight: 600, fontSize: 15 }} noWrap>
-                      {member.firstName} {member.lastName}
+                      {memberLabel(member)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" noWrap>
                       {member.roles.map((role) => projectRoleLabel(role, project.template)).join(", ")}
                     </Typography>
                   </Box>
-                  {isManager(member) && (
+                  {isProjectManager(member) && (
                     <Tooltip title="Project Manager">
                       <WorkspacePremiumOutlinedIcon fontSize="small" sx={{ color: "warning.main" }} />
                     </Tooltip>

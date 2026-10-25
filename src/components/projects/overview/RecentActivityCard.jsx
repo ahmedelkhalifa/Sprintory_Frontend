@@ -6,6 +6,7 @@ import OverviewCard from "./OverviewCard";
 import UserAvatar from "../../general/UserAvatar";
 import ToneChip from "../../general/ToneChip";
 import { timeAgo } from "../../../utils/format";
+import { memberLabel } from "../../../utils/people";
 import { placeholderActivity } from "../../../placeholders/projectOverview";
 
 const TASK_STATUS = {
@@ -23,7 +24,7 @@ const ActivityItem = ({ item }) => {
       <UserAvatar user={item.person} size={40} />
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography sx={{ fontWeight: 600 }} noWrap>
-          {item.person.firstName} {item.person.lastName}
+          {memberLabel(item.person)}
         </Typography>
         <Typography variant="body2" color="text.secondary" noWrap>
           {item.verb}{" "}
@@ -56,13 +57,17 @@ const RecentActivityCard = ({ project, members, loading }) => {
       Icon={TimelineOutlinedIcon}
       title="Recent activity"
       action={
-        <Tooltip title="Coming soon">
-          <span>
-            <Button size="small" endIcon={<ArrowForwardIcon />} disabled>
-              View all
-            </Button>
-          </span>
-        </Tooltip>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          {/* made-up items, so nobody mistakes them for real work */}
+          <ToneChip label="Sample data" tone="warning.main" />
+          <Tooltip title="Coming soon">
+            <span>
+              <Button size="small" endIcon={<ArrowForwardIcon />} disabled>
+                View all
+              </Button>
+            </span>
+          </Tooltip>
+        </Box>
       }
     >
       {loading ? (

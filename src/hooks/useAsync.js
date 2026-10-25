@@ -1,45 +1,42 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getErrorCode, getErrorMessage } from "../utils/apiErrors";
+import { errorCode, errorMessage, isAbort } from "../utils/apiError";
 
 /**
  * Loads one thing (a project, a workspace, ...) and tracks loading / error.
- * `load` is called again whenever a value in `deps` changes, or on reload().
- * const { data, loading, error, errorCode, reload } = useAsync(() => getProject(id), [id], { messages });
- * Pass `enabled: false` to wait (e.g. until an id is known).
+ * `load(signal)` is called again whenever a value in `deps` changes, or on reload();
+ * the previous request is aborted, so a stale response never lands.
+ * const { data, loading, error, errorCode, reload } = useAsync((signal) => getProject(id, signal), [id], { fallback });
+ * Pass `enabled: false` to wait (e.g. until an id is known). `messages` are per-code texts for errorMessage.
  */
-export function useAsync(load, deps, { enabled = true, messages } = {}) {
+export const useAsync = (load, deps, { enabled = true, fallback, messages } = {}) => {
   const [reloadCount, setReloadCount] = useState(0);
   const [result, setResult] = useState({ key: null, depsKey: null, data: null, error: "", errorCode: null });
 
-  // always call the latest `load` and `messages`, without re-running the effect on every render
-  const latest = useRef({ load, messages });
+  // always call the latest `load` and texts, without re-running the effect on every render
+  const latest = useRef({ load, fallback, messages });
   useEffect(() => {
-    latest.current = { load, messages };
+    latest.current = { load, fallback, messages };
   });
 
   const depsKey = enabled ? JSON.stringify(deps) : null;
   const key = enabled ? JSON.stringify([...deps, reloadCount]) : null;
 
   useEffect(() => {
-    if (key === null) return;
-    // drop the result if the inputs change (or the page closes) before it arrives
-    let ignore = false;
+    if (key === null) return undefined;
+    const controller = new AbortController();
 
     latest.current
-      .load()
+      .load(controller.signal)
       .then((data) => {
-        if (!ignore) setResult({ key, depsKey, data, error: "", errorCode: null });
+        if (!controller.signal.aborted) setResult({ key, depsKey, data, error: "", errorCode: null });
       })
       .catch((err) => {
-        if (!ignore) {
-          const error = getErrorMessage(err, latest.current.messages);
-          setResult({ key, depsKey, data: null, error, errorCode: getErrorCode(err) });
-        }
+        if (isAbort(err) || controller.signal.aborted) return;
+        const error = errorMessage(err, latest.current.fallback, latest.current.messages);
+        setResult({ key, depsKey, data: null, error, errorCode: errorCode(err) });
       });
 
-    return () => {
-      ignore = true;
-    };
+    return () => controller.abort();
   }, [key, depsKey]);
 
   // still loading until the result of the current request arrives
@@ -54,4 +51,4 @@ export function useAsync(load, deps, { enabled = true, messages } = {}) {
     errorCode: loading ? null : result.errorCode,
     reload,
   };
-}
+};

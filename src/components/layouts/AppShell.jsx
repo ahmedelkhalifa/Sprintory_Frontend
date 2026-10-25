@@ -23,12 +23,12 @@ const HEADER_HEIGHT = 80;
 
 const NAV_ITEMS = [
   { label: "Home", to: "/", icon: <HomeOutlined /> },
-  { label: "Projects", to: "/projects", icon: <FolderOpenOutlined /> },
+  // workspace pages live under /workspaces/:id, see linkTo below
+  { label: "Projects", workspacePath: "projects", icon: <FolderOpenOutlined /> },
   { label: "Backlog", to: "/backlog", icon: <ViewListOutlined /> },
   { label: "Board", to: "/board", icon: <ViewColumnOutlined /> },
   { label: "Sprints", to: "/sprints", icon: <TimerOutlined /> },
   { label: "Reports", to: "/reports", icon: <BarChartOutlined /> },
-  // workspace pages live under /workspaces/:id, see linkTo below
   { label: "Teams", workspacePath: "teams", icon: <GroupOutlined /> },
   { label: "Settings", to: "/settings", icon: <SettingsOutlined /> },
 ];

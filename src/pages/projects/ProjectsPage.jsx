@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useParams } from "react-router-dom";
 import { Alert, Button } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import PageLayout from "../../components/layouts/PageLayout";
@@ -13,10 +14,11 @@ import ProjectActionsMenu from "../../components/projects/ProjectActionsMenu";
 import CreateProjectDialog from "../../components/projects/CreateProjectDialog";
 import EditProjectDialog from "../../components/projects/EditProjectDialog";
 import ProjectStatusDialog from "../../components/projects/ProjectStatusDialog";
-import { listWorkspaceProjects } from "../../api/projectsApi";
-import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
+import { listProjects } from "../../api/projectsApi";
+import { useWorkspaces } from "../../context/WorkspaceContext";
 import { usePagedList } from "../../hooks/usePagedList";
 import { useMembersPreview, useProjectTabCounts } from "../../hooks/useProjectsOverview";
+import { isWorkspaceArchived, parseWorkspaceId } from "../../utils/workspace";
 import { PROJECT_STATUS } from "../../constants/projects";
 
 const PROJECTS_PER_PAGE = 10;
@@ -27,28 +29,36 @@ const EMPTY_MESSAGES = {
   [PROJECT_STATUS.ARCHIVED]: "No archived projects.",
 };
 
-// /projects: the projects of the current workspace, by tab (all / active / archived), searchable and paged.
-// Any member of an active workspace can create a project; the ⋮ menu shows what each project allows.
+// /workspaces/:workspaceId/projects
 const ProjectsPage = () => {
-  const workspace = useCurrentWorkspace();
+  const workspaceId = parseWorkspaceId(useParams().workspaceId);
+  // remount when switching workspaces, so nothing from the previous one is shown
+  return <WorkspaceProjects key={workspaceId ?? "invalid"} workspaceId={workspaceId} />;
+};
+
+// the workspace's projects, by tab (all / active / archived), searchable and paged.
+// Any member of an active workspace can create a project; the ⋮ menu shows what each project allows.
+const WorkspaceProjects = ({ workspaceId }) => {
+  // `current` is the workspace in the url, once the list has loaded
+  const { current: workspace, loading: workspacesLoading, error: workspacesError } = useWorkspaces();
   const [tab, setTab] = useState(ALL_PROJECTS);
   // which window is open: { type: "create" } or { type: "edit" | "archive" | "restore" | "delete", project }
   const [dialog, setDialog] = useState(null);
   // bumped after every change, so the tab counts are fetched again
   const [version, setVersion] = useState(0);
-  const workspaceId = workspace.workspace?.id;
-  const readOnly = Boolean(workspace.workspace?.isArchived);
+  const readOnly = isWorkspaceArchived(workspace);
 
   const list = usePagedList(
-    (params) => listWorkspaceProjects(workspaceId, { ...params, status: tab === ALL_PROJECTS ? undefined : tab }),
+    (params, signal) =>
+      listProjects(workspaceId, { ...params, status: tab === ALL_PROJECTS ? undefined : tab }, signal),
     [workspaceId, tab],
     {
-      enabled: Boolean(workspaceId),
+      enabled: Boolean(workspace),
       size: PROJECTS_PER_PAGE,
-      messages: { fallback: "Couldn't load your projects. Please try again." },
+      fallback: "Couldn't load your projects. Please try again.",
     },
   );
-  const counts = useProjectTabCounts(workspaceId, version);
+  const counts = useProjectTabCounts(workspace?.id, version);
   const previews = useMembersPreview(list.items.map((project) => project.id));
 
   const changeTab = (next) => {
@@ -63,16 +73,19 @@ const ProjectsPage = () => {
     setVersion((v) => v + 1);
   };
 
-  const noWorkspace = !workspace.loading && !workspace.error && !workspace.workspace;
+  if (!workspaceId) return <Alert severity="error">This workspace link is not valid.</Alert>;
+
+  // not in the user's list: it doesn't exist, or they aren't a member
+  const notFound = !workspacesLoading && !workspacesError && !workspace;
   const query = list.search.trim();
 
   return (
     <PageLayout>
       <PageHeader
         title="Projects"
-        subtitle={workspace.workspace ? `All projects in ${workspace.workspace.name}.` : "Plan and track your team's work."}
+        subtitle={workspace ? `All projects in ${workspace.name}.` : "Plan and track your team's work."}
         actions={
-          workspaceId &&
+          workspace &&
           !readOnly && (
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialog({ type: "create" })}>
               Create project
@@ -92,13 +105,13 @@ const ProjectsPage = () => {
         toolbar={<SearchField value={list.search} onChange={list.setSearch} placeholder="Search projects" />}
       >
         <LoadState
-          loading={workspace.loading || (!noWorkspace && list.loading)}
-          error={workspace.error || list.error}
-          onRetry={workspace.error ? workspace.reload : list.reload}
-          isEmpty={noWorkspace || list.items.length === 0}
+          loading={workspacesLoading || (!notFound && list.loading)}
+          error={workspacesError || list.error}
+          onRetry={workspacesError ? undefined : list.reload}
+          isEmpty={notFound || list.items.length === 0}
           emptyMessage={
-            noWorkspace
-              ? "You're not in any workspace yet."
+            notFound
+              ? "This workspace doesn't exist, or you're not a member."
               : query
                 ? `No projects match "${query}".`
                 : EMPTY_MESSAGES[tab]

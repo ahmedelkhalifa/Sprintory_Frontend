@@ -62,10 +62,16 @@ const ProjectStats = ({ project }) => {
   ];
 
   return (
-    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(4, 1fr)" }, gap: 2 }}>
-      {cards.map((card) => (
-        <StatCard key={card.label} {...card} />
-      ))}
+    <Box>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(4, 1fr)" }, gap: 2 }}>
+        {cards.map((card) => (
+          <StatCard key={card.label} {...card} />
+        ))}
+      </Box>
+      {/* made-up numbers, so nobody mistakes them for real work */}
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+        Sample numbers until tasks are available.
+      </Typography>
     </Box>
   );
 };

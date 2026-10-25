@@ -24,6 +24,7 @@ import { listWorkspaceMembers } from "../../api/workspacesApi";
 import { usePagedList } from "../../hooks/usePagedList";
 import { useSubmit } from "../../hooks/useSubmit";
 import { PROJECT_ERROR_MESSAGES } from "../../constants/projects";
+import { memberLabel } from "../../utils/people";
 
 const MAX_PEOPLE = 100; // the backend accepts 1 to 100 ids per request
 const ERRORS = {
@@ -35,10 +36,11 @@ const ERRORS = {
 // "Add people" window: search the workspace's people, tick several, add them to the project as Members.
 // People already in the project are skipped by the backend, so picking them does no harm.
 const AddPeopleDialog = ({ project, onClose, onAdded }) => {
-  const people = usePagedList((params) => listWorkspaceMembers(project.workspaceId, params), [project.workspaceId], {
-    size: 8,
-    messages: { fallback: "Couldn't load the workspace's people. Please try again." },
-  });
+  const people = usePagedList(
+    (params, signal) => listWorkspaceMembers(project.workspaceId, params, signal),
+    [project.workspaceId],
+    { size: 8, fallback: "Couldn't load the workspace's people. Please try again." },
+  );
   // picked people by id, kept while searching and paging
   const [picked, setPicked] = useState(() => new Map());
   const submit = useSubmit(ERRORS);
@@ -95,12 +97,12 @@ const AddPeopleDialog = ({ project, onClose, onAdded }) => {
                           checked={checked}
                           tabIndex={-1}
                           disableRipple
-                          slotProps={{ input: { "aria-label": `${person.firstName} ${person.lastName}` } }}
+                          slotProps={{ input: { "aria-label": memberLabel(person) } }}
                         />
                       </ListItemIcon>
                       <UserAvatar user={person} size={32} sx={{ mr: 1.5 }} />
                       <ListItemText
-                        primary={`${person.firstName} ${person.lastName}`}
+                        primary={memberLabel(person)}
                         secondary={person.email}
                         slotProps={{ primary: { noWrap: true, fontWeight: 600 }, secondary: { noWrap: true } }}
                       />

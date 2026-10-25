@@ -3,7 +3,6 @@ import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, 
 import FormField from "../forms/FormField";
 import { updateProject } from "../../api/projectsApi";
 import { useSubmit } from "../../hooks/useSubmit";
-import { getFieldErrors } from "../../utils/apiErrors";
 import { validateProjectName } from "../../utils/validation";
 import { PROJECT_ERROR_MESSAGES } from "../../constants/projects";
 
@@ -21,14 +20,14 @@ const EditProjectDialog = ({ project, onClose, onSaved }) => {
     setNameError(error);
     if (error) return;
 
-    const { ok, result, error: apiError } = await submit.run(() => updateProject(project.id, { name: name.trim() }));
+    const { ok, result, error: apiError } = await submit.run(() => updateProject(project.id, name.trim()));
     if (ok) {
       onSaved(result);
       return;
     }
-    const fieldErrors = getFieldErrors(apiError);
-    if (fieldErrors.name) {
-      setNameError(capitalize(fieldErrors.name));
+    const data = apiError.response?.data;
+    if (data?.code === "VALIDATION_ERROR" && data.fieldErrors?.name) {
+      setNameError(capitalize(data.fieldErrors.name));
       submit.clearError();
     }
   };

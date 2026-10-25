@@ -13,6 +13,7 @@ import {
 import PersonRemoveOutlinedIcon from "@mui/icons-material/PersonRemoveOutlined";
 import UserAvatar from "../general/UserAvatar";
 import RoleChip from "./RoleChip";
+import { memberLabel } from "../../utils/people";
 
 const headCellSx = { color: "text.secondary", fontWeight: 500, borderColor: "divider" };
 // on smaller screens the email moves under the name, to keep the table narrow
@@ -52,7 +53,7 @@ const MembersTable = ({ members, template, onRemove }) => {
                   <UserAvatar user={member} />
                   <Box sx={{ minWidth: 0 }}>
                     <Typography noWrap sx={{ fontWeight: 600 }}>
-                      {member.firstName} {member.lastName}
+                      {memberLabel(member)}
                     </Typography>
                     <Typography noWrap variant="body2" color="text.secondary" sx={{ display: { xs: "block", md: "none" } }}>
                       {member.email}
@@ -76,7 +77,7 @@ const MembersTable = ({ members, template, onRemove }) => {
                   <Tooltip title="Remove from project">
                     <IconButton
                       size="small"
-                      aria-label={`Remove ${member.firstName} ${member.lastName} from the project`}
+                      aria-label={`Remove ${memberLabel(member)} from the project`}
                       onClick={() => onRemove(member)}
                     >
                       <PersonRemoveOutlinedIcon fontSize="small" />

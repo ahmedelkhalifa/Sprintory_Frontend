@@ -20,7 +20,7 @@ import SearchField from "../general/SearchField";
 import LoadState from "../general/LoadState";
 import Pager from "../general/Pager";
 import { addTeamToProject } from "../../api/projectsApi";
-import { listWorkspaceTeams } from "../../api/teamsApi";
+import { listTeams } from "../../api/teamsApi";
 import { usePagedList } from "../../hooks/usePagedList";
 import { useSubmit } from "../../hooks/useSubmit";
 import { PROJECT_ERROR_MESSAGES } from "../../constants/projects";
@@ -33,10 +33,11 @@ const ERRORS = {
 
 // "Add team" window: pick one team of the workspace; everyone in it right now joins the project.
 const AddTeamDialog = ({ project, onClose, onAdded }) => {
-  const teams = usePagedList((params) => listWorkspaceTeams(project.workspaceId, params), [project.workspaceId], {
-    size: 8,
-    messages: { fallback: "Couldn't load the teams. Please try again." },
-  });
+  const teams = usePagedList(
+    (params, signal) => listTeams(project.workspaceId, params, signal),
+    [project.workspaceId],
+    { size: 8, fallback: "Couldn't load the teams. Please try again." },
+  );
   const [picked, setPicked] = useState(null);
   const submit = useSubmit(ERRORS);
 

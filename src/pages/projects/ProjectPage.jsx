@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { Alert, Box, Button, Skeleton, Stack } from "@mui/material";
 import PageLayout from "../../components/layouts/PageLayout";
 import ProjectNotFound from "../../components/projects/ProjectNotFound";
@@ -20,12 +20,12 @@ import ProjectMembersCard from "../../components/projects/overview/ProjectMember
 import ComingSoonPanel from "../../components/projects/overview/ComingSoonPanel";
 import { tabsFor } from "../../components/projects/overview/tabList";
 import { getProject, listProjectMembers } from "../../api/projectsApi";
-import { getWorkspace } from "../../api/workspacesApi";
+import { useWorkspaces } from "../../context/WorkspaceContext";
 import { useAsync } from "../../hooks/useAsync";
-import { can } from "../../utils/permissions";
-import { PERMISSIONS, PROJECT_STATUS } from "../../constants/projects";
+import { can, isProjectArchived, parseProjectId, projectPath, projectsPath } from "../../utils/project";
+import { isWorkspaceArchived, parseWorkspaceId } from "../../utils/workspace";
+import { PERMISSIONS } from "../../constants/projects";
 
-const PROJECT_ERRORS = { fallback: "Couldn't load the project. Please try again." };
 // the overview loads one page of members (to find the Project Managers and name people in the activity)
 // and the members card shows the first 5, Project Managers first
 const MEMBERS_PREVIEW_SIZE = 20;
@@ -49,33 +49,44 @@ const PageSkeleton = () => (
   </Box>
 );
 
-// /projects/:projectId: one project. Overview (stats, activity, details, members), Members, and tabs that are
-// coming soon. Kanban projects have no Backlog / Sprints. Project Managers and workspace admins
-// (MANAGE_MEMBERS) can add and remove people; EDIT_SETTINGS / ARCHIVE_PROJECT unlock the settings menu.
+// /workspaces/:workspaceId/projects/:projectId
 const ProjectPage = () => {
-  const { projectId } = useParams();
+  const params = useParams();
+  const workspaceId = parseWorkspaceId(params.workspaceId);
+  const projectId = parseProjectId(params.projectId);
+  // remount when switching projects, so tabs and dialogs start fresh
+  return <ProjectView key={projectId ?? "invalid"} workspaceId={workspaceId} projectId={projectId} />;
+};
+
+// One project: Overview (stats, activity, details, members), Members, and tabs that are coming soon.
+// Kanban projects have no Backlog / Sprints. Project Managers and workspace admins (MANAGE_MEMBERS)
+// can add and remove people; EDIT_SETTINGS / ARCHIVE_PROJECT unlock the settings menu.
+const ProjectView = ({ workspaceId, projectId }) => {
   const navigate = useNavigate();
+  // the workspace in the url; the project must belong to it (checked below)
+  const { current: workspace } = useWorkspaces();
   const [tab, setTab] = useState("overview");
   // which window is open: add-people / add-team / remove (+ member) / edit / archive / restore / delete
   const [dialog, setDialog] = useState(null);
   // bumped after every membership change, so member lists load again
   const [version, setVersion] = useState(0);
 
-  const projectState = useAsync(() => getProject(projectId), [projectId], { messages: PROJECT_ERRORS });
-  const project = projectState.data;
-  const workspaceState = useAsync(() => getWorkspace(project.workspaceId), [project?.workspaceId], {
-    enabled: Boolean(project),
+  const projectState = useAsync((signal) => getProject(projectId, signal), [projectId], {
+    enabled: Boolean(workspaceId && projectId),
+    fallback: "Couldn't load the project. Please try again.",
   });
+  const project = projectState.data;
   const previewState = useAsync(
-    () => listProjectMembers(projectId, { size: MEMBERS_PREVIEW_SIZE }),
+    (signal) => listProjectMembers(projectId, { size: MEMBERS_PREVIEW_SIZE }, signal),
     [projectId, version],
     { enabled: Boolean(project) },
   );
 
-  if (projectState.errorCode === "RESOURCE_NOT_FOUND") {
+  // a 404 means it doesn't exist, or the user may not see it (e.g. they were just removed)
+  if (!workspaceId || !projectId || projectState.errorCode === "RESOURCE_NOT_FOUND") {
     return (
       <PageLayout>
-        <ProjectNotFound />
+        <ProjectNotFound workspaceId={workspaceId} />
       </PageLayout>
     );
   }
@@ -101,12 +112,15 @@ const ProjectPage = () => {
     );
   }
 
-  const workspace = workspaceState.data;
-  const workspaceArchived = Boolean(workspace?.isArchived);
-  const projectArchived = project.status === PROJECT_STATUS.ARCHIVED;
-  // hiding is only for usability: the backend refuses these changes anyway
-  const canManage = can(project, PERMISSIONS.MANAGE_MEMBERS) && Boolean(workspace) && !workspaceArchived && !projectArchived;
-  const canEdit = can(project, PERMISSIONS.EDIT_SETTINGS) && Boolean(workspace) && !workspaceArchived && !projectArchived;
+  // an old or hand-edited link with the wrong workspace: go to the project's real url
+  if (project.workspaceId !== workspaceId) return <Navigate to={projectPath(project)} replace />;
+
+  const workspaceArchived = isWorkspaceArchived(workspace);
+  const projectArchived = isProjectArchived(project);
+  // wait for the workspace before showing changes; hiding is only for usability, the backend refuses anyway
+  const writable = Boolean(workspace) && !workspaceArchived && !projectArchived;
+  const canManage = can(project, PERMISSIONS.MANAGE_MEMBERS) && writable;
+  const canEdit = can(project, PERMISSIONS.EDIT_SETTINGS) && writable;
   // a Kanban project has no Backlog / Sprints tab: fall back to Overview
   const tabs = tabsFor(project.template);
   const currentTab = tabs.some((t) => t.id === tab) ? tab : "overview";
@@ -118,7 +132,7 @@ const ProjectPage = () => {
     projectState.reload(); // roles, name or status may have changed (or the user removed themselves)
   };
   const afterStatusChange = () => {
-    if (dialog?.type === "delete") navigate("/projects", { replace: true });
+    if (dialog?.type === "delete") navigate(projectsPath(workspaceId), { replace: true });
     else afterChange();
   };
 
@@ -162,7 +176,7 @@ const ProjectPage = () => {
               alignItems: "start",
             }}
           >
-            <RecentActivityCard project={project} members={previewState.data?.items} loading={!previewState.data} />
+            <RecentActivityCard project={project} members={previewState.data?.content} loading={!previewState.data} />
             <Stack spacing={3}>
               <ProjectDetailsCard
                 project={project}

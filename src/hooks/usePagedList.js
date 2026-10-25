@@ -1,27 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getErrorMessage } from "../utils/apiErrors";
-import { PAGE_SIZE } from "../utils/paging";
+import { errorMessage, isAbort } from "../utils/apiError";
+import { EMPTY_PAGE } from "../utils/page";
 
 const SEARCH_DELAY_MS = 300;
-const EMPTY_PAGE = { items: [], page: 0, size: PAGE_SIZE, total: 0, totalPages: 0 };
 
 /**
  * A paginated, searchable list loaded from the backend (search and paging happen on the server).
- * const list = usePagedList((params) => listProjectMembers(projectId, params), [projectId]);
- * `params` is { q, page, size }. The list reloads when `deps`, the page or the search change.
- * Typing in the search waits SEARCH_DELAY_MS before asking the backend, and goes back to the first page.
+ * const list = usePagedList((params, signal) => listProjectMembers(projectId, params, signal), [projectId]);
+ * `params` is { page, size, q? } and the result a PageResponse. The list reloads when `deps`, the page or
+ * the search change, aborting the previous request. Typing waits SEARCH_DELAY_MS and goes back to page 0.
  */
-export function usePagedList(fetchPage, deps, { enabled = true, messages, size = PAGE_SIZE } = {}) {
+export const usePagedList = (fetchPage, deps, { enabled = true, fallback, messages, size = EMPTY_PAGE.size } = {}) => {
   const [search, setSearchText] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   const [reloadCount, setReloadCount] = useState(0);
   const [result, setResult] = useState({ key: null, data: EMPTY_PAGE, error: "" });
 
-  // always call the latest `fetchPage` and `messages`, without re-running the effect on every render
-  const latest = useRef({ fetchPage, messages });
+  // always call the latest `fetchPage` and texts, without re-running the effect on every render
+  const latest = useRef({ fetchPage, fallback, messages });
   useEffect(() => {
-    latest.current = { fetchPage, messages };
+    latest.current = { fetchPage, fallback, messages };
   });
 
   // send the search only once the user stops typing
@@ -38,28 +37,29 @@ export function usePagedList(fetchPage, deps, { enabled = true, messages, size =
   const key = enabled ? JSON.stringify([...deps, query, page, size, reloadCount]) : null;
 
   useEffect(() => {
-    if (key === null) return;
-    // drop the result if the inputs change (or the page closes) before it arrives
-    let ignore = false;
+    if (key === null) return undefined;
+    const controller = new AbortController();
+    // a blank search is left out, so the backend returns the whole list
+    const params = { page, size, ...(query && { q: query }) };
 
     latest.current
-      .fetchPage({ q: query, page, size })
+      .fetchPage(params, controller.signal)
       .then((data) => {
-        if (ignore) return;
-        // the page became empty (e.g. its last item was deleted): go to the last page that exists
-        if (data.items.length === 0 && page > 0 && data.totalPages > 0) {
+        if (controller.signal.aborted) return;
+        // the page became empty (e.g. its last item was removed): go to the last page that exists
+        if (data.content.length === 0 && page > 0 && data.totalPages > 0) {
           setPage(data.totalPages - 1);
           return;
         }
         setResult({ key, data, error: "" });
       })
       .catch((err) => {
-        if (!ignore) setResult({ key, data: EMPTY_PAGE, error: getErrorMessage(err, latest.current.messages) });
+        if (isAbort(err) || controller.signal.aborted) return;
+        const error = errorMessage(err, latest.current.fallback, latest.current.messages);
+        setResult({ key, data: EMPTY_PAGE, error });
       });
 
-    return () => {
-      ignore = true;
-    };
+    return () => controller.abort();
   }, [key, query, page, size]);
 
   // still loading until the result of the current request arrives
@@ -68,8 +68,8 @@ export function usePagedList(fetchPage, deps, { enabled = true, messages, size =
   const data = loading ? EMPTY_PAGE : result.data;
 
   return {
-    items: data.items,
-    total: data.total,
+    items: data.content,
+    total: data.totalElements,
     totalPages: data.totalPages,
     size: data.size,
     page,
@@ -80,4 +80,4 @@ export function usePagedList(fetchPage, deps, { enabled = true, messages, size =
     error: loading ? "" : result.error,
     reload,
   };
-}
+};

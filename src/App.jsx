@@ -13,6 +13,7 @@ import WorkspacePage from "./pages/workspace/WorkspacePage";
 import TeamsPage from "./pages/teams/TeamsPage";
 import ProjectsPage from "./pages/projects/ProjectsPage";
 import ProjectPage from "./pages/projects/ProjectPage";
+import ProjectsRedirect from "./pages/projects/ProjectsRedirect";
 
 const App = () => {
   return (
@@ -37,6 +38,7 @@ const App = () => {
               }
             >
               <Route path="/" element={<div>Home</div>} />
+              <Route path="/projects" element={<ProjectsRedirect />} />
               <Route path="/workspaces" element={<WorkspacesPage />} />
               <Route path="/workspaces/:workspaceId" element={<WorkspacePage />} />
               <Route path="/workspaces/:workspaceId/teams" element={<TeamsPage />} />

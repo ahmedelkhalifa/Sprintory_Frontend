@@ -1,5 +1,5 @@
 import { Avatar } from "@mui/material";
-import { getInitials } from "../../utils/format";
+import { initials, memberLabel } from "../../utils/people";
 
 // theme colors dark enough for white initials to stay readable
 const TONES = ["primary.main", "primary.dark", "success.main", "text.secondary"];
@@ -11,27 +11,26 @@ const colorFor = (seed = "") => {
   return TONES[Math.abs(hash) % TONES.length];
 };
 
-// Round avatar: the user's photo, or their initials on a theme color
+// Round avatar: the user's photo, or their initials on a theme color.
+// `user` is a member response ({ userId, firstName, lastName, email })
 const UserAvatar = ({ user, size = 36, sx }) => {
-  // the backend sends people as { userId, ... }; `id` is kept for any older data
-  const { firstName, lastName, avatarUrl } = user;
-  const color = colorFor(user.userId ?? user.id ?? `${firstName}${lastName}`);
+  const label = memberLabel(user);
 
   return (
     <Avatar
-      src={avatarUrl || undefined}
-      alt={`${firstName} ${lastName}`}
+      src={user.avatarUrl || undefined}
+      alt={label}
       sx={{
         width: size,
         height: size,
         fontSize: size * 0.4,
         fontWeight: 600,
-        bgcolor: color,
+        bgcolor: colorFor(user.userId ?? label),
         color: "common.white",
         ...sx,
       }}
     >
-      {getInitials(firstName, lastName)}
+      {initials(label)}
     </Avatar>
   );
 };

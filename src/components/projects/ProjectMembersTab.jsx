@@ -9,15 +9,15 @@ import MembersTable from "./MembersTable";
 import { listProjectMembers } from "../../api/projectsApi";
 import { usePagedList } from "../../hooks/usePagedList";
 
-const MEMBER_ERRORS = { fallback: "Couldn't load the members. Please try again." };
-
 // The project page's Members tab: every member with their roles, searchable and paged.
 // People who may manage members also get Add people / Add team and a remove button per row.
 // `version` changes after every add/remove, so the list loads again.
 const ProjectMembersTab = ({ project, version, canManage, onAddPeople, onAddTeam, onRemove }) => {
-  const members = usePagedList((params) => listProjectMembers(project.id, params), [project.id, version], {
-    messages: MEMBER_ERRORS,
-  });
+  const members = usePagedList(
+    (params, signal) => listProjectMembers(project.id, params, signal),
+    [project.id, version],
+    { fallback: "Couldn't load the members. Please try again." },
+  );
   const query = members.search.trim();
 
   return (

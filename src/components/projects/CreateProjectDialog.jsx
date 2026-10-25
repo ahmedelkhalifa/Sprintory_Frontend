@@ -5,7 +5,7 @@ import FormField from "../forms/FormField";
 import TemplatePicker from "./TemplatePicker";
 import { createProject } from "../../api/projectsApi";
 import { useSubmit } from "../../hooks/useSubmit";
-import { getFieldErrors } from "../../utils/apiErrors";
+import { projectPath } from "../../utils/project";
 import { validateProjectName } from "../../utils/validation";
 import { PROJECT_ERROR_MESSAGES, TEMPLATES } from "../../constants/projects";
 
@@ -31,13 +31,13 @@ const CreateProjectDialog = ({ workspaceId, onClose }) => {
       createProject(workspaceId, { name: name.trim(), template }),
     );
     if (ok) {
-      navigate(`/projects/${result.id}`);
+      navigate(projectPath(result));
       return;
     }
     // the backend names the bad field: show it under the field instead of in the alert
-    const fieldErrors = getFieldErrors(apiError);
-    if (fieldErrors.name) {
-      setNameError(capitalize(fieldErrors.name));
+    const data = apiError.response?.data;
+    if (data?.code === "VALIDATION_ERROR" && data.fieldErrors?.name) {
+      setNameError(capitalize(data.fieldErrors.name));
       submit.clearError();
     }
   };

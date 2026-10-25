@@ -6,7 +6,7 @@ import TemplateChip from "../TemplateChip";
 import StatusChip from "../StatusChip";
 import UserAvatar from "../../general/UserAvatar";
 import { formatDate } from "../../../utils/format";
-import { PROJECT_STATUS } from "../../../constants/projects";
+import { isProjectArchived, projectsPath } from "../../../utils/project";
 
 // one "label: value" item of the meta row under the project name
 const Meta = ({ children }) => (
@@ -17,11 +17,11 @@ const Meta = ({ children }) => (
 
 // Top of the project page: back link, project avatar, name, description, template / key / created,
 // and on the right the action menus and the members' avatars.
-// `actions` are the Quick actions + Project settings buttons; `preview` is { items, total } of the first members.
+// `actions` are the Quick actions + Project settings buttons; `preview` is a PageResponse of the first members.
 const ProjectOverviewHeader = ({ project, preview, actions }) => {
   const meta = [
     <TemplateChip key="template" template={project.template} />,
-    project.status === PROJECT_STATUS.ARCHIVED && <StatusChip key="status" status={project.status} />,
+    isProjectArchived(project) && <StatusChip key="status" status={project.status} />,
     project.key && <Meta key="key">Project key: <Box component="strong" sx={{ color: "text.primary", fontWeight: 600 }}>{project.key}</Box></Meta>,
     project.createdAt && <Meta key="created">Created {formatDate(project.createdAt)}</Meta>,
   ].filter(Boolean);
@@ -30,7 +30,7 @@ const ProjectOverviewHeader = ({ project, preview, actions }) => {
     <Box sx={{ mb: 3 }}>
       <Link
         component={RouterLink}
-        to="/projects"
+        to={projectsPath(project.workspaceId)}
         underline="hover"
         color="text.secondary"
         sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, fontSize: 14 }}
@@ -82,13 +82,13 @@ const ProjectOverviewHeader = ({ project, preview, actions }) => {
           }}
         >
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>{actions}</Box>
-          {preview && preview.total > 0 && (
+          {preview && preview.totalElements > 0 && (
             <AvatarGroup
               max={4}
-              total={preview.total}
+              total={preview.totalElements}
               sx={{ "& .MuiAvatar-root": { width: 36, height: 36, fontSize: 13, borderColor: "background.default" } }}
             >
-              {preview.items.slice(0, 3).map((member) => (
+              {preview.content.slice(0, 3).map((member) => (
                 <UserAvatar key={member.userId} user={member} size={36} />
               ))}
             </AvatarGroup>

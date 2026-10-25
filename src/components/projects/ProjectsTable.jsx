@@ -16,6 +16,7 @@ import ProjectAvatar from "./ProjectAvatar";
 import TemplateChip from "./TemplateChip";
 import StatusChip from "./StatusChip";
 import UserAvatar from "../general/UserAvatar";
+import { projectPath } from "../../utils/project";
 
 const headCellSx = { color: "text.secondary", fontWeight: 500, borderColor: "divider" };
 // smaller screens drop the less important columns, so the table never scrolls sideways
@@ -80,7 +81,7 @@ const ProjectsTable = ({ projects, previews = {}, renderActions }) => {
 
         <TableBody>
           {projects.map((project) => {
-            const to = `/projects/${project.id}`;
+            const to = projectPath(project);
             return (
               <TableRow
                 key={project.id}
