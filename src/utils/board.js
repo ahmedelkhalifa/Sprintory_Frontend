@@ -50,3 +50,33 @@ export const daysLeft = (endDate, today = new Date()) => {
 
 // a column over its work-in-progress limit (Kanban); no limit is never over
 export const overWip = (column, count) => column.wipLimit != null && count > column.wipLimit;
+// ----- column editing (UI only: the backend has no endpoints for it yet) -----
+
+// the local edits laid over the loaded columns: names, WIP limits (null = no limit), custom order, removed columns
+export const NO_COLUMN_EDITS = { order: null, names: {}, wip: {}, removed: [] };
+
+export const applyColumnEdits = (columns, edits) => {
+  const shown = columns
+      .filter((column) => !edits.removed.includes(column.id))
+      .map((column) => ({
+        ...column,
+        name: edits.names[column.id] ?? column.name,
+        wipLimit: column.id in edits.wip ? edits.wip[column.id] : column.wipLimit,
+      }));
+  if (!edits.order) return shown;
+  const rank = (column) => {
+    const index = edits.order.indexOf(column.id);
+    return index === -1 ? edits.order.length : index;
+  };
+  return [...shown].sort((a, b) => rank(a) - rank(b));
+};
+
+// the column ids with `columnId` moved by `step` places (-1 = left, 1 = right)
+export const moveColumnId = (columns, columnId, step) => {
+  const ids = columns.map((column) => column.id);
+  const from = ids.indexOf(columnId);
+  const to = from + step;
+  if (from === -1 || to < 0 || to >= ids.length) return ids;
+  [ids[from], ids[to]] = [ids[to], ids[from]];
+  return ids;
+};

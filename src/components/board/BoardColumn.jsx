@@ -11,7 +11,7 @@ export const COLUMN_WIDTH = 280;
 
 // One board column: its name, how many tasks it holds (against its WIP limit, if it has one), then its cards,
 // which accept dropped tasks. `highlight` marks it as the place a dragged task will land.
-const BoardColumn = ({ column, highlight, emptyText, children }) => {
+const BoardColumn = ({ column, highlight, emptyText, menu, children }) => {
   const { setNodeRef } = useDroppable({ id: columnListId(column.id), data: { column: true, statusId: column.id } });
   const count = column.tasks.length;
   const over = overWip(column, count);
@@ -42,6 +42,7 @@ const BoardColumn = ({ column, highlight, emptyText, children }) => {
           <Tooltip title={over ? `Over the work-in-progress limit of ${column.wipLimit}` : "Tasks / work-in-progress limit"}>
             <Box component="span" sx={{ display: "inline-flex" }}>
               <ToneChip label={`${count} / ${column.wipLimit}`} tone={over ? "error.main" : "text.secondary"} />
+                {menu}
             </Box>
           </Tooltip>
         ) : (
