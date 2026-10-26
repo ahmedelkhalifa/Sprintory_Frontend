@@ -20,9 +20,19 @@ export const PROJECT_ERROR_MESSAGES = {
   LAST_PROJECT_MANAGER: "A project must keep at least one Project Manager. Make someone else Project Manager first.",
 };
 
-// the permissions the UI checks (full matrix: roles-docs.md §2). Hide controls by permission, not by role.
+// every project permission the backend has (ProjectPermission, matrix: roles-docs.md §2).
+// hide controls by permission, not by role; the caller's set comes on the project response.
 export const PERMISSIONS = {
-  MANAGE_MEMBERS: "MANAGE_MEMBERS", // add people / a team, remove people
-  EDIT_SETTINGS: "EDIT_SETTINGS", // rename (story 8)
+  VIEW_PROJECT: "VIEW_PROJECT", // the project and its member list
+  VIEW_WORK: "VIEW_WORK", // tasks, comments, sprints, reports (a non-member workspace admin lacks it)
+  EDIT_SETTINGS: "EDIT_SETTINGS", // name and description (story 8)
   ARCHIVE_PROJECT: "ARCHIVE_PROJECT", // archive, restore, delete (R30)
+  MANAGE_MEMBERS: "MANAGE_MEMBERS", // add people / a team, remove people
+  MANAGE_ROLES: "MANAGE_ROLES", // change members' project roles
+  CONFIGURE_BOARD: "CONFIGURE_BOARD", // board columns and WIP limits (R16)
+  MANAGE_BACKLOG: "MANAGE_BACKLOG", // order and prioritize the backlog (R13)
+  MANAGE_SPRINTS: "MANAGE_SPRINTS", // plan, start and close sprints (R14, R15)
+  EDIT_TASKS: "EDIT_TASKS", // create, edit and delete tasks (story 9)
+  COMMENT: "COMMENT", // comment on tasks (R10)
+  LOG_TIME: "LOG_TIME", // log time on tasks (R19)
 };

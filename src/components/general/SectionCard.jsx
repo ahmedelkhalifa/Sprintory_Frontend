@@ -9,6 +9,7 @@ const SectionCard = ({ title, count, header, toolbar, children }) => {
       sx={{
         border: "1px solid",
         borderColor: "divider",
+        boxShadow: 1, // the theme's soft card shadow
         borderRadius: 2, // 2 x theme.shape.borderRadius = 16px
         overflow: "hidden",
       }}

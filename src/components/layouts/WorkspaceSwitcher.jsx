@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { alpha, Box, ButtonBase, Divider, Menu, MenuItem, Typography } from "@mui/material";
+import { Box, ButtonBase, Divider, Menu, MenuItem, Typography } from "@mui/material";
 import { CheckRounded, UnfoldMoreRounded } from "@mui/icons-material";
 import { useWorkspaces } from "../../context/WorkspaceContext";
 import { initials } from "../../utils/people";
@@ -37,31 +37,31 @@ const WorkspaceSwitcher = () => {
         onClick={(e) => setAnchor(e.currentTarget)}
         aria-haspopup="menu"
         aria-expanded={Boolean(anchor)}
-        sx={(theme) => ({
+        sx={{
           width: "100%",
           p: 1,
           borderRadius: 2,
           textAlign: "left",
           justifyContent: "flex-start",
           gap: 1.5,
-          color: alpha(theme.palette.common.white, 0.9),
-          bgcolor: alpha(theme.palette.common.white, 0.08),
+          color: "text.primary",
+          bgcolor: "background.default",
           border: 1,
-          borderColor: "transparent",
+          borderColor: "divider",
           transition: "border-color 0.15s",
           "&:hover, &[aria-expanded='true']": { borderColor: "primary.main" },
-        })}
+        }}
       >
         <Box sx={badgeSx(36)}>{current ? initials(current.name) : "?"}</Box>
         <Box sx={{ minWidth: 0, flexGrow: 1 }}>
           <Typography noWrap sx={{ fontWeight: 600, lineHeight: 1.3 }}>
             {current ? current.name : "Select workspace"}
           </Typography>
-          <Typography variant="caption" noWrap sx={{ display: "block", lineHeight: 1.2, opacity: 0.65 }}>
+          <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block", lineHeight: 1.2 }}>
             {current ? ROLE_LABEL[current.role] : "Choose where to work"}
           </Typography>
         </Box>
-        <UnfoldMoreRounded fontSize="small" />
+        <UnfoldMoreRounded fontSize="small" sx={{ color: "text.secondary" }} />
       </ButtonBase>
 
       <Menu

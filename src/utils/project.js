@@ -21,6 +21,19 @@ export const can = (project, permission) => Boolean(project?.permissions?.includ
 // ASSUMED until R30: the backend has no project status yet, so today every project is active
 export const isProjectArchived = (project) => project?.status === "ARCHIVED";
 
+// a key suggested from the name while the user hasn't typed one: "Mobile App" -> "MA", "Website" -> "WEB".
+// only letters and digits count; the key must start with a letter, so leading digits are dropped.
+// "" when nothing usable is left (the field then stays empty for the user to fill)
+export const suggestProjectKey = (name) => {
+  const words = name
+    .toUpperCase()
+    .split(/[^A-Z0-9]+/)
+    .filter(Boolean);
+  const raw = words.length > 1 ? words.map((word) => word[0]).join("") : (words[0] ?? "").slice(0, 3);
+  const key = raw.replace(/^[0-9]+/, "").slice(0, 10);
+  return key.length >= 2 ? key : "";
+};
+
 // same rule as workspace ids: only positive whole numbers
 export const parseProjectId = parseWorkspaceId;
 

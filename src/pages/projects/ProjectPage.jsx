@@ -18,6 +18,8 @@ import RecentActivityCard from "../../components/projects/overview/RecentActivit
 import ProjectDetailsCard from "../../components/projects/overview/ProjectDetailsCard";
 import ProjectMembersCard from "../../components/projects/overview/ProjectMembersCard";
 import ComingSoonPanel from "../../components/projects/overview/ComingSoonPanel";
+import BacklogTab from "../../components/backlog/BacklogTab";
+import BoardTab from "../../components/board/BoardTab";
 import { tabsFor } from "../../components/projects/overview/tabList";
 import { getProject, listProjectMembers } from "../../api/projectsApi";
 import { useWorkspaces } from "../../context/WorkspaceContext";
@@ -58,7 +60,7 @@ const ProjectPage = () => {
   return <ProjectView key={projectId ?? "invalid"} workspaceId={workspaceId} projectId={projectId} />;
 };
 
-// One project: Overview (stats, activity, details, members), Members, and tabs that are coming soon.
+// One project: Overview (stats, activity, details, members), Members, Backlog, Board, and tabs that are coming soon.
 // Kanban projects have no Backlog / Sprints. Project Managers and workspace admins (MANAGE_MEMBERS)
 // can add and remove people; EDIT_SETTINGS / ARCHIVE_PROJECT unlock the settings menu.
 const ProjectView = ({ workspaceId, projectId }) => {
@@ -208,7 +210,13 @@ const ProjectView = ({ workspaceId, projectId }) => {
         />
       )}
 
-      {!["overview", "members"].includes(currentTab) && (
+      {currentTab === "backlog" && <BacklogTab project={project} writable={writable} />}
+
+      {currentTab === "board" && (
+        <BoardTab project={project} writable={writable} onOpenBacklog={() => setTab("backlog")} />
+      )}
+
+      {!["overview", "members", "backlog", "board"].includes(currentTab) && (
         <ComingSoonPanel title={tabs.find((t) => t.id === currentTab).label} />
       )}
 

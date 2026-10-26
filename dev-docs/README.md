@@ -1,14 +1,15 @@
 # Backend contract summaries (frontend view)
 
 Short summaries of the backend API contracts, for whoever works on the frontend (people and Claude).
-**Source of truth:** `sprintory_backend/docs/*.md`. These summaries match those docs as of **24 Oct 2026**. When a backend doc changes, update the matching file here in the same PR.
+**Source of truth:** `sprintory_backend/docs/*.md`. These summaries match those docs as of **26 Oct 2026** (workspaces, teams and roles as of 24 Oct). When a backend doc changes, update the matching file here in the same PR.
 
 | File | Covers | Backend doc |
 | --- | --- | --- |
 | [workspaces.md](workspaces.md) | workspaces, members, invitations, archive/delete | `workspaces-docs.md` |
 | [teams.md](teams.md) | teams and team members | `teams-docs.md` |
-| [projects.md](projects.md) | projects, project members, adding a team | `projects-docs.md` |
+| [projects.md](projects.md) | projects (key, description, settings), project members, adding a team | `projects-docs.md` |
 | [roles.md](roles.md) | workspace and project roles, permissions, role endpoints | `roles-docs.md` |
+| [tasks.md](tasks.md) | tasks and the board (real), sprints (**assumed**: not in the backend yet) | `tasks-docs.md`, `projects-docs.md` §3.8 |
 
 Auth (`/auth/**`, cookies, refresh) is summarized in [CLAUDE.md](../CLAUDE.md); full details are in `sprintory_backend/docs/auth-endpoints.md`.
 
@@ -67,7 +68,9 @@ Where the frontend is behind these contracts. Fix them, then update this table.
 
 | Gap | Contract | Affects |
 | --- | --- | --- |
-| Edit / archive / restore / delete a project, project `key` / `status`, and the Archived tab are built against **assumed** endpoints the backend doesn't have yet | [projects.md](projects.md#assumed-by-the-frontend-not-in-the-backend-yet) | the `ASSUMED` block in [projectsApi.js](../src/api/projectsApi.js) |
+| Sprints have no backend yet; the Backlog and Board tabs run them on an in-browser mock (on unless `VITE_MOCK_SPRINTS=false`). Tasks and the board are real | [tasks.md](tasks.md#sprints-assumed-mocked) | [sprintsApi.js](../src/api/sprintsApi.js), [sprintsMock.js](../src/mocks/sprintsMock.js) |
+| Board columns are read-only: no add / rename / reorder / delete or WIP limits until the backend has R16 (`CONFIGURE_BOARD`) | [tasks.md](tasks.md#board-real) | [BoardTab](../src/components/board/BoardTab.jsx) |
+| Archive / restore / delete a project, project `status` / `createdAt`, and the Archived tab are built against **assumed** endpoints the backend doesn't have yet (R30) | [projects.md](projects.md#assumed-by-the-frontend-not-in-the-backend-yet) | the `ASSUMED` block in [projectsApi.js](../src/api/projectsApi.js) |
 | No accept-invite page (`/accept-invite?token=...`, the backend's default `INVITE_PATH`) | [workspaces.md](workspaces.md#accepting-an-invitation) | new route in [App.jsx](../src/App.jsx), `workspacesApi.js` needs `lookupInvitation` / `acceptInvitation` |
 | No UI for changing a member's workspace role, removing a member, or leaving | [roles.md](roles.md#endpoints) | `workspacesApi.js`, a future People tab |
 | No project role picker (`PUT /projects/{id}/members/{userId}/roles` exists in the backend now) | [roles.md](roles.md#endpoints) | Members tab, [MembersTable](../src/components/projects/MembersTable.jsx) |

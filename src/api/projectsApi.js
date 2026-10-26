@@ -5,9 +5,14 @@ import api from "./client";
 export const listProjects = (workspaceId, params, signal) =>
   api.get(`/workspaces/${workspaceId}/projects`, { params, signal }).then((res) => res.data);
 
-// template is required (SCRUM / KANBAN) and can never change; the creator becomes Project Manager
-export const createProject = (workspaceId, { name, template }) =>
-  api.post(`/workspaces/${workspaceId}/projects`, { name, template }).then((res) => res.data);
+// key (unique in the workspace, 409 PROJECT_KEY_TAKEN) and template (SCRUM / KANBAN) are required and can never
+// change; description is optional. The creator becomes Project Manager; the board gets the template's columns
+export const createProject = (workspaceId, { name, key, template, description }) =>
+  api.post(`/workspaces/${workspaceId}/projects`, { name, key, template, description }).then((res) => res.data);
+
+// needs EDIT_SETTINGS; only name and description. A field left out stays as it is, description "" clears it
+export const updateProject = (projectId, { name, description }) =>
+  api.patch(`/projects/${projectId}`, { name, description }).then((res) => res.data);
 
 // roles and permissions in the response are the caller's own
 export const getProject = (projectId, signal) =>
@@ -16,6 +21,11 @@ export const getProject = (projectId, signal) =>
 // params: { q, page, size }
 export const listProjectMembers = (projectId, params, signal) =>
   api.get(`/projects/${projectId}/members`, { params, signal }).then((res) => res.data);
+
+// needs VIEW_WORK (a workspace admin who isn't a member gets 403); { template, backlogEnabled, sprintsEnabled,
+// wipLimitsEnabled, activeSprintId, columns: [{ id, name, position, wipLimit }] } with the columns in order
+export const getBoard = (projectId, signal) =>
+  api.get(`/projects/${projectId}/board`, { signal }).then((res) => res.data);
 
 // needs MANAGE_MEMBERS; all or nothing: every id must be a workspace member, at most 100 per request
 export const addProjectMembers = (projectId, userIds) =>
@@ -29,12 +39,8 @@ export const addTeamToProject = (projectId, teamId) =>
 export const removeProjectMember = (projectId, userId) =>
   api.delete(`/projects/${projectId}/members/${userId}`);
 
-// ASSUMED until story 8 (edit) and R30 (archive): not in the backend yet, shapes copied from
-// workspaces (archive/restore) and teams (PATCH rename, DELETE). Fix them here once agreed.
-
-// needs EDIT_SETTINGS
-export const updateProject = (projectId, name) =>
-  api.patch(`/projects/${projectId}`, { name }).then((res) => res.data);
+// ASSUMED until R30 (archive): not in the backend yet, shapes copied from workspaces (archive/restore)
+// and teams (DELETE). Fix them here once agreed.
 
 // needs ARCHIVE_PROJECT
 export const archiveProject = (projectId) =>

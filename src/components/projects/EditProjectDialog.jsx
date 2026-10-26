@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack } from "@mui/material";
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, Typography } from "@mui/material";
 import FormField from "../forms/FormField";
+import TemplateChip from "./TemplateChip";
 import { updateProject } from "../../api/projectsApi";
 import { useSubmit } from "../../hooks/useSubmit";
 import { validateProjectName } from "../../utils/validation";
@@ -8,9 +9,21 @@ import { PROJECT_ERROR_MESSAGES } from "../../constants/projects";
 
 const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
 
-// "Edit project" window: rename a project (the template can't be changed). ASSUMED endpoint until story 8.
+// a read-only "label  value" line for what can't change
+const Fixed = ({ label, children }) => (
+  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+    <Typography variant="body2" color="text.secondary">
+      {label}
+    </Typography>
+    {children}
+  </Box>
+);
+
+// "Edit project" window (PATCH /projects/{id}, EDIT_SETTINGS): the name and the description.
+// The key and the template are fixed at creation, so they are only shown.
 const EditProjectDialog = ({ project, onClose, onSaved }) => {
   const [name, setName] = useState(project.name);
+  const [description, setDescription] = useState(project.description ?? "");
   const [nameError, setNameError] = useState("");
   const submit = useSubmit(PROJECT_ERROR_MESSAGES);
 
@@ -20,7 +33,9 @@ const EditProjectDialog = ({ project, onClose, onSaved }) => {
     setNameError(error);
     if (error) return;
 
-    const { ok, result, error: apiError } = await submit.run(() => updateProject(project.id, name.trim()));
+    // an empty description clears it
+    const body = { name: name.trim(), description: description.trim() };
+    const { ok, result, error: apiError } = await submit.run(() => updateProject(project.id, body));
     if (ok) {
       onSaved(result);
       return;
@@ -33,11 +48,11 @@ const EditProjectDialog = ({ project, onClose, onSaved }) => {
   };
 
   return (
-    <Dialog open onClose={submit.submitting ? undefined : onClose} maxWidth="xs" fullWidth>
+    <Dialog open onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
       <Box component="form" noValidate onSubmit={handleSubmit}>
         <DialogTitle sx={{ fontWeight: 700 }}>Edit project</DialogTitle>
         <DialogContent>
-          <Stack spacing={2} sx={{ pt: 0.5 }}>
+          <Stack spacing={2.5} sx={{ pt: 0.5 }}>
             <FormField
               id="project-name"
               label="Project name"
@@ -50,6 +65,30 @@ const EditProjectDialog = ({ project, onClose, onSaved }) => {
               helperText={nameError}
               autoFocus
             />
+            <FormField
+              id="project-description"
+              label="Description"
+              placeholder="What is this project about?"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              multiline
+              minRows={3}
+            />
+            <Box>
+              <Box sx={{ display: "flex", flexWrap: "wrap", columnGap: 3, rowGap: 1 }}>
+                <Fixed label="Key">
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {project.key}
+                  </Typography>
+                </Fixed>
+                <Fixed label="Template">
+                  <TemplateChip template={project.template} />
+                </Fixed>
+              </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
+                The key and the template can't be changed.
+              </Typography>
+            </Box>
             {submit.error && <Alert severity="error">{submit.error}</Alert>}
           </Stack>
         </DialogContent>

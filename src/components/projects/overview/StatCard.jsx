@@ -48,6 +48,7 @@ const StatCard = ({ Icon, tone, label, value, caption, chart }) => {
         gap: 2,
         border: "1px solid",
         borderColor: "divider",
+        boxShadow: 1,
         borderRadius: 2,
       }}
     >
