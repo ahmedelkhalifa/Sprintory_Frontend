@@ -1,6 +1,7 @@
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import ViewListOutlinedIcon from "@mui/icons-material/ViewListOutlined";
+import ViewColumnOutlinedIcon from "@mui/icons-material/ViewColumnOutlined";
 import TimerOutlinedIcon from "@mui/icons-material/TimerOutlined";
 import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
@@ -11,6 +12,7 @@ const TABS = [
   { id: "overview", label: "Overview", Icon: HomeOutlinedIcon },
   { id: "members", label: "Members", Icon: GroupOutlinedIcon },
   { id: "backlog", label: "Backlog", Icon: ViewListOutlinedIcon, scrumOnly: true },
+  { id: "board", label: "Board", Icon: ViewColumnOutlinedIcon },
   { id: "sprints", label: "Sprints", Icon: TimerOutlinedIcon, scrumOnly: true },
   { id: "reports", label: "Reports", Icon: BarChartOutlinedIcon },
   { id: "files", label: "Files", Icon: FolderOpenOutlinedIcon },

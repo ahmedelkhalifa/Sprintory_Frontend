@@ -7,16 +7,17 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlineOutlined";
 import ToneChip from "../general/ToneChip";
 import UserAvatar from "../general/UserAvatar";
-import { TASK_PRIORITIES, TASK_STATUSES, TASK_TYPES } from "../../constants/tasks";
+import { TASK_PRIORITIES, TASK_STAGES, TASK_TYPES } from "../../constants/tasks";
 import { formatEstimate, labelTone } from "../../utils/task";
 import { memberLabel } from "../../utils/people";
-import { rowId } from "./dnd";
+import { rowId } from "../tasks/dnd";
 
-// the visible row: used in the lists and as the picture that follows the pointer while dragging
+// the visible row: used in the lists and as the picture that follows the pointer while dragging.
+// `task` comes from describeTasks (utils/task.js), so it has its `assignee` and `stage`
 export const TaskRowContent = ({ task, handle, onOpen, actions, raised = false }) => {
   const type = TASK_TYPES[task.type] ?? TASK_TYPES.TASK;
   const priority = TASK_PRIORITIES[task.priority] ?? TASK_PRIORITIES.MEDIUM;
-  const status = TASK_STATUSES[task.status] ?? TASK_STATUSES.TODO;
+  const stage = TASK_STAGES[task.stage] ?? TASK_STAGES.TODO;
   const estimate = formatEstimate(task.estimate);
 
   return (
@@ -63,7 +64,7 @@ export const TaskRowContent = ({ task, handle, onOpen, actions, raised = false }
         {task.labels.length > 2 && <ToneChip label={`+${task.labels.length - 2}`} />}
       </Box>
       <Box sx={{ display: { xs: "none", sm: "block" }, flexShrink: 0 }}>
-        <ToneChip label={status.label} tone={status.tone} />
+        <ToneChip label={task.statusName} tone={stage.tone} />
       </Box>
       <Tooltip title={`${priority.label} priority`}>
         <priority.Icon fontSize="small" sx={{ color: priority.tone, flexShrink: 0 }} aria-label={`${priority.label} priority`} />
@@ -117,7 +118,7 @@ export const TaskRowContent = ({ task, handle, onOpen, actions, raised = false }
 };
 
 // One task in the backlog or a sprint. It can be dragged by its handle when `canDrag`;
-// `moves` ({ label, sprintId, beforeTaskId }) are the same moves offered as menu items, for touch and keyboard users.
+// `moves` ({ label, sprintId, afterTaskId }) are the same moves offered as menu items, for touch and keyboard users.
 const TaskRow = ({ task, canDrag, moves, onMove, onOpen }) => {
   const [anchor, setAnchor] = useState(null);
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({

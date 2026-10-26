@@ -19,9 +19,21 @@ export const validateProjectName = (name) => {
   return "";
 };
 
+// project keys (projects-docs.md §2): 2 to 10 letters or digits, starting with a letter; stored upper-case
+export const PROJECT_KEY_MAX = 10;
+export const validateProjectKey = (key) => {
+  if (!key.trim()) return "Project key is required";
+  if (!/^[A-Za-z][A-Za-z0-9]{1,9}$/.test(key.trim())) return "Use 2 to 10 letters or digits, starting with a letter";
+  return "";
+};
+
 // keep only the fields that have an error
 const onlyErrors = (errors) =>
   Object.fromEntries(Object.entries(errors).filter(([, message]) => message));
+
+// the create-project form: { name, key } (the template always has a value, the description is optional)
+export const validateNewProject = (values) =>
+  onlyErrors({ name: validateProjectName(values.name), key: validateProjectKey(values.key) });
 
 // a blank number field means "none" (no estimate, no capacity); otherwise 0 or more
 const nonNegative = (value) => {
@@ -30,12 +42,28 @@ const nonNegative = (value) => {
   return Number.isFinite(number) && number >= 0 ? "" : "Enter a number of 0 or more";
 };
 
-// tasks (dev-docs/tasks.md): title required, at most 200 characters; estimate any number of 0 or more
+export const TASK_TITLE_MAX = 255;
+export const TASK_LABELS_MAX = 20;
+export const TASK_LABEL_MAX = 50;
+
+// tasks (backend tasks-docs §1): title required, at most 255 characters; estimate story points, a whole number
+// of 0 or more; at most 20 labels of at most 50 characters
 export const validateTask = (values) => {
   const title = (values.title ?? "").trim();
+  const labels = values.labels ?? [];
+  const estimate = nonNegative(values.estimate);
   return onlyErrors({
-    title: !title ? "Title is required" : title.length > 200 ? "Use at most 200 characters" : "",
-    estimate: nonNegative(values.estimate),
+    title: !title ? "Title is required" : title.length > TASK_TITLE_MAX ? `Use at most ${TASK_TITLE_MAX} characters` : "",
+    estimate:
+      estimate || (values.estimate !== "" && values.estimate != null && !Number.isInteger(Number(values.estimate)))
+        ? "Enter a whole number of 0 or more"
+        : "",
+    labels:
+      labels.length > TASK_LABELS_MAX
+        ? `Use at most ${TASK_LABELS_MAX} labels`
+        : labels.some((label) => label.length > TASK_LABEL_MAX)
+          ? `Each label can have at most ${TASK_LABEL_MAX} characters`
+          : "",
   });
 };
 

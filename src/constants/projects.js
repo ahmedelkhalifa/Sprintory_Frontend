@@ -25,7 +25,7 @@ export const PROJECT_ERROR_MESSAGES = {
 export const PERMISSIONS = {
   VIEW_PROJECT: "VIEW_PROJECT", // the project and its member list
   VIEW_WORK: "VIEW_WORK", // tasks, comments, sprints, reports (a non-member workspace admin lacks it)
-  EDIT_SETTINGS: "EDIT_SETTINGS", // rename (story 8)
+  EDIT_SETTINGS: "EDIT_SETTINGS", // name and description (story 8)
   ARCHIVE_PROJECT: "ARCHIVE_PROJECT", // archive, restore, delete (R30)
   MANAGE_MEMBERS: "MANAGE_MEMBERS", // add people / a team, remove people
   MANAGE_ROLES: "MANAGE_ROLES", // change members' project roles

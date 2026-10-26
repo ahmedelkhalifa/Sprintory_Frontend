@@ -25,10 +25,10 @@ import { listProjectMembers } from "../../api/projectsApi";
 import { useAsync } from "../../hooks/useAsync";
 import { usePagedList } from "../../hooks/usePagedList";
 import { useSubmit } from "../../hooks/useSubmit";
-import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_STATUSES, TASK_TYPES } from "../../constants/tasks";
+import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_STAGES, TASK_TYPES } from "../../constants/tasks";
 import { memberLabel } from "../../utils/people";
-import { taskPath } from "../../utils/task";
-import { validateTask } from "../../utils/validation";
+import { taskChanges, taskPath, taskStage } from "../../utils/task";
+import { TASK_TITLE_MAX, validateTask } from "../../utils/validation";
 
 // a label above a field that isn't a FormField (the pickers)
 const Field = ({ id, label, children }) => (
@@ -40,39 +40,44 @@ const Field = ({ id, label, children }) => (
   </Box>
 );
 
-// a select built from one of the task value maps (types, priorities, statuses)
+// a select built from one of the task value maps (types, priorities)
 const valueOptions = (values) =>
   Object.values(values).map(({ value, label, Icon, tone }) => (
     <MenuItem key={value} value={value}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        {Icon ? (
-          <Icon fontSize="small" sx={{ color: tone }} />
-        ) : (
-          <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: tone }} />
-        )}
+        <Icon fontSize="small" sx={{ color: tone }} />
         {label}
       </Box>
     </MenuItem>
   ));
 
-// only the person fields the task keeps for its assignee
-const asAssignee = (member) =>
-  member && { userId: member.userId, firstName: member.firstName, lastName: member.lastName, email: member.email };
+// the status select: the board's columns, each with the dot color of its stage
+const columnOptions = (columns) =>
+  columns.map((column) => (
+    <MenuItem key={column.id} value={column.id}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: TASK_STAGES[taskStage(column.id, columns)].tone }} />
+        {column.name}
+      </Box>
+    </MenuItem>
+  ));
 
-const fromTask = (task) => ({
+// the response only has assigneeId: the member list gives the name, or at least the id
+const fromTask = (task, members) => ({
   title: task.title,
   description: task.description ?? "",
   type: task.type,
   priority: task.priority,
-  status: task.status,
+  statusId: task.statusId,
   estimate: task.estimate ?? "",
   labels: task.labels ?? [],
-  assignee: task.assignee ?? null,
+  assignee:
+    task.assigneeId == null ? null : (members.find((m) => m.userId === task.assigneeId) ?? { userId: task.assigneeId }),
 });
 
 // The editable fields of one task. Read-only (disabled) without EDIT_TASKS or in an archived project.
-const TaskForm = ({ project, task, labels, canEdit, onClose, onChanged }) => {
-  const [values, setValues] = useState(() => fromTask(task));
+const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, onChanged }) => {
+  const [values, setValues] = useState(() => fromTask(task, members));
   const [errors, setErrors] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(false);
   const save = useSubmit(TASK_ERROR_MESSAGES);
@@ -100,15 +105,12 @@ const TaskForm = ({ project, task, labels, canEdit, onClose, onChanged }) => {
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
-    const { assignee, ...fields } = values;
-    const changes = {
-      ...fields,
-      title: values.title.trim(),
-      description: values.description.trim(),
-      estimate: values.estimate === "" ? null : Number(values.estimate),
-      assigneeId: assignee?.userId ?? null,
-    };
-    const { ok, error } = await save.run(() => updateTask(task.id, changes));
+    const changes = taskChanges(task, { ...values, assigneeId: values.assignee?.userId ?? null });
+    if (Object.keys(changes).length === 0) {
+      onClose();
+      return;
+    }
+    const { ok, error } = await save.run(() => updateTask(project.id, task.id, changes));
     if (ok) {
       onChanged();
       onClose();
@@ -122,7 +124,7 @@ const TaskForm = ({ project, task, labels, canEdit, onClose, onChanged }) => {
   };
 
   const handleDelete = async () => {
-    const { ok } = await remove.run(() => deleteTask(task.id));
+    const { ok } = await remove.run(() => deleteTask(project.id, task.id));
     if (ok) {
       onChanged();
       onClose();
@@ -141,11 +143,11 @@ const TaskForm = ({ project, task, labels, canEdit, onClose, onChanged }) => {
   return (
     <Box component="form" noValidate onSubmit={handleSubmit} sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
       <Stack spacing={2.5} sx={{ p: 3, overflowY: "auto", flex: 1 }}>
-        <FormField {...field("title")} label="Title" slotProps={{ htmlInput: { maxLength: 200 } }} />
+        <FormField {...field("title")} label="Title" slotProps={{ htmlInput: { maxLength: TASK_TITLE_MAX } }} />
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-          <FormField {...field("status")} label="Status" select>
-            {valueOptions(TASK_STATUSES)}
+          <FormField {...field("statusId")} label="Status" select>
+            {columnOptions(columns)}
           </FormField>
           <FormField {...field("type")} label="Type" select>
             {valueOptions(TASK_TYPES)}
@@ -158,7 +160,7 @@ const TaskForm = ({ project, task, labels, canEdit, onClose, onChanged }) => {
             label="Estimate"
             type="number"
             placeholder="None"
-            slotProps={{ htmlInput: { min: 0, step: "any" } }}
+            slotProps={{ htmlInput: { min: 0, step: 1 } }}
           />
         </Box>
 
@@ -166,7 +168,7 @@ const TaskForm = ({ project, task, labels, canEdit, onClose, onChanged }) => {
           <Autocomplete
             id="task-assignee"
             value={values.assignee}
-            onChange={(_, member) => set("assignee", asAssignee(member))}
+            onChange={(_, member) => set("assignee", member)}
             onInputChange={(_, text, reason) => reason === "input" && people.setSearch(text)}
             options={assigneeOptions}
             filterOptions={(options) => options} // the server already searched
@@ -195,7 +197,13 @@ const TaskForm = ({ project, task, labels, canEdit, onClose, onChanged }) => {
             options={labels}
             disabled={!canEdit}
             renderInput={(params) => (
-              <TextField {...params} size="small" placeholder={values.labels.length ? "" : "Type a label and press Enter"} />
+              <TextField
+                {...params}
+                size="small"
+                placeholder={values.labels.length ? "" : "Type a label and press Enter"}
+                error={Boolean(errors.labels)}
+                helperText={errors.labels}
+              />
             )}
           />
         </Field>
@@ -242,10 +250,11 @@ const TaskForm = ({ project, task, labels, canEdit, onClose, onChanged }) => {
   );
 };
 
-// Side panel with one task's details, opened from a backlog row. "Open full page" goes to the task's own page.
-// `labels` are the project's labels, suggested in the label picker; `onChanged` runs after a save or delete.
-const TaskDrawer = ({ project, taskId, labels, canEdit, onClose, onChanged }) => {
-  const taskState = useAsync((signal) => getTask(taskId, signal), [taskId], {
+// Side panel with one task's details, opened from a backlog row or a board card. "Open full page" goes to the
+// task's own page. `columns` are the board's (the status choices), `members` the project's (to name the assignee),
+// `labels` the project's labels, suggested in the label picker; `onChanged` runs after a save or delete.
+const TaskDrawer = ({ project, taskId, columns, members, labels, canEdit, onClose, onChanged }) => {
+  const taskState = useAsync((signal) => getTask(project.id, taskId, signal), [project.id, taskId], {
     fallback: "Couldn't load the task. Please try again.",
     messages: TASK_ERROR_MESSAGES,
   });
@@ -282,6 +291,8 @@ const TaskDrawer = ({ project, taskId, labels, canEdit, onClose, onChanged }) =>
           key={`${task.id}-${task.updatedAt}`}
           project={project}
           task={task}
+          columns={columns}
+          members={members}
           labels={labels}
           canEdit={canEdit}
           onClose={onClose}

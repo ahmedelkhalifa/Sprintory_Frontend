@@ -9,8 +9,9 @@ import {
   projectPath,
   projectRoleLabel,
   projectsPath,
+  suggestProjectKey,
 } from "../src/utils/project.js";
-import { validateProjectName } from "../src/utils/validation.js";
+import { validateNewProject, validateProjectKey, validateProjectName } from "../src/utils/validation.js";
 
 const apiError = (data) => ({ response: { status: 400, data } });
 
@@ -63,4 +64,27 @@ test("a page's own texts win over the shared ones", () => {
     errorMessage(apiError({ code: "ACCESS_DENIED" }), undefined, { ACCESS_DENIED: "Only Project Managers can do this." }),
     "Only Project Managers can do this.",
   );
+});
+
+test("project keys: 2 to 10 letters or digits, starting with a letter", () => {
+  assert.equal(validateProjectKey("MOB"), "");
+  assert.equal(validateProjectKey("pmp2"), "");
+  assert.equal(validateProjectKey(" MA "), "");
+  assert.notEqual(validateProjectKey(""), "");
+  assert.notEqual(validateProjectKey("M"), "");
+  assert.notEqual(validateProjectKey("2MOB"), "");
+  assert.notEqual(validateProjectKey("MO-B"), "");
+  assert.notEqual(validateProjectKey("A".repeat(11)), "");
+  assert.deepEqual(Object.keys(validateNewProject({ name: "", key: "" })).sort(), ["key", "name"]);
+  assert.deepEqual(validateNewProject({ name: "Mobile App", key: "MA" }), {});
+});
+
+test("suggestProjectKey uses initials, or the start of a single word", () => {
+  assert.equal(suggestProjectKey("Mobile App"), "MA");
+  assert.equal(suggestProjectKey("Website"), "WEB");
+  assert.equal(suggestProjectKey("the new mobile app v2"), "TNMAV");
+  assert.equal(suggestProjectKey("2026 Launch Plan"), "LP");
+  assert.equal(suggestProjectKey("R&D / Ops"), "RDO");
+  assert.equal(suggestProjectKey("A"), "");
+  assert.equal(suggestProjectKey("   "), "");
 });

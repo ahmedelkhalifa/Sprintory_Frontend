@@ -1,35 +1,44 @@
 import api from "./client";
-import * as mock from "../mocks/tasksMock";
 
-// ASSUMED until the backend has tasks (R09) and the backlog (R13): shapes in dev-docs/tasks.md.
-// With VITE_MOCK_TASKS=true every call goes to the in-browser mock instead.
-const MOCK = mock.MOCK_TASKS;
+// Tasks (story 9), see the backend's docs/tasks-docs.md. Reading needs VIEW_WORK, changing EDIT_TASKS.
+const tasksPath = (projectId) => `/projects/${projectId}/tasks`;
 
-// needs VIEW_WORK; { sprints: planned + active sprints with their tasks in order, backlog: tasks in rank order }
-export const getBacklog = (projectId, signal) =>
-  MOCK
-    ? mock.getBacklog(projectId, signal)
-    : api.get(`/projects/${projectId}/backlog`, { signal }).then((res) => res.data);
+// the backend's page size limit
+const MAX_PAGE_SIZE = 100;
 
-// needs EDIT_TASKS; the new task goes to the bottom of the backlog
-// body: { title, type?, priority?, description?, estimate?, labels?, assigneeId? }
-export const createTask = (projectId, body) =>
-  MOCK ? mock.createTask(projectId, body) : api.post(`/projects/${projectId}/tasks`, body).then((res) => res.data);
+// params: { q, type, priority, statusId, assigneeId, label, order (newest | board | backlog), page, size }
+export const listTasks = (projectId, params, signal) =>
+  api.get(tasksPath(projectId), { params, signal }).then((res) => res.data);
 
-// needs VIEW_WORK
-export const getTask = (taskId, signal) =>
-  MOCK ? mock.getTask(taskId, signal) : api.get(`/tasks/${taskId}`, { signal }).then((res) => res.data);
+// every task of the project in `order` ("board" or "backlog"), fetching page after page
+export const listAllTasks = async (projectId, order, signal) => {
+  const tasks = [];
+  for (let page = 0; ; page += 1) {
+    const result = await listTasks(projectId, { order, page, size: MAX_PAGE_SIZE }, signal);
+    tasks.push(...result.content);
+    if (page + 1 >= result.totalPages) return tasks;
+  }
+};
 
-// needs EDIT_TASKS; any subset of the editable fields (assigneeId null = unassign)
-export const updateTask = (taskId, changes) =>
-  MOCK ? mock.updateTask(taskId, changes) : api.patch(`/tasks/${taskId}`, changes).then((res) => res.data);
+// body: { title, type?, priority?, assigneeId?, estimate?, labels?, description? }; it starts in the first column
+// and last in the backlog
+export const createTask = (projectId, body) => api.post(tasksPath(projectId), body).then((res) => res.data);
 
-// needs EDIT_TASKS
-export const deleteTask = (taskId) => (MOCK ? mock.deleteTask(taskId) : api.delete(`/tasks/${taskId}`));
+export const getTask = (projectId, taskId, signal) =>
+  api.get(`${tasksPath(projectId)}/${taskId}`, { signal }).then((res) => res.data);
 
-// moves a task to the backlog (sprintId null) or a sprint, before `beforeTaskId` (null = at the end).
-// inside the backlog it needs MANAGE_BACKLOG; when a sprint is involved, MANAGE_SPRINTS
-export const moveTask = (projectId, { taskId, sprintId = null, beforeTaskId = null }) =>
-  MOCK
-    ? mock.moveTask(projectId, { taskId, sprintId, beforeTaskId })
-    : api.post(`/projects/${projectId}/backlog/move`, { taskId, sprintId, beforeTaskId });
+// only the fields that change; null means "unchanged", so emptied fields go as clearAssignee / clearEstimate /
+// clearDescription (see taskChanges in utils/task.js)
+export const updateTask = (projectId, taskId, changes) =>
+  api.patch(`${tasksPath(projectId)}/${taskId}`, changes).then((res) => res.data);
+
+// a soft delete: the task disappears everywhere, its key is never reused
+export const deleteTask = (projectId, taskId) => api.delete(`${tasksPath(projectId)}/${taskId}`);
+
+// one drag on the board: into column `statusId`, right after `afterTaskId` in that column (null = first)
+export const moveOnBoard = (projectId, taskId, { statusId, afterTaskId = null }) =>
+  api.put(`${tasksPath(projectId)}/${taskId}/position`, { statusId, afterTaskId }).then((res) => res.data);
+
+// needs MANAGE_BACKLOG (the Product Owner); right after `afterTaskId` in the backlog (null = first). Scrum only
+export const rankInBacklog = (projectId, taskId, afterTaskId = null) =>
+  api.put(`${tasksPath(projectId)}/${taskId}/backlog-rank`, { afterTaskId }).then((res) => res.data);

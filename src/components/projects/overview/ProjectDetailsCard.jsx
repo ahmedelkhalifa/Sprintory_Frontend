@@ -16,7 +16,7 @@ const Row = ({ label, children }) => (
   </Box>
 );
 
-// "Project details" card: template, key, created date and workspace. Edit renames the project.
+// "Project details" card: template, key, created date and workspace. Edit changes the name and description.
 const ProjectDetailsCard = ({ project, workspace, canEdit, onEdit }) => (
   <OverviewCard
     Icon={DescriptionOutlinedIcon}

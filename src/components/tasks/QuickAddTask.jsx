@@ -4,10 +4,11 @@ import AddIcon from "@mui/icons-material/Add";
 import { createTask } from "../../api/tasksApi";
 import { useSubmit } from "../../hooks/useSubmit";
 import { TASK_ERROR_MESSAGES, TASK_TYPES } from "../../constants/tasks";
-import { validateTask } from "../../utils/validation";
+import { TASK_TITLE_MAX, validateTask } from "../../utils/validation";
 
-// "Create task" bar at the top of the backlog: pick a type, type a title, Enter.
+// "Create task" bar at the top of the backlog (and of a Kanban board): pick a type, type a title, Enter.
 // The field keeps focus, so several tasks can be added in a row; details are set later in the drawer.
+// New tasks start in the board's first column and last in the backlog.
 const QuickAddTask = ({ projectId, onCreated }) => {
   const [title, setTitle] = useState("");
   const [type, setType] = useState(TASK_TYPES.STORY.value);
@@ -71,7 +72,7 @@ const QuickAddTask = ({ projectId, onCreated }) => {
         }}
         error={Boolean(message)}
         helperText={message}
-        slotProps={{ htmlInput: { "aria-label": "New task title", maxLength: 200 } }}
+        slotProps={{ htmlInput: { "aria-label": "New task title", maxLength: TASK_TITLE_MAX } }}
       />
       <Button type="submit" variant="outlined" startIcon={<AddIcon />} loading={submit.submitting} sx={{ flexShrink: 0, height: 40 }}>
         Add

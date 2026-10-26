@@ -5,9 +5,10 @@ import KeyboardDoubleArrowUpIcon from "@mui/icons-material/KeyboardDoubleArrowUp
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import DragHandleIcon from "@mui/icons-material/DragHandle";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardDoubleArrowDownIcon from "@mui/icons-material/KeyboardDoubleArrowDown";
 
-// Task and sprint values as the backend will send them.
-// ASSUMED until the backend has tasks (R09) and sprints (R13/R14): see dev-docs/tasks.md
+// Task values as the backend sends them (backend docs/tasks-docs.md).
+// Sprint values are still ASSUMED until the backend has sprints (R14/R15): see dev-docs/tasks.md
 
 export const TASK_TYPES = {
   STORY: { value: "STORY", label: "Story", Icon: BookmarkBorderOutlinedIcon, tone: "success.main" },
@@ -17,18 +18,18 @@ export const TASK_TYPES = {
 
 // a label only: the real ranking is the task's place in the backlog
 export const TASK_PRIORITIES = {
-  CRITICAL: { value: "CRITICAL", label: "Critical", Icon: KeyboardDoubleArrowUpIcon, tone: "error.main" },
+  HIGHEST: { value: "HIGHEST", label: "Highest", Icon: KeyboardDoubleArrowUpIcon, tone: "error.main" },
   HIGH: { value: "HIGH", label: "High", Icon: KeyboardArrowUpIcon, tone: "warning.main" },
   MEDIUM: { value: "MEDIUM", label: "Medium", Icon: DragHandleIcon, tone: "info.main" },
   LOW: { value: "LOW", label: "Low", Icon: KeyboardArrowDownIcon, tone: "text.secondary" },
+  LOWEST: { value: "LOWEST", label: "Lowest", Icon: KeyboardDoubleArrowDownIcon, tone: "text.disabled" },
 };
 
-// also the Scrum board's columns, in this order
-export const TASK_STATUSES = {
-  TODO: { value: "TODO", label: "To Do", tone: "text.secondary" },
-  IN_PROGRESS: { value: "IN_PROGRESS", label: "In Progress", tone: "info.main" },
-  IN_REVIEW: { value: "IN_REVIEW", label: "In Review", tone: "warning.main" },
-  DONE: { value: "DONE", label: "Done", tone: "success.main" },
+// a task's status is a board column; its stage (first column / in between / last column) picks the chip color
+export const TASK_STAGES = {
+  TODO: { value: "TODO", tone: "text.secondary" },
+  IN_PROGRESS: { value: "IN_PROGRESS", tone: "info.main" },
+  DONE: { value: "DONE", tone: "success.main" },
 };
 
 export const SPRINT_STATUS = {

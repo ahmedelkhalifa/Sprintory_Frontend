@@ -10,7 +10,6 @@ import {
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Alert, Box, Button, Paper, Snackbar, Stack, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import SearchField from "../general/SearchField";
 import LoadState from "../general/LoadState";
 import ToneChip from "../general/ToneChip";
@@ -18,20 +17,30 @@ import ConfirmDialog from "../general/ConfirmDialog";
 import TaskList from "./TaskList";
 import TaskRow, { TaskRowContent } from "./TaskRow";
 import SprintHeader, { EstimateSummary } from "./SprintHeader";
-import QuickAddTask from "./QuickAddTask";
-import TaskDrawer from "./TaskDrawer";
 import SprintDialog from "./SprintDialog";
 import StartSprintDialog from "./StartSprintDialog";
-import { collisionDetection, dropTarget } from "./dnd";
-import { getBacklog, moveTask as moveTaskRequest } from "../../api/tasksApi";
-import { deleteSprint } from "../../api/sprintsApi";
+import QuickAddTask from "../tasks/QuickAddTask";
+import TaskDrawer from "../tasks/TaskDrawer";
+import NoWorkAccess from "../tasks/NoWorkAccess";
+import { collisionDetection, dropTarget, isBelow } from "../tasks/dnd";
+import { loadWork } from "../tasks/loadWork";
+import { rankInBacklog } from "../../api/tasksApi";
+import { deleteSprint, moveToSprint } from "../../api/sprintsApi";
 import { useAsync } from "../../hooks/useAsync";
 import { useSubmit } from "../../hooks/useSubmit";
 import { PERMISSIONS } from "../../constants/projects";
 import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
 import { errorMessage } from "../../utils/apiError";
 import { can } from "../../utils/project";
-import { canMoveTask, filterTasks, findTask, movePermission, moveTask, projectLabels } from "../../utils/task";
+import {
+  backlogView,
+  canMoveTask,
+  filterTasks,
+  findTask,
+  movePermission,
+  moveInBacklog,
+  projectLabels,
+} from "../../utils/task";
 
 // why a drop was refused, by the permission it needed
 const NOT_ALLOWED = {
@@ -39,27 +48,13 @@ const NOT_ALLOWED = {
   [PERMISSIONS.MANAGE_SPRINTS]: "Only the Scrum Master can move work into or out of a sprint.",
 };
 
-// shown to people who manage the project without seeing its work (a workspace admin who isn't a member)
-const NoWorkAccess = () => (
-  <Paper elevation={0} sx={{ p: { xs: 4, sm: 6 }, textAlign: "center", border: 1, borderColor: "divider", borderRadius: 2 }}>
-    <VisibilityOffOutlinedIcon sx={{ fontSize: 40, color: "text.secondary", mb: 1 }} />
-    <Typography variant="h6" sx={{ fontWeight: 700 }}>
-      You can't see this project's work
-    </Typography>
-    <Typography color="text.secondary" sx={{ mt: 0.5, maxWidth: 480, mx: "auto" }}>
-      Workspace admins manage every project, but only see tasks and sprints in projects they are a member of.
-      Ask a Project Manager to add you.
-    </Typography>
-  </Paper>
-);
-
 // The Backlog tab of a Scrum project (R13, planning from R14): planned and active sprints on top, the product
 // backlog below. Tasks are dragged by their handle or moved from their menu; who may move what follows the
 // project's permissions (ordering the backlog: Product Owner, anything with a sprint: Scrum Master).
 // `writable` is false in an archived project or workspace, which makes everything read-only.
 const BacklogTab = ({ project, writable }) => {
   const canView = can(project, PERMISSIONS.VIEW_WORK);
-  const backlogState = useAsync((signal) => getBacklog(project.id, signal), [project.id], {
+  const backlogState = useAsync((signal) => loadWork(project, "backlog", signal), [project.id], {
     enabled: canView,
     fallback: "Couldn't load the backlog. Please try again.",
     messages: TASK_ERROR_MESSAGES,
@@ -83,6 +78,7 @@ const BacklogTab = ({ project, writable }) => {
   if (!canView) return <NoWorkAccess />;
 
   const data = backlogState.data;
+  // { tasks, sprints }: what moves change; `view` below is the lists on screen
   const state = optimistic.source === data && optimistic.state ? optimistic.state : data;
 
   if (!state) {
@@ -99,23 +95,27 @@ const BacklogTab = ({ project, writable }) => {
   const mayMove = (fromSprintId, toSprintId) => writable && canMoveTask(project, fromSprintId, toSprintId);
   // a filtered list hides rows, so dropping "before" a row would be ambiguous: no dragging while searching
   const filtering = search.trim() !== "";
-  const activeSprint = state.sprints.find((sprint) => sprint.status === "ACTIVE");
+  const view = backlogView(state);
+  const activeSprint = view.sprints.find((sprint) => sprint.status === "ACTIVE");
   const reload = backlogState.reload;
 
   const listOf = (sprintId) =>
-    sprintId === null ? state.backlog : state.sprints.find((sprint) => sprint.id === sprintId).tasks;
+    sprintId === null ? view.backlog : view.sprints.find((sprint) => sprint.id === sprintId).tasks;
 
+  // move = { taskId, sprintId (null = backlog), afterTaskId (null = first) }
   const applyMove = async (move) => {
-    const from = findTask(state, move.taskId);
+    const from = findTask(view, move.taskId);
     if (!from) return;
     if (!mayMove(from.sprintId, move.sprintId)) {
       setNotice(NOT_ALLOWED[movePermission(from.sprintId, move.sprintId)]);
       return;
     }
     const before = state;
-    setOptimistic({ source: data, state: moveTask(state, move) });
+    setOptimistic({ source: data, state: moveInBacklog(state, move) });
     try {
-      await moveTaskRequest(project.id, move);
+      // ranking the backlog is the real backend; anything with a sprint goes to the (mocked) sprint endpoints
+      if (from.sprintId === null && move.sprintId === null) await rankInBacklog(project.id, move.taskId, move.afterTaskId);
+      else await moveToSprint(project.id, move);
     } catch (err) {
       setOptimistic({ source: data, state: before });
       setNotice(errorMessage(err, "Couldn't move the task. Please try again.", TASK_ERROR_MESSAGES));
@@ -126,17 +126,19 @@ const BacklogTab = ({ project, writable }) => {
   const movesFor = (task, sprintId) => {
     const moves = [];
     if (sprintId === null && mayMove(null, null)) {
-      const index = state.backlog.findIndex((t) => t.id === task.id);
-      if (index > 0) moves.push({ label: "Move to top of backlog", sprintId: null, beforeTaskId: state.backlog[0].id });
-      if (index < state.backlog.length - 1) moves.push({ label: "Move to bottom of backlog", sprintId: null, beforeTaskId: null });
+      const index = view.backlog.findIndex((t) => t.id === task.id);
+      const last = view.backlog.at(-1);
+      if (index > 0) moves.push({ label: "Move to top of backlog", sprintId: null, afterTaskId: null });
+      if (index < view.backlog.length - 1) moves.push({ label: "Move to bottom of backlog", sprintId: null, afterTaskId: last.id });
     }
     if (canPlan) {
-      state.sprints
+      view.sprints
         .filter((sprint) => sprint.id !== sprintId)
-        .forEach((sprint) => moves.push({ label: `Move to ${sprint.name}`, sprintId: sprint.id, beforeTaskId: null }));
-      if (sprintId !== null) {
-        moves.push({ label: "Move to top of backlog", sprintId: null, beforeTaskId: state.backlog[0]?.id ?? null });
-      }
+        .forEach((sprint) =>
+          moves.push({ label: `Move to ${sprint.name}`, sprintId: sprint.id, afterTaskId: sprint.tasks.at(-1)?.id ?? null }),
+        );
+      // it goes back to its own place in the backlog
+      if (sprintId !== null) moves.push({ label: "Move to backlog", sprintId: null, afterTaskId: null });
     }
     return moves.map((move) => ({ ...move, taskId: task.id }));
   };
@@ -144,7 +146,7 @@ const BacklogTab = ({ project, writable }) => {
   // rows in a sprint move only with MANAGE_SPRINTS; backlog rows with either permission
   const canDragFrom = (sprintId) => !filtering && (sprintId === null ? canRank || canPlan : canPlan);
 
-  const lookup = (taskId) => findTask(state, taskId);
+  const lookup = (taskId) => findTask(view, taskId);
 
   const handleDragStart = ({ active }) => {
     const from = lookup(active.data.current.taskId);
@@ -161,21 +163,21 @@ const BacklogTab = ({ project, writable }) => {
     if (!target || !from) return;
 
     const list = listOf(target.sprintId);
-    let beforeTaskId = null;
+    let afterTaskId;
     if (target.sprintId === from.sprintId) {
       if (target.overTaskId === null) return; // dropped on its own list's empty space
       const newIndex = list.findIndex((t) => t.id === target.overTaskId);
       if (newIndex === from.index) return;
       const reordered = arrayMove(list, from.index, newIndex);
-      beforeTaskId = reordered[newIndex + 1]?.id ?? null;
+      afterTaskId = reordered[newIndex - 1]?.id ?? null;
     } else if (target.overTaskId !== null) {
       // into another list: before the row it was dropped on, or after it when dropped on its lower half
       const overIndex = list.findIndex((t) => t.id === target.overTaskId);
-      const dragged = active.rect.current.translated;
-      const below = dragged && dragged.top + dragged.height / 2 > over.rect.top + over.rect.height / 2;
-      beforeTaskId = list[below ? overIndex + 1 : overIndex]?.id ?? null;
+      afterTaskId = isBelow(active, over) ? target.overTaskId : (list[overIndex - 1]?.id ?? null);
+    } else {
+      afterTaskId = list.at(-1)?.id ?? null; // on the list itself: at its end
     }
-    applyMove({ taskId: from.task.id, sprintId: target.sprintId, beforeTaskId });
+    applyMove({ taskId: from.task.id, sprintId: target.sprintId, afterTaskId });
   };
 
   const handleDragCancel = () => {
@@ -235,7 +237,7 @@ const BacklogTab = ({ project, writable }) => {
         onDragCancel={handleDragCancel}
       >
         <Stack spacing={2.5}>
-          {state.sprints.map((sprint) => (
+          {view.sprints.map((sprint) => (
             <TaskList
               key={sprint.id}
               sprintId={sprint.id}
@@ -257,26 +259,59 @@ const BacklogTab = ({ project, writable }) => {
             </TaskList>
           ))}
 
+          {/* before any sprint exists the sprint box still shows, as the place where planning happens */}
+          {view.sprints.length === 0 && (
+            <TaskList
+              sprintId="placeholder"
+              tasks={[]}
+              droppable={false}
+              emptyText={
+                canPlan
+                  ? "Create a sprint, then drag tasks here from the backlog to plan it."
+                  : "No sprint is planned yet. The Scrum Master plans sprints here."
+              }
+              emptyAction={
+                canPlan && (
+                  <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setDialog({ type: "create-sprint" })}>
+                    Create sprint
+                  </Button>
+                )
+              }
+              header={
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, px: { xs: 2, sm: 2.5 }, py: 1.75 }}>
+                  <Typography component="h3" sx={{ fontWeight: 700, fontSize: 16 }}>
+                    Sprint planning
+                  </Typography>
+                  <ToneChip label="No sprint" tone="text.secondary" />
+                </Box>
+              }
+            />
+          )}
+
           <TaskList
             sprintId={null}
-            tasks={filterTasks(state.backlog, search)}
+            tasks={filterTasks(view.backlog, search)}
             highlight={highlighted(null)}
-            emptyText={emptyText(state.backlog, "The backlog is empty.")}
+            emptyHeight={288}
+            emptyText={emptyText(
+              view.backlog,
+              canEditTasks ? "The backlog is empty. Add the first task with the bar above." : "The backlog is empty.",
+            )}
             header={
               <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1.5, px: { xs: 2, sm: 2.5 }, py: 1.75 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
                   <Typography component="h3" sx={{ fontWeight: 700, fontSize: 16 }}>
                     Backlog
                   </Typography>
-                  <ToneChip label={state.backlog.length} tone="primary.main" />
+                  <ToneChip label={view.backlog.length} tone="primary.main" />
                 </Box>
-                <EstimateSummary tasks={state.backlog} />
+                <EstimateSummary tasks={view.backlog} />
               </Box>
             }
             // above the rows, so adding never needs scrolling past a long backlog
             toolbar={canEditTasks && <QuickAddTask projectId={project.id} onCreated={reload} />}
           >
-            {rows(state.backlog, null)}
+            {rows(view.backlog, null)}
           </TaskList>
         </Stack>
 
@@ -288,7 +323,9 @@ const BacklogTab = ({ project, writable }) => {
         <TaskDrawer
           project={project}
           taskId={openTaskId}
-          labels={projectLabels(state)}
+          columns={data.columns}
+          members={data.members}
+          labels={projectLabels(state.tasks)}
           canEdit={canEditTasks}
           onClose={() => setOpenTaskId(null)}
           onChanged={reload}
@@ -306,7 +343,7 @@ const BacklogTab = ({ project, writable }) => {
           title={`Delete ${dialog.sprint.name}?`}
           message={
             dialog.sprint.tasks.length > 0
-              ? "Its tasks go back to the top of the backlog. The tasks themselves are kept."
+              ? "Its tasks go back to their places in the backlog. The tasks themselves are kept."
               : "This empty sprint will be removed."
           }
           confirmLabel="Delete sprint"
