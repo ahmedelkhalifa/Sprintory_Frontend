@@ -9,6 +9,7 @@ Short summaries of the backend API contracts, for whoever works on the frontend 
 | [teams.md](teams.md) | teams and team members | `teams-docs.md` |
 | [projects.md](projects.md) | projects, project members, adding a team | `projects-docs.md` |
 | [roles.md](roles.md) | workspace and project roles, permissions, role endpoints | `roles-docs.md` |
+| [tasks.md](tasks.md) | tasks, the product backlog, sprint planning (**assumed**: not in the backend yet) | none yet |
 
 Auth (`/auth/**`, cookies, refresh) is summarized in [CLAUDE.md](../CLAUDE.md); full details are in `sprintory_backend/docs/auth-endpoints.md`.
 
@@ -67,6 +68,7 @@ Where the frontend is behind these contracts. Fix them, then update this table.
 
 | Gap | Contract | Affects |
 | --- | --- | --- |
+| Tasks, the backlog and sprint planning have no backend at all; the Backlog tab runs on an in-browser mock (`VITE_MOCK_TASKS=true`) | [tasks.md](tasks.md) | [tasksApi.js](../src/api/tasksApi.js), [sprintsApi.js](../src/api/sprintsApi.js), [tasksMock.js](../src/mocks/tasksMock.js) |
 | Edit / archive / restore / delete a project, project `key` / `status`, and the Archived tab are built against **assumed** endpoints the backend doesn't have yet | [projects.md](projects.md#assumed-by-the-frontend-not-in-the-backend-yet) | the `ASSUMED` block in [projectsApi.js](../src/api/projectsApi.js) |
 | No accept-invite page (`/accept-invite?token=...`, the backend's default `INVITE_PATH`) | [workspaces.md](workspaces.md#accepting-an-invitation) | new route in [App.jsx](../src/App.jsx), `workspacesApi.js` needs `lookupInvitation` / `acceptInvitation` |
 | No UI for changing a member's workspace role, removing a member, or leaving | [roles.md](roles.md#endpoints) | `workspacesApi.js`, a future People tab |

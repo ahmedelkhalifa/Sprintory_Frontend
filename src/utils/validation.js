@@ -23,6 +23,36 @@ export const validateProjectName = (name) => {
 const onlyErrors = (errors) =>
   Object.fromEntries(Object.entries(errors).filter(([, message]) => message));
 
+// a blank number field means "none" (no estimate, no capacity); otherwise 0 or more
+const nonNegative = (value) => {
+  if (value === "" || value == null) return "";
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? "" : "Enter a number of 0 or more";
+};
+
+// tasks (dev-docs/tasks.md): title required, at most 200 characters; estimate any number of 0 or more
+export const validateTask = (values) => {
+  const title = (values.title ?? "").trim();
+  return onlyErrors({
+    title: !title ? "Title is required" : title.length > 200 ? "Use at most 200 characters" : "",
+    estimate: nonNegative(values.estimate),
+  });
+};
+
+// sprints: dates are optional while planning, required to start one (`requireDates`)
+export const validateSprint = (values, { requireDates = false } = {}) => {
+  const { startDate, endDate } = values;
+  let endError = "";
+  if (requireDates && !endDate) endError = "End date is required";
+  else if (startDate && endDate && endDate < startDate) endError = "End date can't be before the start date";
+  return onlyErrors({
+    name: (values.name ?? "").trim().length > 100 ? "Use at most 100 characters" : "",
+    capacity: nonNegative(values.capacity),
+    startDate: requireDates && !startDate ? "Start date is required" : "",
+    endDate: endError,
+  });
+};
+
 // Returns { field: message } for every invalid field (empty object = valid)
 export const validateRegister = (values) =>
   onlyErrors({

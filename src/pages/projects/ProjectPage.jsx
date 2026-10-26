@@ -18,6 +18,7 @@ import RecentActivityCard from "../../components/projects/overview/RecentActivit
 import ProjectDetailsCard from "../../components/projects/overview/ProjectDetailsCard";
 import ProjectMembersCard from "../../components/projects/overview/ProjectMembersCard";
 import ComingSoonPanel from "../../components/projects/overview/ComingSoonPanel";
+import BacklogTab from "../../components/backlog/BacklogTab";
 import { tabsFor } from "../../components/projects/overview/tabList";
 import { getProject, listProjectMembers } from "../../api/projectsApi";
 import { useWorkspaces } from "../../context/WorkspaceContext";
@@ -208,7 +209,9 @@ const ProjectView = ({ workspaceId, projectId }) => {
         />
       )}
 
-      {!["overview", "members"].includes(currentTab) && (
+      {currentTab === "backlog" && <BacklogTab project={project} writable={writable} />}
+
+      {!["overview", "members", "backlog"].includes(currentTab) && (
         <ComingSoonPanel title={tabs.find((t) => t.id === currentTab).label} />
       )}
 

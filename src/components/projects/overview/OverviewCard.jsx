@@ -4,7 +4,7 @@ import { Box, Paper, Typography } from "@mui/material";
 const OverviewCard = ({ Icon, title, action, children, sx }) => (
   <Paper
     elevation={0}
-    sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden", ...sx }}
+    sx={{ border: "1px solid", borderColor: "divider", boxShadow: 1, borderRadius: 2, overflow: "hidden", ...sx }}
   >
     <Box
       sx={{

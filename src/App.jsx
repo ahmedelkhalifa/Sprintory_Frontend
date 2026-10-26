@@ -14,6 +14,7 @@ import TeamsPage from "./pages/teams/TeamsPage";
 import ProjectsPage from "./pages/projects/ProjectsPage";
 import ProjectPage from "./pages/projects/ProjectPage";
 import ProjectsRedirect from "./pages/projects/ProjectsRedirect";
+import TaskPage from "./pages/tasks/TaskPage";
 
 const App = () => {
   return (
@@ -44,6 +45,8 @@ const App = () => {
               <Route path="/workspaces/:workspaceId/teams" element={<TeamsPage />} />
               <Route path="/workspaces/:workspaceId/projects" element={<ProjectsPage />} />
               <Route path="/workspaces/:workspaceId/projects/:projectId" element={<ProjectPage />} />
+              {/* placeholder until the task page is built */}
+              <Route path="/workspaces/:workspaceId/projects/:projectId/tasks/:taskId" element={<TaskPage />} />
               {/* placeholders until these pages exist, so the sidebar links stay inside the shell */}
               <Route path="/backlog" element={<div>Backlog</div>} />
               <Route path="/board" element={<div>Board</div>} />
