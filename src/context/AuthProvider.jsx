@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "../api/client";
+import api, { AUTH_EXPIRED_EVENT } from "../api/client";
 import { AuthContext } from "./AuthContext";
 
 // TEMP: while the backend isn't ready, set VITE_SKIP_AUTH=true in .env.local
@@ -18,6 +18,14 @@ const AuthProvider = ({ children }) => {
       .then((res) => setUser(res.data))
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
+  }, []);
+
+  // the api client gave up refreshing: drop the user, ProtectedRoute then sends them to /login
+  useEffect(() => {
+    if (SKIP_AUTH) return undefined;
+    const onExpired = () => setUser(null);
+    window.addEventListener(AUTH_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired);
   }, []);
 
   const logout = async () => {

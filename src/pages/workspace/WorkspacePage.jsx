@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
-import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
-import { Alert, Box, CircularProgress, Tab, Tabs } from "@mui/material";
-import { getWorkspace, listWorkspaceMembers } from "../../api/workspacesApi";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { Alert, Box, Tab, Tabs } from "@mui/material";
+import { listWorkspaceMembers } from "../../api/workspacesApi";
 import { createTeam, listTeamMembers, listTeams } from "../../api/teamsApi";
 import { listProjectMembers, listProjects } from "../../api/projectsApi";
-import { errorMessage, isAbort } from "../../utils/apiError";
+import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
+import { isAbort } from "../../utils/apiError";
 import { EMPTY_PAGE } from "../../utils/page";
 import { projectsPath } from "../../utils/project";
-import { ROLE_LABEL, isWorkspaceAdmin, isWorkspaceArchived, parseWorkspaceId } from "../../utils/workspace";
+import { ROLE_LABEL, isWorkspaceAdmin, isWorkspaceArchived } from "../../utils/workspace";
 import WorkspaceHeader from "../../components/workspace/WorkspaceHeader";
 import StatCards from "../../components/workspace/StatCards";
 import ProjectsTable from "../../components/workspace/ProjectsTable";
@@ -31,18 +32,13 @@ const withMembers = (items, listMembers, signal) =>
     }),
   );
 
-// /workspaces/:workspaceId
+// /workspaces/:workspaceId: WorkspaceAccessGuard has loaded the workspace
+// (and remounts this page when the workspace changes, so nothing from the previous one is shown)
 const WorkspacePage = () => {
-  const workspaceId = parseWorkspaceId(useParams().workspaceId);
-  // remount when switching workspaces, so nothing from the previous one is shown
-  return <WorkspaceOverview key={workspaceId ?? "invalid"} workspaceId={workspaceId} />;
-};
-
-const WorkspaceOverview = ({ workspaceId }) => {
   const navigate = useNavigate();
+  const { workspace, reloadWorkspace } = useWorkspaceAccess();
+  const workspaceId = workspace.id;
 
-  const [workspace, setWorkspace] = useState(null);
-  const [error, setError] = useState(workspaceId ? null : "This workspace link is not valid.");
   const [refresh, setRefresh] = useState(0); // bump to reload the lists after a change
   const reload = () => setRefresh((n) => n + 1);
 
@@ -59,18 +55,6 @@ const WorkspaceOverview = ({ workspaceId }) => {
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (!workspaceId) return undefined;
-    const controller = new AbortController();
-    getWorkspace(workspaceId, controller.signal)
-      .then(setWorkspace)
-      .catch((err) => {
-        if (!isAbort(err)) setError(errorMessage(err));
-      });
-    return () => controller.abort();
-  }, [workspaceId]);
-
-  useEffect(() => {
-    if (!workspaceId) return undefined;
     const controller = new AbortController();
     listTeams(workspaceId, { size: 5 }, controller.signal)
       .then((page) => withMembers(page.content, listTeamMembers, controller.signal))
@@ -89,7 +73,6 @@ const WorkspaceOverview = ({ workspaceId }) => {
 
   // aborting the previous request means an older, slower response can't overwrite a newer one
   useEffect(() => {
-    if (!workspaceId) return undefined;
     const controller = new AbortController();
     listProjects(workspaceId, { page: projectPage, size: PROJECTS_PAGE_SIZE, q: query || undefined }, controller.signal)
       .then(async (page) => ({ ...page, content: await withMembers(page.content, listProjectMembers, controller.signal) }))
@@ -102,7 +85,6 @@ const WorkspaceOverview = ({ workspaceId }) => {
 
   // size 1: only totalElements is needed
   useEffect(() => {
-    if (!workspaceId) return undefined;
     const controller = new AbortController();
     const { signal } = controller;
     Promise.all([
@@ -114,9 +96,6 @@ const WorkspaceOverview = ({ workspaceId }) => {
       .catch(() => {}); // the cards just keep showing 0
     return () => controller.abort();
   }, [workspaceId, refresh]);
-
-  if (error) return <Alert severity="error">Could not load workspace: {error}</Alert>;
-  if (!workspace) return <CircularProgress />;
 
   const isAdmin = isWorkspaceAdmin(workspace);
   const archived = isWorkspaceArchived(workspace);
@@ -206,7 +185,7 @@ const WorkspaceOverview = ({ workspaceId }) => {
         <WorkspaceSettingsDialog
           workspace={workspace}
           onClose={() => setSettingsOpen(false)}
-          onChanged={setWorkspace}
+          onChanged={reloadWorkspace}
           onDeleted={() => navigate("/workspaces")}
         />
       )}
