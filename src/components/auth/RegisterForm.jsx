@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import { Alert, Box, Button, Link, Stack, Typography } from "@mui/material";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import MailOutlinedIcon from "@mui/icons-material/MailOutlined";
@@ -16,7 +16,9 @@ const INITIAL_VALUES = { firstName: "", lastName: "", email: "", password: "" };
 
 const RegisterForm = () => {
   const navigate = useNavigate();
-  const [values, setValues] = useState(INITIAL_VALUES);
+  const location = useLocation();
+  // AcceptInvitePage passes the invited email in state.email; accepting needs that exact address
+  const [values, setValues] = useState({ ...INITIAL_VALUES, email: location.state?.email ?? "" });
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");
   const [submitting, setSubmitting] = useState(false);

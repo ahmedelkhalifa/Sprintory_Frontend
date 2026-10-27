@@ -18,7 +18,8 @@ const LoginForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { setUser } = useAuth();
-  const [values, setValues] = useState(INITIAL_VALUES);
+  // AcceptInvitePage passes the invited email in state.email
+  const [values, setValues] = useState({ ...INITIAL_VALUES, email: location.state?.email ?? "" });
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");

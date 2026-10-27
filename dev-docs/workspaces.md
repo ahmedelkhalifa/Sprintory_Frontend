@@ -44,8 +44,8 @@ Source: `sprintory_backend/docs/workspaces-docs.md`, as of 23–24 Oct 2026. Sha
 | POST | `/workspaces/{id}/restore` | — | `200` WorkspaceResponse | `restoreWorkspace` |
 | DELETE | `/workspaces/{id}` | — | `204` | `deleteWorkspace` |
 | POST | `/workspaces/{id}/invitations` | `{ emails: [...] }` | `201` InvitationsSentResponse | `inviteMembers` |
-| POST | `/invitations/lookup` | `{ token }` | `200` InvitationLookupResponse | *not built* |
-| POST | `/invitations/accept` | `{ token }` | `200` WorkspaceResponse | *not built* |
+| POST | `/invitations/lookup` | `{ token }` | `200` InvitationLookupResponse | `lookupInvitation` |
+| POST | `/invitations/accept` | `{ token }` | `200` WorkspaceResponse | `acceptInvitation` |
 
 Role changes, removing members and leaving: see [roles.md](roles.md#endpoints).
 
@@ -97,7 +97,7 @@ Frontend functions are in [src/api/workspacesApi.js](../src/api/workspacesApi.js
 
 ### Accepting an invitation
 
-Page at `/accept-invite?token=...` (not built yet):
+Page at `/accept-invite?token=...`: [AcceptInvitePage](../src/pages/workspace/AcceptInvitePage.jsx), a public route. While the invitee signs in or registers, the token waits in localStorage ([utils/invitation.js](../src/utils/invitation.js); not sessionStorage, because the verify-email link opens a new tab and Google sign-in is a full-page redirect), and `ProtectedRoute` sends them back to the page once they're logged in. The invited email is prefilled on login / register. A wrong account is caught before calling accept and offered a sign-out; joining is an explicit "Join workspace" click.
 1. `POST /invitations/lookup { token }`, which works without login. `200` → show "Join {workspaceName}?" with the invited `email`. `404` → "This invitation has expired or was already used."
 2. Check login (`GET /auth/me`, i.e. `useAuth().user`).
 3. **Logged in with the invited email:** `POST /invitations/accept`. `200` returns the workspace (also when they were already a member), so open it.

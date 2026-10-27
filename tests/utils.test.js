@@ -4,6 +4,7 @@ import { errorCode, errorMessage, isAbort } from "../src/utils/apiError.js";
 import { initials, memberLabel } from "../src/utils/people.js";
 import { isWorkspaceAdmin, isWorkspaceArchived, parseWorkspaceId } from "../src/utils/workspace.js";
 import { validateResetPassword } from "../src/utils/validation.js";
+import { invitePath, sameEmail } from "../src/utils/invitation.js";
 
 const apiError = (data) => ({ response: { status: 400, data } });
 
@@ -50,6 +51,18 @@ test("errors branch on the code, and fall back to the backend message", () => {
 test("cancelled requests are recognised", () => {
   assert.equal(isAbort({ code: "ERR_CANCELED" }), true);
   assert.equal(isAbort(apiError({ code: "CONFLICT" })), false);
+});
+
+test("invitation emails compare like the server stores them", () => {
+  assert.equal(sameEmail("Grace@Example.com ", "grace@example.com"), true);
+  assert.equal(sameEmail("ada@example.com", "grace@example.com"), false);
+  assert.equal(sameEmail(undefined, "grace@example.com"), false);
+  assert.equal(sameEmail("", ""), false);
+});
+
+test("invite paths keep the token intact", () => {
+  assert.equal(invitePath("abc-_123"), "/accept-invite?token=abc-_123");
+  assert.equal(invitePath("a+b/c="), "/accept-invite?token=a%2Bb%2Fc%3D");
 });
 
 test("reset password validation uses the backend field names", () => {
