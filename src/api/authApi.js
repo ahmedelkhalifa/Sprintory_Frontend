@@ -16,6 +16,18 @@ export const verifyEmail = async (token) => {
   await api.post("/auth/verify-email", { token });
 };
 
+// Always 202, whether or not the email has an account, so it never reveals who is registered.
+// A verified password account gets a /reset-password?token=... link by email.
+export const requestPasswordReset = async (email) => {
+  await api.post("/auth/forgot-password", { email });
+};
+
+// Set a new password with the token from the emailed link. 204 on success;
+// the backend also logs the user out on every device.
+export const resetPassword = async ({ token, newPassword }) => {
+  await api.post("/auth/reset-password", { token, newPassword });
+};
+
 // Google sign-in is handled by Spring Security outside /api/v1, so use the backend origin only
 export const continueWithGoogle = () => {
   const backendOrigin = new URL(api.defaults.baseURL, window.location.origin).origin;

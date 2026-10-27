@@ -14,51 +14,49 @@ import {
 } from "@mui/icons-material";
 import Logo from "../general/Logo";
 import { useAuth } from "../../context/AuthContext";
+import { useWorkspaces } from "../../context/WorkspaceContext";
+import { initials } from "../../utils/people";
 import WorkspaceSwitcher from "./WorkspaceSwitcher";
 
-const DRAWER_WIDTH = 270;
-const HEADER_HEIGHT = 80;
+const DRAWER_WIDTH = 256;
+const HEADER_HEIGHT = 72;
 
 const NAV_ITEMS = [
   { label: "Home", to: "/", icon: <HomeOutlined /> },
-  { label: "Projects", to: "/projects", icon: <FolderOpenOutlined /> },
+  // workspace pages live under /workspaces/:id, see linkTo below
+  { label: "Projects", workspacePath: "projects", icon: <FolderOpenOutlined /> },
   { label: "Backlog", to: "/backlog", icon: <ViewListOutlined /> },
   { label: "Board", to: "/board", icon: <ViewColumnOutlined /> },
   { label: "Sprints", to: "/sprints", icon: <TimerOutlined /> },
   { label: "Reports", to: "/reports", icon: <BarChartOutlined /> },
-  { label: "Teams", to: "/teams", icon: <GroupOutlined /> },
+  { label: "Teams", workspacePath: "teams", icon: <GroupOutlined /> },
   { label: "Settings", to: "/settings", icon: <SettingsOutlined /> },
 ];
 
 const paperSx = {
   width: DRAWER_WIDTH,
   boxSizing: "border-box",
-  bgcolor: "primary.dark",
-  color: "common.white",
-  borderRight: 0,
+  bgcolor: "background.paper",
+  color: "text.primary",
+  borderRight: 1,
+  borderColor: "divider",
 };
 
-// overrides the theme's light selected style, which is meant for light surfaces
-const itemSx = (theme) => ({
+// the selected colors come from the theme's MuiListItemButton override
+const itemSx = {
   borderRadius: 2,
   py: 1.25,
   px: 2,
-  color: alpha(theme.palette.common.white, 0.85),
-  "&:hover": { bgcolor: alpha(theme.palette.common.white, 0.08) },
-  "&.Mui-selected, &.Mui-selected:hover": { bgcolor: "primary.main", color: "common.white" },
-});
+  color: "text.secondary",
+  "&.Mui-selected .MuiListItemText-primary": { fontWeight: 600 },
+};
+
+// white-on-navy styles for the top bar
+const onBar = (theme, opacity) => alpha(theme.palette.common.white, opacity);
 
 // the backend sends firstName/lastName, the dev fake user only has name
 const displayName = (user) =>
   [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.name || user?.email || "";
-
-const initials = (name) =>
-  name
-    .split(/[\s@]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join("");
 
 // app layout for logged-in pages: dark sidebar + top bar, page content in <Outlet />
 // desktop: permanent sidebar, mobile: sidebar opens from the menu button
@@ -68,6 +66,7 @@ const AppShell = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { currentId } = useWorkspaces();
   const name = displayName(user);
 
   const handleLogout = async () => {
@@ -84,23 +83,30 @@ const AppShell = () => {
   const isSelected = (to) =>
     to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`);
 
-  const drawerContent = (
+  // without a current workspace, workspace pages send the user to pick one first
+  const linkTo = (item) => {
+    if (!item.workspacePath) return item.to;
+    return currentId ? `/workspaces/${currentId}/${item.workspacePath}` : "/workspaces";
+  };
+  const isItemSelected = (item) =>
+    item.workspacePath ? Boolean(currentId) && isSelected(linkTo(item)) : isSelected(item.to);
+
+  // the permanent drawer sits under the top bar; the mobile one opens over it, so it shows the logo itself
+  const drawerContent = (header) => (
     <Box>
-      <Box sx={{ display: "flex", alignItems: "center", px: 3, height: HEADER_HEIGHT }}>
-        <Logo size={24} inverted />
-      </Box>
-      <Box sx={{ px: 2, pb: 2 }}>
+      <Box sx={{ display: "flex", alignItems: "center", px: 3, height: HEADER_HEIGHT }}>{header}</Box>
+      <Box sx={{ px: 2, pt: 2, pb: 2 }}>
         <Typography
-            variant="caption"
-            sx={(theme) => ({
-              display: "block",
-              px: 1,
-              pb: 0.5,
-              fontWeight: 600,
-              letterSpacing: 0.5,
-              textTransform: "uppercase",
-              color: alpha(theme.palette.common.white, 0.55),
-            })}
+          variant="caption"
+          sx={{
+            display: "block",
+            px: 1,
+            pb: 0.5,
+            fontWeight: 600,
+            letterSpacing: 0.5,
+            textTransform: "uppercase",
+            color: "text.secondary",
+          }}
         >
           Workspaces
         </Typography>
@@ -109,10 +115,10 @@ const AppShell = () => {
       <List sx={{ px: 1.5, display: "flex", flexDirection: "column", gap: 0.5 }}>
         {NAV_ITEMS.map((item) => (
           <ListItemButton
-            key={item.to}
+            key={item.label}
             component={NavLink}
-            to={item.to}
-            selected={isSelected(item.to)}
+            to={linkTo(item)}
+            selected={isItemSelected(item)}
             onClick={() => setMobileOpen(false)}
             sx={itemSx}
           >
@@ -126,6 +132,116 @@ const AppShell = () => {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100dvh", bgcolor: "background.default" }}>
+      {/* full-width navy bar above the sidebar */}
+      <AppBar
+        position="fixed"
+        elevation={0}
+        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, bgcolor: "primary.dark", color: "common.white" }}
+      >
+        <Toolbar sx={{ height: HEADER_HEIGHT, gap: 2, pl: { md: 3 } }}>
+          <IconButton
+            onClick={() => setMobileOpen(true)}
+            color="inherit"
+            sx={{ display: { md: "none" } }}
+            aria-label="Open menu"
+          >
+            <MenuIcon />
+          </IconButton>
+
+          {/* lines the search up with the content on desktop */}
+          <Box sx={{ display: { xs: "none", md: "flex" }, width: DRAWER_WIDTH - 24, flexShrink: 0 }}>
+            <Logo size={24} inverted />
+          </Box>
+
+          {/* TODO: wire up search once the backend has a search endpoint */}
+          <TextField
+            placeholder="Search projects, tasks, or people..."
+            size="small"
+            sx={(theme) => ({
+              width: { xs: "100%", md: 480 },
+              "& .MuiOutlinedInput-root": {
+                color: "common.white",
+                bgcolor: onBar(theme, 0.12),
+                transition: "background-color 0.15s",
+                "&:hover, &.Mui-focused": { bgcolor: onBar(theme, 0.18) },
+                "& fieldset": { border: "none" },
+              },
+              "& .MuiInputBase-input::placeholder": { color: onBar(theme, 0.7), opacity: 1 },
+            })}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchOutlined sx={(theme) => ({ color: onBar(theme, 0.8) })} />
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
+
+          <Box sx={{ flexGrow: 1 }} />
+
+          <IconButton aria-label="Notifications" color="inherit">
+            <Badge variant="dot" color="error">
+              <NotificationsNoneOutlined />
+            </Badge>
+          </IconButton>
+
+          <Divider
+            orientation="vertical"
+            flexItem
+            sx={(theme) => ({ my: 2.25, borderColor: onBar(theme, 0.2) })}
+          />
+
+          <ButtonBase
+            onClick={(e) => setUserMenuAnchor(e.currentTarget)}
+            aria-label="Account menu"
+            aria-haspopup="menu"
+            aria-expanded={Boolean(userMenuAnchor)}
+            sx={{ display: "flex", alignItems: "center", gap: 1.5, borderRadius: 2, p: 0.5 }}
+          >
+            <Avatar
+              sx={(theme) => ({
+                bgcolor: "primary.main",
+                width: 40,
+                height: 40,
+                border: `2px solid ${onBar(theme, 0.25)}`,
+              })}
+            >
+              {initials(name)}
+            </Avatar>
+            <Typography sx={{ fontWeight: 500, display: { xs: "none", sm: "block" } }}>
+              {name}
+            </Typography>
+            <KeyboardArrowDown />
+          </ButtonBase>
+          <Menu
+            anchorEl={userMenuAnchor}
+            open={Boolean(userMenuAnchor)}
+            onClose={() => setUserMenuAnchor(null)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
+            slotProps={{ paper: { sx: { mt: 1, minWidth: 220 } } }}
+          >
+            <Box sx={{ px: 2, py: 1 }}>
+              <Typography sx={{ fontWeight: 600 }}>{name}</Typography>
+              {user?.email && (
+                <Typography variant="body2" color="text.secondary">
+                  {user.email}
+                </Typography>
+              )}
+            </Box>
+            <Divider />
+            <MenuItem onClick={handleLogout}>
+              <ListItemIcon>
+                <LogoutOutlined fontSize="small" />
+              </ListItemIcon>
+              Log out
+            </MenuItem>
+          </Menu>
+        </Toolbar>
+      </AppBar>
+
       <Box component="nav" sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}>
         <Drawer
           variant="temporary"
@@ -134,105 +250,21 @@ const AppShell = () => {
           ModalProps={{ keepMounted: true }}
           sx={{ display: { xs: "block", md: "none" }, "& .MuiDrawer-paper": paperSx }}
         >
-          {drawerContent}
+          {drawerContent(<Logo size={24} />)}
         </Drawer>
         <Drawer
           variant="permanent"
           open
           sx={{ display: { xs: "none", md: "block" }, "& .MuiDrawer-paper": paperSx }}
         >
-          {drawerContent}
+          {/* empty header: the space under the fixed top bar */}
+          {drawerContent(null)}
         </Drawer>
       </Box>
 
       <Box sx={{ flexGrow: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-        <AppBar
-          position="sticky"
-          color="inherit"
-          elevation={0}
-          sx={{ bgcolor: "background.paper", borderBottom: 1, borderColor: "divider" }}
-        >
-          <Toolbar sx={{ height: HEADER_HEIGHT, gap: 2 }}>
-            <IconButton
-              onClick={() => setMobileOpen(true)}
-              sx={{ display: { md: "none" } }}
-              aria-label="Open menu"
-            >
-              <MenuIcon />
-            </IconButton>
-
-            {/* TODO: wire up search once the backend has a search endpoint */}
-            <TextField
-              placeholder="Search projects, tasks, or people..."
-              size="small"
-              sx={{
-                width: { xs: "100%", md: 480 },
-                "& .MuiOutlinedInput-root": {
-                  bgcolor: "background.default",
-                  "& fieldset": { border: "none" },
-                },
-              }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchOutlined />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-
-            <Box sx={{ flexGrow: 1 }} />
-
-            <IconButton aria-label="Notifications">
-              <Badge variant="dot" color="error">
-                <NotificationsNoneOutlined />
-              </Badge>
-            </IconButton>
-
-            <Divider orientation="vertical" flexItem sx={{ my: 2.5 }} />
-
-            <ButtonBase
-              onClick={(e) => setUserMenuAnchor(e.currentTarget)}
-              aria-label="Account menu"
-              aria-haspopup="menu"
-              aria-expanded={Boolean(userMenuAnchor)}
-              sx={{ display: "flex", alignItems: "center", gap: 1.5, borderRadius: 2, p: 0.5 }}
-            >
-              <Avatar sx={{ bgcolor: "primary.main", width: 44, height: 44 }}>{initials(name)}</Avatar>
-              <Typography sx={{ fontWeight: 500, display: { xs: "none", sm: "block" } }}>
-                {name}
-              </Typography>
-              <KeyboardArrowDown />
-            </ButtonBase>
-            <Menu
-              anchorEl={userMenuAnchor}
-              open={Boolean(userMenuAnchor)}
-              onClose={() => setUserMenuAnchor(null)}
-              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-              transformOrigin={{ vertical: "top", horizontal: "right" }}
-              slotProps={{ paper: { sx: { mt: 1, minWidth: 220 } } }}
-            >
-              <Box sx={{ px: 2, py: 1 }}>
-                <Typography sx={{ fontWeight: 600 }}>{name}</Typography>
-                {user?.email && (
-                  <Typography variant="body2" color="text.secondary">
-                    {user.email}
-                  </Typography>
-                )}
-              </Box>
-              <Divider />
-              <MenuItem onClick={handleLogout}>
-                <ListItemIcon>
-                  <LogoutOutlined fontSize="small" />
-                </ListItemIcon>
-                Log out
-              </MenuItem>
-            </Menu>
-          </Toolbar>
-        </AppBar>
-
+        {/* keeps the page out from under the fixed top bar */}
+        <Box sx={{ height: HEADER_HEIGHT, flexShrink: 0 }} />
         <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
           <Outlet />
         </Box>

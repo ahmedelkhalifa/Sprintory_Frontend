@@ -3,7 +3,7 @@ import { SHORT_SCREEN } from "../../theme/media";
 
 // TextField with the label above it (instead of MUI's floating label)
 // and an optional icon at the start of the input
-const FormField = ({ id, label, icon, endAdornment, sx, ...textFieldProps }) => {
+const FormField = ({ id, label, icon, endAdornment, sx, slotProps, ...textFieldProps }) => {
   return (
     <Box sx={{ width: "100%", ...sx }}>
       <FormLabel
@@ -16,8 +16,11 @@ const FormField = ({ id, label, icon, endAdornment, sx, ...textFieldProps }) => 
         id={id}
         fullWidth
         {...textFieldProps}
+        // other slots (e.g. htmlInput: { min }) pass through; the input slot gets the adornments
         slotProps={{
+          ...slotProps,
           input: {
+            ...slotProps?.input,
             startAdornment: icon && (
               <InputAdornment position="start" sx={{ color: "text.secondary" }}>
                 {icon}
