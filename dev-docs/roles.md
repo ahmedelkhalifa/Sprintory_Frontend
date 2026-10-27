@@ -53,7 +53,7 @@ Source: `sprintory_backend/docs/roles-docs.md`, as of 24 Oct 2026. Shared rules 
 | Remove a member (admin), or leave (own `userId`) | `DELETE /workspaces/{workspaceId}/members/{userId}` | — | `204` |
 | Replace a member's project roles (`MANAGE_ROLES`) | `PUT /projects/{projectId}/members/{userId}/roles` | `{ "roles": ["PRODUCT_OWNER", "SCRUM_MASTER"] }` | `200` ProjectMemberResponse |
 
-None of these are in the frontend yet. They'd go in `workspacesApi.js` and `projectsApi.js`.
+In the frontend: `changeWorkspaceMemberRole` (`workspacesApi.js`, used by the workspace Members page at `/workspaces/:id/members`) and `setProjectMemberRoles` (`projectsApi.js`, used by the "Change roles" window on the project's Members tab). Removing a member / leaving a workspace has no UI yet.
 
 ## Rules
 
@@ -84,6 +84,7 @@ None of these are in the frontend yet. They'd go in `workspacesApi.js` and `proj
   - Offer only the roles of the project's `template`.
   - Viewer is exclusive: selecting it clears the others, and vice versa.
   - Label `MEMBER` "Developer" in Scrum projects.
-  - Don't allow an empty selection.
+  - Don't allow an empty selection: the window keeps the last role ticked and shows "A member must have at least one role."
+  - The helpers (`projectRoleOptions`, `toggleProjectRole`, `validateProjectRoles`) are in [utils/project.js](../src/utils/project.js), the role lists in [constants/projects.js](../src/constants/projects.js).
 - **Leave workspace:** `DELETE` with the user's own id. On `409 LAST_PROJECT_MANAGER`, show the backend message (it lists the projects). Afterwards, reload workspaces and navigate away.
 - **Create project:** `template` is required, see [projects.md](projects.md#create).

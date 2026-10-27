@@ -11,6 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import PersonRemoveOutlinedIcon from "@mui/icons-material/PersonRemoveOutlined";
+import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
 import UserAvatar from "../general/UserAvatar";
 import RoleChip from "./RoleChip";
 import { memberLabel } from "../../utils/people";
@@ -19,15 +20,23 @@ const headCellSx = { color: "text.secondary", fontWeight: 500, borderColor: "div
 // on smaller screens the email moves under the name, to keep the table narrow
 const emailCellSx = { display: { xs: "none", md: "table-cell" }, width: "34%" };
 const rolesCellSx = { width: { xs: 130, sm: 240 } };
-const removeCellSx = { width: { xs: 48, sm: 64 }, pr: { xs: 1, sm: 3 }, textAlign: "right" };
+const actionsCellSx = (buttons) => ({
+  width: { xs: 48 * buttons, sm: 40 * buttons + 24 },
+  pr: { xs: 1, sm: 3 },
+  textAlign: "right",
+  whiteSpace: "nowrap",
+});
 // long names/emails get "…" instead of making the table wider than the screen
 const ellipsisSx = { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
 
 // Table of a project's members: avatar, name, email and their project roles.
 // `template` decides how MEMBER is shown ("Developer" in Scrum, "Member" in Kanban).
-// Pass `onRemove(member)` to add a remove button per row (only for people who may manage members).
-const MembersTable = ({ members, template, onRemove }) => {
-  const rolesSx = { ...rolesCellSx, ...(!onRemove && { pr: { xs: 2, sm: 3 } }) };
+// Pass `onRemove(member)` to add a remove button per row (only for people who may manage members) and
+// `onEditRoles(member)` to add a "Change roles" button (only for people who may manage roles).
+const MembersTable = ({ members, template, onRemove, onEditRoles }) => {
+  const buttons = Number(Boolean(onRemove)) + Number(Boolean(onEditRoles));
+  const hasActions = buttons > 0;
+  const rolesSx = { ...rolesCellSx, ...(!hasActions && { pr: { xs: 2, sm: 3 } }) };
   return (
     <TableContainer>
       {/* fixed layout: column widths come from the header, so content can't stretch the table */}
@@ -37,7 +46,7 @@ const MembersTable = ({ members, template, onRemove }) => {
             <TableCell sx={{ ...headCellSx, pl: { xs: 2, sm: 3 } }}>Name</TableCell>
             <TableCell sx={{ ...headCellSx, ...emailCellSx }}>Email</TableCell>
             <TableCell sx={{ ...headCellSx, ...rolesSx }}>Role</TableCell>
-            {onRemove && <TableCell sx={{ ...headCellSx, ...removeCellSx }} aria-label="Actions" />}
+            {hasActions && <TableCell sx={{ ...headCellSx, ...actionsCellSx(buttons) }} aria-label="Actions" />}
           </TableRow>
         </TableHead>
 
@@ -72,17 +81,30 @@ const MembersTable = ({ members, template, onRemove }) => {
                 </Box>
               </TableCell>
 
-              {onRemove && (
-                <TableCell sx={removeCellSx}>
-                  <Tooltip title="Remove from project">
-                    <IconButton
-                      size="small"
-                      aria-label={`Remove ${memberLabel(member)} from the project`}
-                      onClick={() => onRemove(member)}
-                    >
-                      <PersonRemoveOutlinedIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
+              {hasActions && (
+                <TableCell sx={actionsCellSx(buttons)}>
+                  {onEditRoles && (
+                    <Tooltip title="Change roles">
+                      <IconButton
+                        size="small"
+                        aria-label={`Change the roles of ${memberLabel(member)}`}
+                        onClick={() => onEditRoles(member)}
+                      >
+                        <ManageAccountsOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                  {onRemove && (
+                    <Tooltip title="Remove from project">
+                      <IconButton
+                        size="small"
+                        aria-label={`Remove ${memberLabel(member)} from the project`}
+                        onClick={() => onRemove(member)}
+                      >
+                        <PersonRemoveOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
                 </TableCell>
               )}
             </TableRow>

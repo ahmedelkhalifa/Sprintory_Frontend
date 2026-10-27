@@ -6,6 +6,7 @@ import ProjectMembersTab from "../../components/projects/ProjectMembersTab";
 import AddPeopleDialog from "../../components/projects/AddPeopleDialog";
 import AddTeamDialog from "../../components/projects/AddTeamDialog";
 import RemoveMemberDialog from "../../components/projects/RemoveMemberDialog";
+import ProjectRolesDialog from "../../components/projects/ProjectRolesDialog";
 import EditProjectDialog from "../../components/projects/EditProjectDialog";
 import ProjectStatusDialog from "../../components/projects/ProjectStatusDialog";
 import ProjectOverviewHeader from "../../components/projects/overview/ProjectOverviewHeader";
@@ -35,13 +36,13 @@ const MEMBERS_PREVIEW_SIZE = 20;
 // this page when the project changes, so tabs and dialogs start fresh).
 // One project: Overview (stats, activity, details, members), Members, Backlog, Board, and tabs that are coming soon.
 // Kanban projects have no Backlog / Sprints. Project Managers and workspace admins (MANAGE_MEMBERS)
-// can add and remove people; EDIT_SETTINGS / ARCHIVE_PROJECT unlock the settings menu.
+// can add and remove people, MANAGE_ROLES changes their roles; EDIT_SETTINGS / ARCHIVE_PROJECT unlock the settings menu.
 const ProjectPage = () => {
   const navigate = useNavigate();
   const { workspace } = useWorkspaceAccess();
   const { project, reloadProject } = useProjectAccess();
   const [tab, setTab] = useState("overview");
-  // which window is open: add-people / add-team / remove (+ member) / edit / archive / restore / delete
+  // which window is open: add-people / add-team / remove (+ member) / roles (+ member) / edit / archive / restore / delete
   const [dialog, setDialog] = useState(null);
   // bumped after every membership change, so member lists load again
   const [version, setVersion] = useState(0);
@@ -56,6 +57,7 @@ const ProjectPage = () => {
   // hiding is only for usability, the backend refuses anyway
   const writable = !workspaceArchived && !projectArchived;
   const canManage = can(project, PERMISSIONS.MANAGE_MEMBERS) && writable;
+  const canEditRoles = can(project, PERMISSIONS.MANAGE_ROLES) && writable;
   const canEdit = can(project, PERMISSIONS.EDIT_SETTINGS) && writable;
   // a Kanban project has no Backlog / Sprints tab: fall back to Overview
   const tabs = tabsFor(project.template);
@@ -138,9 +140,11 @@ const ProjectPage = () => {
           project={project}
           version={version}
           canManage={canManage}
+          canEditRoles={canEditRoles}
           onAddPeople={() => setDialog({ type: "add-people" })}
           onAddTeam={() => setDialog({ type: "add-team" })}
           onRemove={(member) => setDialog({ type: "remove", member })}
+          onEditRoles={(member) => setDialog({ type: "roles", member })}
         />
       )}
 
@@ -158,6 +162,9 @@ const ProjectPage = () => {
       {dialog?.type === "add-team" && <AddTeamDialog project={project} onClose={closeDialog} onAdded={afterChange} />}
       {dialog?.type === "remove" && (
         <RemoveMemberDialog project={project} member={dialog.member} onClose={closeDialog} onRemoved={afterChange} />
+      )}
+      {dialog?.type === "roles" && (
+        <ProjectRolesDialog project={project} member={dialog.member} onClose={closeDialog} onSaved={afterChange} />
       )}
       {dialog?.type === "edit" && <EditProjectDialog project={project} onClose={closeDialog} onSaved={afterChange} />}
       {["archive", "restore", "delete"].includes(dialog?.type) && (

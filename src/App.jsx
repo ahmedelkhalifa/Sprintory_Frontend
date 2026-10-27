@@ -11,6 +11,7 @@ import LoginPage from "./pages/auth/LoginPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import WorkspacesPage from "./pages/workspace/WorkspacesPage";
 import WorkspacePage from "./pages/workspace/WorkspacePage";
+import WorkspaceMembersPage from "./pages/workspace/WorkspaceMembersPage";
 import TeamsPage from "./pages/teams/TeamsPage";
 import ProjectsPage from "./pages/projects/ProjectsPage";
 import ProjectPage from "./pages/projects/ProjectPage";
@@ -49,6 +50,7 @@ const App = () => {
               {/* the guards load the workspace / project first; pages under them read it from the guard */}
               <Route path="/workspaces/:workspaceId" element={<WorkspaceAccessGuard />}>
                 <Route index element={<WorkspacePage />} />
+                <Route path="members" element={<WorkspaceMembersPage />} />
                 <Route path="teams" element={<TeamsPage />} />
                 <Route path="projects" element={<ProjectsPage />} />
                 <Route path="projects/:projectId" element={<ProjectAccessGuard />}>
