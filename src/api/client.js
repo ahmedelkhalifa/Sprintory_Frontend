@@ -5,6 +5,7 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// fired when the refresh fails, i.e. the session is over
 export const AUTH_EXPIRED_EVENT = "auth:session-expired";
 const AUTH_PATHS = ["/auth/login", "/auth/register", "/auth/refresh"];
 let refreshPromise = null;
@@ -31,8 +32,9 @@ api.interceptors.response.use(
       await refreshPromise;
       return api(config); // retry the original request
     } catch (refreshErr) {
-      // Let ProtectedRoute redirect with React Router state so the destination
-      // survives the login round-trip (including query strings and hashes).
+      // AuthProvider clears the user and ProtectedRoute redirects with state.from,
+      // so login can send them back (a hard redirect would lose where they were).
+      // /auth/me failing is already handled by AuthProvider
       if (!config.url.includes("/auth/me")) {
         window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
       }

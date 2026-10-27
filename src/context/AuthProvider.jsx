@@ -20,6 +20,7 @@ const AuthProvider = ({ children }) => {
       .finally(() => setLoading(false));
   }, []);
 
+  // the api client gave up refreshing: drop the user, ProtectedRoute then sends them to /login
   useEffect(() => {
     if (SKIP_AUTH) return undefined;
     const onExpired = () => setUser(null);

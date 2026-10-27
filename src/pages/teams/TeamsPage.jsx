@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
 import {
   Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
   DialogTitle, Drawer, IconButton, InputAdornment, Paper, Snackbar, Stack, TextField, Typography,
@@ -7,14 +6,14 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { AddRounded, CloseRounded, SearchRounded } from "@mui/icons-material";
-import { getWorkspace } from "../../api/workspacesApi";
 import {
   addTeamMembers, createTeam, deleteTeam, getTeam, listTeamMembers, listTeams, removeTeamMember, renameTeam,
 } from "../../api/teamsApi";
+import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { errorMessage, isAbort } from "../../utils/apiError";
 import { EMPTY_PAGE } from "../../utils/page";
 import { memberLabel } from "../../utils/people";
-import { isWorkspaceAdmin, isWorkspaceArchived, parseWorkspaceId } from "../../utils/workspace";
+import { isWorkspaceAdmin, isWorkspaceArchived } from "../../utils/workspace";
 import TeamCard from "../../components/teams/TeamCard";
 import TeamDetails from "../../components/teams/TeamDetails";
 import TeamFormDrawer from "../../components/teams/TeamFormDrawer";
@@ -23,22 +22,18 @@ import TeamMemberDrawer from "../../components/teams/TeamMemberDrawer";
 const PAGE_SIZE = 20;
 const DEBOUNCE_MS = 300;
 
-// /workspaces/:workspaceId/teams
+// /workspaces/:workspaceId/teams: WorkspaceAccessGuard has loaded the workspace
+// (and remounts this page when the workspace changes, so another workspace's data is never shown)
 const TeamsPage = () => {
-  const workspaceId = parseWorkspaceId(useParams().workspaceId);
-  // remount when the workspace changes, so another workspace's data is never shown
-  return <WorkspaceTeams key={workspaceId ?? "invalid"} workspaceId={workspaceId} />;
-};
-
-const WorkspaceTeams = ({ workspaceId }) => {
+  const { workspace } = useWorkspaceAccess();
+  const workspaceId = workspace.id;
   const theme = useTheme();
   // below lg the details open in a drawer instead of a side column
   const compact = useMediaQuery(theme.breakpoints.down("lg"));
 
-  // Loaded data is stored together with the request it answers (id/key).
+  // Loaded data is stored together with the request it answers (key).
   // A result whose key doesn't match the current request is treated as "still loading",
   // so there is no setState inside effects and a slow, stale response is never shown.
-  const [workspaceResult, setWorkspaceResult] = useState({ id: null, data: null, error: "" });
   const [teamsResult, setTeamsResult] = useState({ key: "", data: EMPTY_PAGE, error: "" });
   const [detailResult, setDetailResult] = useState({ teamId: null, data: null });
   const [memberResult, setMemberResult] = useState({ key: "", index: -1, data: EMPTY_PAGE });
@@ -85,31 +80,12 @@ const WorkspaceTeams = ({ workspaceId }) => {
     return () => clearTimeout(timer);
   }, [memberSearch]);
 
-  const workspace = workspaceResult.id === workspaceId ? workspaceResult.data : null;
-  const workspaceError = workspaceResult.id === workspaceId ? workspaceResult.error : "";
-  const loadingWorkspace = Boolean(workspaceId && workspaceResult.id !== workspaceId);
-
-  useEffect(() => {
-    if (!workspaceId) return undefined;
-    const controller = new AbortController();
-    getWorkspace(workspaceId, controller.signal)
-      .then((data) => {
-        if (!controller.signal.aborted) setWorkspaceResult({ id: workspaceId, data, error: "" });
-      })
-      .catch((err) => {
-        if (isAbort(err) || controller.signal.aborted) return;
-        setWorkspaceResult({ id: workspaceId, data: null, error: errorMessage(err, "Unable to load the workspace.") });
-      });
-    return () => controller.abort();
-  }, [workspaceId]);
-
   const listKey = JSON.stringify([workspaceId, query, page, reloadTeams]);
   const pageData = teamsResult.key === listKey ? teamsResult.data : EMPTY_PAGE;
   const listError = teamsResult.key === listKey ? teamsResult.error : "";
-  const loadingTeams = Boolean(workspace && teamsResult.key !== listKey);
+  const loadingTeams = teamsResult.key !== listKey;
 
   useEffect(() => {
-    if (!workspaceId || !workspace) return undefined;
     const controller = new AbortController();
     listTeams(workspaceId, { q: query, page, size: PAGE_SIZE }, controller.signal)
       .then((data) => {
@@ -120,7 +96,7 @@ const WorkspaceTeams = ({ workspaceId }) => {
         setTeamsResult({ key: listKey, data: EMPTY_PAGE, error: errorMessage(err, "Unable to load teams.") });
       });
     return () => controller.abort();
-  }, [workspaceId, workspace, query, page, reloadTeams, listKey]);
+  }, [workspaceId, query, page, reloadTeams, listKey]);
 
   const teams = pageData.content || [];
   // desktop defaults to the first visible team; mobile waits for an explicit tap
@@ -288,118 +264,105 @@ const WorkspaceTeams = ({ workspaceId }) => {
         <Box>
           <Typography component="h1" variant="h4" sx={{ fontWeight: 800, letterSpacing: "-0.04em" }}>Teams</Typography>
           <Typography color="text.secondary" sx={{ mt: 0.75 }}>Manage teams and workspace members.</Typography>
-          {workspace?.name && (
-            <Typography variant="caption" color="text.secondary">Workspace: {workspace.name}</Typography>
-          )}
+          <Typography variant="caption" color="text.secondary">Workspace: {workspace.name}</Typography>
         </Box>
         {canManage && (
           <Button variant="contained" startIcon={<AddRounded />} onClick={() => openForm()}>Create team</Button>
         )}
       </Stack>
 
-      {!workspaceId && <Alert severity="error">This workspace link is not valid.</Alert>}
-      {loadingWorkspace && (
-        <Box sx={{ textAlign: "center", py: 6 }}>
-          <CircularProgress />
-        </Box>
-      )}
-      {workspaceError && <Alert severity="error">{workspaceError}</Alert>}
       {isWorkspaceArchived(workspace) && (
         <Alert severity="info" sx={{ mb: 2 }}>This workspace is archived. Teams are read-only.</Alert>
       )}
 
-      {workspace && (
-        <>
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            sx={{
-              gap: { xs: 2.5, md: 2 },
-              justifyContent: "space-between",
-              alignItems: { xs: "stretch", md: "center" },
-              mb: { xs: 3, md: 2.5 },
-            }}
-          >
-            <Typography variant="subtitle2" sx={{ color: "primary.main", fontWeight: 750 }}>TEAMS</Typography>
-            <TextField
-              size="small"
-              label="Search teams"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              sx={{ width: { xs: "100%", md: 290 } }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchRounded color="action" fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        sx={{
+          gap: { xs: 2.5, md: 2 },
+          justifyContent: "space-between",
+          alignItems: { xs: "stretch", md: "center" },
+          mb: { xs: 3, md: 2.5 },
+        }}
+      >
+        <Typography variant="subtitle2" sx={{ color: "primary.main", fontWeight: 750 }}>TEAMS</Typography>
+        <TextField
+          size="small"
+          label="Search teams"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          sx={{ width: { xs: "100%", md: 290 } }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchRounded color="action" fontSize="small" />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+      </Stack>
+
+      {listError && (
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          action={<Button color="inherit" size="small" onClick={() => setReloadTeams((n) => n + 1)}>Retry</Button>}
+        >
+          {listError}
+        </Alert>
+      )}
+
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 1.05fr) minmax(0, 0.95fr)" },
+          gap: 2.5,
+          alignItems: "start",
+        }}
+      >
+        <Box component="section" aria-label="Teams list" sx={{ minWidth: 0 }}>
+          <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.5 }}>
+            <Typography variant="subtitle2" color="text.secondary">
+              {pageData.totalElements} {pageData.totalElements === 1 ? "team" : "teams"}
+            </Typography>
+            {loadingTeams && <CircularProgress size={20} />}
           </Stack>
 
-          {listError && (
-            <Alert
-              severity="error"
-              sx={{ mb: 2 }}
-              action={<Button color="inherit" size="small" onClick={() => setReloadTeams((n) => n + 1)}>Retry</Button>}
-            >
-              {listError}
-            </Alert>
-          )}
-
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 1.05fr) minmax(0, 0.95fr)" },
-              gap: 2.5,
-              alignItems: "start",
-            }}
-          >
-            <Box component="section" aria-label="Teams list" sx={{ minWidth: 0 }}>
-              <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.5 }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  {pageData.totalElements} {pageData.totalElements === 1 ? "team" : "teams"}
+          <Stack sx={{ gap: 1.4 }}>
+            {teams.map((team) => (
+              <TeamCard
+                key={team.id}
+                team={team}
+                selected={activeId === team.id}
+                canManage={canManage}
+                onSelect={() => selectTeam(team.id, compact)}
+                onEdit={() => openForm(team)}
+                onDelete={() => setDeleteTarget(team)}
+              />
+            ))}
+            {!loadingTeams && !teams.length && (
+              <Paper sx={{ p: 4, textAlign: "center", border: 1, borderColor: "divider", borderRadius: 2 }}>
+                <Typography sx={{ fontWeight: 700 }}>No teams found</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {admin ? "Create the first team, or try a different search." : "You are not a member of any matching team."}
                 </Typography>
-                {loadingTeams && <CircularProgress size={20} />}
-              </Stack>
+              </Paper>
+            )}
+          </Stack>
 
-              <Stack sx={{ gap: 1.4 }}>
-                {teams.map((team) => (
-                  <TeamCard
-                    key={team.id}
-                    team={team}
-                    selected={activeId === team.id}
-                    canManage={canManage}
-                    onSelect={() => selectTeam(team.id, compact)}
-                    onEdit={() => openForm(team)}
-                    onDelete={() => setDeleteTarget(team)}
-                  />
-                ))}
-                {!loadingTeams && !teams.length && (
-                  <Paper sx={{ p: 4, textAlign: "center", border: 1, borderColor: "divider", borderRadius: 2 }}>
-                    <Typography sx={{ fontWeight: 700 }}>No teams found</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {admin ? "Create the first team, or try a different search." : "You are not a member of any matching team."}
-                    </Typography>
-                  </Paper>
-                )}
-              </Stack>
-
-              {pageData.totalPages > 1 && (
-                <Stack direction="row" sx={{ gap: 1.5, alignItems: "center", justifyContent: "center", mt: 2 }}>
-                  <Button disabled={page <= 0 || loadingTeams} onClick={() => goToPage(page - 1)}>Previous</Button>
-                  <Typography variant="caption">Page {pageData.page + 1} of {pageData.totalPages}</Typography>
-                  <Button disabled={page + 1 >= pageData.totalPages || loadingTeams} onClick={() => goToPage(page + 1)}>
-                    Next
-                  </Button>
-                </Stack>
-              )}
-            </Box>
-            <Box sx={{ display: { xs: "none", lg: "block" }, minWidth: 0, pt: 3.75 }}>{details}</Box>
-          </Box>
-        </>
-      )}
+          {pageData.totalPages > 1 && (
+            <Stack direction="row" sx={{ gap: 1.5, alignItems: "center", justifyContent: "center", mt: 2 }}>
+              <Button disabled={page <= 0 || loadingTeams} onClick={() => goToPage(page - 1)}>Previous</Button>
+              <Typography variant="caption">Page {pageData.page + 1} of {pageData.totalPages}</Typography>
+              <Button disabled={page + 1 >= pageData.totalPages || loadingTeams} onClick={() => goToPage(page + 1)}>
+                Next
+              </Button>
+            </Stack>
+          )}
+        </Box>
+        <Box sx={{ display: { xs: "none", lg: "block" }, minWidth: 0, pt: 3.75 }}>{details}</Box>
+      </Box>
 
       {compact && (
         <Drawer

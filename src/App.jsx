@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import AuthProvider from "./context/AuthProvider";
 import WorkspaceProvider from "./context/WorkspaceProvider";
 import ProtectedRoute from "./components/general/ProtectedRoute";
+import { ProjectAccessGuard, WorkspaceAccessGuard } from "./components/general/ResourceAccessGuard";
 import AppShell from "./components/layouts/AppShell";
 import RegisterPage from "./pages/auth/RegisterPage";
 import ActivateAccountPage from "./pages/auth/ActivateAccountPage";
@@ -41,12 +42,17 @@ const App = () => {
               <Route path="/" element={<div>Home</div>} />
               <Route path="/projects" element={<ProjectsRedirect />} />
               <Route path="/workspaces" element={<WorkspacesPage />} />
-              <Route path="/workspaces/:workspaceId" element={<WorkspacePage />} />
-              <Route path="/workspaces/:workspaceId/teams" element={<TeamsPage />} />
-              <Route path="/workspaces/:workspaceId/projects" element={<ProjectsPage />} />
-              <Route path="/workspaces/:workspaceId/projects/:projectId" element={<ProjectPage />} />
-              {/* placeholder until the task page is built */}
-              <Route path="/workspaces/:workspaceId/projects/:projectId/tasks/:taskId" element={<TaskPage />} />
+              {/* the guards load the workspace / project first; pages under them read it from the guard */}
+              <Route path="/workspaces/:workspaceId" element={<WorkspaceAccessGuard />}>
+                <Route index element={<WorkspacePage />} />
+                <Route path="teams" element={<TeamsPage />} />
+                <Route path="projects" element={<ProjectsPage />} />
+                <Route path="projects/:projectId" element={<ProjectAccessGuard />}>
+                  <Route index element={<ProjectPage />} />
+                  {/* placeholder until the task page is built */}
+                  <Route path="tasks/:taskId" element={<TaskPage />} />
+                </Route>
+              </Route>
               {/* placeholders until these pages exist, so the sidebar links stay inside the shell */}
               <Route path="/backlog" element={<div>Backlog</div>} />
               <Route path="/board" element={<div>Board</div>} />

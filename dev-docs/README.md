@@ -20,7 +20,7 @@ Auth (`/auth/**`, cookies, refresh) is summarized in [CLAUDE.md](../CLAUDE.md); 
 - **Base path** `/api/v1` (`VITE_API_URL` already includes it). JSON in camelCase. Every endpoint needs the `access_token` cookie unless noted otherwise.
 - **Ids in paths are numeric** (`WorkspaceResponse.id`, not the slug). A non-number gets `400 BAD_REQUEST` "Invalid value for '…'".
 - **Error shape:** `{ timestamp, status, code, message, path, fieldErrors? }`. Branch on `code`, never on `message`. Messages are safe to show. `VALIDATION_ERROR` has `fieldErrors` like `{ "name": "must not be blank" }` or `{ "emails[1]": "..." }`.
-- **404 vs 403:** if you can't see something you get `404`, exactly as if it didn't exist (this is on purpose). If you can see it but aren't allowed to change it, you get `403 ACCESS_DENIED`.
+- **404 vs 403:** if you can't see something you get `404`, exactly as if it didn't exist (this is on purpose). If you can see it but aren't allowed to change it, you get `403 ACCESS_DENIED`. In the frontend, `WorkspaceAccessGuard` / `ProjectAccessGuard` ([ResourceAccessGuard.jsx](../src/components/general/ResourceAccessGuard.jsx)) turn a `404` on the workspace or project into one "not found" screen, so the pages under them never see it.
 - **Archived workspace:** everything can still be read, but every change returns `409 WORKSPACE_ARCHIVED`. Hide change controls when `WorkspaceResponse.archivedAt` is set.
 - **Hiding controls is only for usability.** The backend enforces every rule anyway.
 - Any endpoint can return `500 INTERNAL_ERROR` ("Something went wrong. Please try again.").

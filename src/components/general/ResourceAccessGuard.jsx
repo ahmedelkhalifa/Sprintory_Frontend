@@ -1,79 +1,98 @@
-import { useEffect, useState } from "react";
+import { Navigate, Outlet, useLocation, useOutletContext, useParams } from "react-router-dom";
 import { Alert, Box, Button, CircularProgress } from "@mui/material";
-import { Link as RouterLink, Navigate, Outlet, useLocation, useParams, useSearchParams } from "react-router-dom";
-import { getWorkspace } from "../../api/workspaces";
-import { getProject } from "../../api/projects";
-import { accessFailure, matchesWorkspace, validResourceId } from "../../utils/routeAccess";
+import PageLayout from "../layouts/PageLayout";
+import NotFound from "./NotFound";
+import ProjectSkeleton from "../projects/ProjectSkeleton";
+import { getWorkspace } from "../../api/workspacesApi";
+import { getProject } from "../../api/projectsApi";
+import { useAsync } from "../../hooks/useAsync";
+import { parseProjectId, projectsPath } from "../../utils/project";
+import { parseWorkspaceId } from "../../utils/workspace";
 
-// A positive response from a private-resource endpoint is the membership check.
-// The server returns indistinguishable 404s for missing and inaccessible resources.
-function ResourceAccess({ kind, resourceId, optional = false, expectedWorkspaceId }) {
-  const location = useLocation();
-  const [attempt, setAttempt] = useState(0);
-  const [result, setResult] = useState(null);
-  const key = `${kind}:${resourceId}:${attempt}`;
-  const validId = validResourceId(resourceId);
+// Layout routes that load a workspace / project before anything under them renders, so a page never
+// shows for something the user can't see. Pages read what was loaded with useWorkspaceAccess() /
+// useProjectAccess(). Hiding is only for navigation; the backend still checks every request.
 
-  useEffect(() => {
-    if (!validId) return undefined;
-    const controller = new AbortController();
-    const fetchResource = kind === "workspace" ? getWorkspace : getProject;
+// a GET answers 404 for "doesn't exist" and for "can't see it", on purpose; 403 is treated the same
+const NO_ACCESS = ["RESOURCE_NOT_FOUND", "ACCESS_DENIED"];
 
-    fetchResource(resourceId, controller.signal)
-      .then((data) => {
-        if (!controller.signal.aborted) setResult({ key, data, error: null });
-      })
-      .catch((error) => {
-        if (!controller.signal.aborted) setResult({ key, data: null, error });
-      });
+// not found / loading / error until the resource is there, then `children`.
+// A reload() keeps the old data on screen, so the page stays mounted while it runs.
+const AccessState = ({ id, state, notFound, placeholder, children }) => {
+  if (!id || NO_ACCESS.includes(state.errorCode)) return <PageLayout>{notFound}</PageLayout>;
+  if (state.data) return children;
 
-    return () => controller.abort();
-  }, [kind, resourceId, key, validId]);
-
-  // The global Teams page can be opened before a workspace has been selected.
-  if (optional && resourceId == null) return <Outlet />;
-  if (!validId) {
-    return <Alert severity="warning">Invalid {kind} ID. Choose a valid {kind} to continue.</Alert>;
-  }
-
-  if (!result || result.key !== key) {
-    return <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}><CircularProgress aria-label={`Checking ${kind} access`} /></Box>;
-  }
-
-  if (result.error) {
-    const failure = accessFailure(result.error);
-    if (failure === "login") {
-      return <Navigate to="/login" state={{ from: location }} replace />;
-    }
-    if (failure === "denied") {
-      return (
-        <Alert severity="warning" action={<Button component={RouterLink} to={kind === "project" ? "/projects" : "/workspaces"} color="inherit">Go back</Button>}>
-          This {kind} does not exist or you don't have access to it.
+  return (
+    <PageLayout>
+      {state.error ? (
+        <Alert
+          severity="error"
+          action={
+            <Button color="inherit" size="small" onClick={state.reload}>
+              Try again
+            </Button>
+          }
+        >
+          {state.error}
         </Alert>
-      );
-    }
-    return (
-      <Alert severity="error" action={<Button onClick={() => setAttempt((n) => n + 1)} color="inherit">Retry</Button>}>
-        Unable to check {kind} access. Please try again.
-      </Alert>
-    );
+      ) : (
+        placeholder ?? (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+            <CircularProgress />
+          </Box>
+        )
+      )}
+    </PageLayout>
+  );
+};
+
+// /workspaces/:workspaceId/...
+export const WorkspaceAccessGuard = () => {
+  const workspaceId = parseWorkspaceId(useParams().workspaceId);
+  const state = useAsync((signal) => getWorkspace(workspaceId, signal), [workspaceId], {
+    enabled: Boolean(workspaceId),
+    fallback: "Couldn't load the workspace. Please try again.",
+  });
+
+  return (
+    <AccessState
+      id={workspaceId}
+      state={state}
+      notFound={<NotFound title="Workspace not found" backTo="/workspaces" backLabel="Back to workspaces" />}
+    >
+      <Outlet context={{ workspace: state.data, reloadWorkspace: state.reload }} />
+    </AccessState>
+  );
+};
+
+// /workspaces/:workspaceId/projects/:projectId/..., nested under WorkspaceAccessGuard
+export const ProjectAccessGuard = () => {
+  const params = useParams();
+  const location = useLocation();
+  // pass the workspace on, so pages under a project can read both
+  const parent = useOutletContext();
+  const workspaceId = parseWorkspaceId(params.workspaceId);
+  const projectId = parseProjectId(params.projectId);
+  const state = useAsync((signal) => getProject(projectId, signal), [projectId], {
+    enabled: Boolean(projectId),
+    fallback: "Couldn't load the project. Please try again.",
+  });
+  const project = state.data;
+
+  // an old or hand-edited link with the wrong workspace: same page under the project's real one
+  if (project && project.workspaceId !== workspaceId) {
+    const pathname = location.pathname.replace(/^\/workspaces\/[^/]+/, `/workspaces/${project.workspaceId}`);
+    return <Navigate to={{ ...location, pathname }} replace />;
   }
 
-  if (kind === "project" && !matchesWorkspace(result.data, expectedWorkspaceId)) {
-    return <Alert severity="warning">This project is not in the requested workspace.</Alert>;
-  }
-
-  return <Outlet />;
-}
-
-export function WorkspaceAccessGuard({ fromQuery = false }) {
-  const { workspaceId } = useParams();
-  const [searchParams] = useSearchParams();
-  const id = fromQuery ? searchParams.get("workspaceId") : workspaceId;
-  return <ResourceAccess kind="workspace" resourceId={id} optional={fromQuery} />;
-}
-
-export function ProjectAccessGuard() {
-  const { projectId, workspaceId } = useParams();
-  return <ResourceAccess kind="project" resourceId={projectId} expectedWorkspaceId={workspaceId} />;
-}
+  return (
+    <AccessState
+      id={projectId}
+      state={state}
+      placeholder={<ProjectSkeleton />}
+      notFound={<NotFound title="Project not found" backTo={projectsPath(workspaceId)} backLabel="Back to projects" />}
+    >
+      <Outlet context={{ ...parent, project, reloadProject: state.reload }} />
+    </AccessState>
+  );
+};
