@@ -16,6 +16,8 @@ import ProjectsPage from "./pages/projects/ProjectsPage";
 import ProjectPage from "./pages/projects/ProjectPage";
 import ProjectsRedirect from "./pages/projects/ProjectsRedirect";
 import TaskPage from "./pages/tasks/TaskPage";
+import AcceptInvitePage from "./pages/workspace/AcceptInvitePage";
+import { INVITE_PATH } from "./utils/invitation";
 
 const App = () => {
   return (
@@ -29,6 +31,8 @@ const App = () => {
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           {/* also the target of the emailed reset link (?token=...) */}
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          {/* the emailed invitation link (?token=...); works signed in or not */}
+          <Route path={INVITE_PATH} element={<AcceptInvitePage />} />
 
           {/* protected: everything inside needs a logged-in user */}
           <Route element={<ProtectedRoute />}>

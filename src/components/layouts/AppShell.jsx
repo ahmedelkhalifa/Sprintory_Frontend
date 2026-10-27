@@ -132,12 +132,9 @@ const AppShell = () => {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100dvh", bgcolor: "background.default" }}>
-      {/* full-width navy bar above the sidebar */}
-      <AppBar
-        position="fixed"
-        elevation={0}
-        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, bgcolor: "primary.dark", color: "common.white" }}
-      >
+      {/* full-width navy bar above the sidebar; it keeps the default appBar z-index
+          so slide-in drawers (team form, task details, mobile nav) still open over it */}
+      <AppBar position="fixed" elevation={0} sx={{ bgcolor: "primary.dark", color: "common.white" }}>
         <Toolbar sx={{ height: HEADER_HEIGHT, gap: 2, pl: { md: 3 } }}>
           <IconButton
             onClick={() => setMobileOpen(true)}
@@ -252,10 +249,14 @@ const AppShell = () => {
         >
           {drawerContent(<Logo size={24} />)}
         </Drawer>
+        {/* below the top bar, which covers its top HEADER_HEIGHT */}
         <Drawer
           variant="permanent"
           open
-          sx={{ display: { xs: "none", md: "block" }, "& .MuiDrawer-paper": paperSx }}
+          sx={{
+            display: { xs: "none", md: "block" },
+            "& .MuiDrawer-paper": { ...paperSx, zIndex: (theme) => theme.zIndex.appBar - 1 },
+          }}
         >
           {/* empty header: the space under the fixed top bar */}
           {drawerContent(null)}

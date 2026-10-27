@@ -38,3 +38,12 @@ export const deleteWorkspace = (workspaceId) =>
 // returns { invited: [...emails], alreadyMembers: [...emails] }
 export const inviteMembers = (workspaceId, emails) =>
   api.post(`/workspaces/${workspaceId}/invitations`, { emails }).then((res) => res.data);
+
+// works without login; returns { workspaceName, email }. 404 once the link is expired, used or replaced
+export const lookupInvitation = (token, signal) =>
+  api.post("/invitations/lookup", { token }, { signal }).then((res) => res.data);
+
+// the logged-in email must be the invited one (else 403); returns the joined workspace,
+// also when the user was already a member
+export const acceptInvitation = (token) =>
+  api.post("/invitations/accept", { token }).then((res) => notifyChanged(res.data));
