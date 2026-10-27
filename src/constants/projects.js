@@ -17,7 +17,43 @@ export const PROJECT_ERROR_MESSAGES = {
   RESOURCE_NOT_FOUND: "This project no longer exists, or you no longer have access to it.",
   WORKSPACE_ARCHIVED: "This workspace is archived. Restore it to make changes.",
   PROJECT_ARCHIVED: "This project is archived. Restore it to make changes.", // ASSUMED (R30)
-  LAST_PROJECT_MANAGER: "A project must keep at least one Project Manager. Make someone else Project Manager first.",
+  LAST_PROJECT_MANAGER: "A project must have at least one Project Manager. Make someone else Project Manager first.",
+};
+
+// every project role the API sends, in the order the role picker lists them
+export const PROJECT_ROLES = {
+  PROJECT_MANAGER: "PROJECT_MANAGER",
+  PRODUCT_OWNER: "PRODUCT_OWNER",
+  SCRUM_MASTER: "SCRUM_MASTER",
+  MEMBER: "MEMBER",
+  VIEWER: "VIEWER",
+};
+
+// the template decides which roles a project offers (roles-docs.md §1)
+export const PROJECT_ROLES_BY_TEMPLATE = {
+  SCRUM: [
+    PROJECT_ROLES.PROJECT_MANAGER,
+    PROJECT_ROLES.PRODUCT_OWNER,
+    PROJECT_ROLES.SCRUM_MASTER,
+    PROJECT_ROLES.MEMBER,
+    PROJECT_ROLES.VIEWER,
+  ],
+  KANBAN: [PROJECT_ROLES.PROJECT_MANAGER, PROJECT_ROLES.MEMBER, PROJECT_ROLES.VIEWER],
+};
+
+// one line per role for the role picker
+export const PROJECT_ROLE_DESCRIPTIONS = {
+  PROJECT_MANAGER: "Manages settings, members, roles and archiving. Can also work on tasks.",
+  PRODUCT_OWNER: "Owns and orders the product backlog. Can also work on tasks.",
+  SCRUM_MASTER: "Starts and closes sprints and runs Scrum events. Can also work on tasks.",
+  MEMBER: "Creates and works on tasks, comments and logs time.",
+  VIEWER: "Read-only access. Can't be combined with other roles.",
+};
+
+// the texts the spec asks for when a role change is refused
+export const ROLE_MESSAGES = {
+  EMPTY: "A member must have at least one role.",
+  VIEWER_EXCLUSIVE: "Viewer can't be combined with other roles.",
 };
 
 // every project permission the backend has (ProjectPermission, matrix: roles-docs.md §2).

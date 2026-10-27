@@ -19,6 +19,11 @@ export const getWorkspace = (workspaceId, signal) =>
 export const listWorkspaceMembers = (workspaceId, params, signal) =>
   api.get(`/workspaces/${workspaceId}/members`, { params, signal }).then((res) => res.data);
 
+// admin only; role is WORKSPACE_ADMIN or WORKSPACE_MEMBER. 409 LAST_WORKSPACE_ADMIN when it would leave
+// the workspace without an admin (also when the admin demotes themselves). Returns the WorkspaceMemberResponse
+export const changeWorkspaceMemberRole = (workspaceId, userId, role) =>
+  api.patch(`/workspaces/${workspaceId}/members/${userId}`, { role }).then((res) => notifyChanged(res.data));
+
 export const createWorkspace = (name) =>
   api.post("/workspaces", { name }).then((res) => notifyChanged(res.data));
 

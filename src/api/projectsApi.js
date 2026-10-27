@@ -39,6 +39,11 @@ export const addTeamToProject = (projectId, teamId) =>
 export const removeProjectMember = (projectId, userId) =>
   api.delete(`/projects/${projectId}/members/${userId}`);
 
+// needs MANAGE_ROLES; the list REPLACES the member's roles. 400 INVALID_PROJECT_ROLES (empty, Viewer combined with
+// another role, or a role the template doesn't offer), 409 LAST_PROJECT_MANAGER, 404 when they aren't a member
+export const setProjectMemberRoles = (projectId, userId, roles) =>
+  api.put(`/projects/${projectId}/members/${userId}/roles`, { roles }).then((res) => res.data);
+
 // ASSUMED until R30 (archive): not in the backend yet, shapes copied from workspaces (archive/restore)
 // and teams (DELETE). Fix them here once agreed.
 

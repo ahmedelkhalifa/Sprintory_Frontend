@@ -100,11 +100,12 @@ const WorkspacePage = () => {
   const isAdmin = isWorkspaceAdmin(workspace);
   const archived = isWorkspaceArchived(workspace);
   const teamsPath = `/workspaces/${workspace.id}/teams`;
+  const membersPath = `/workspaces/${workspace.id}/members`;
 
   const stats = [
     { key: "projects", value: counts.projects, label: "Projects", to: projectsPath(workspace.id) },
     { key: "teams", value: counts.teams, label: "Teams", to: teamsPath },
-    { key: "members", value: counts.members, label: "Members" },
+    { key: "members", value: counts.members, label: "Members", to: membersPath },
     { key: "active", value: "—", label: "Active this week" }, // TODO: no endpoint yet
   ];
 
@@ -139,6 +140,13 @@ const WorkspacePage = () => {
             label="Teams"
             component={RouterLink}
             to={teamsPath}
+            sx={{ textTransform: "none", fontWeight: 500 }}
+          />
+          <Tab
+            value="members"
+            label="Members"
+            component={RouterLink}
+            to={membersPath}
             sx={{ textTransform: "none", fontWeight: 500 }}
           />
         </Tabs>

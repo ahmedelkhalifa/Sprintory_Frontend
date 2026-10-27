@@ -11,8 +11,9 @@ import { usePagedList } from "../../hooks/usePagedList";
 
 // The project page's Members tab: every member with their roles, searchable and paged.
 // People who may manage members also get Add people / Add team and a remove button per row.
-// `version` changes after every add/remove, so the list loads again.
-const ProjectMembersTab = ({ project, version, canManage, onAddPeople, onAddTeam, onRemove }) => {
+// People who may manage roles also get a "Change roles" button per row.
+// `version` changes after every add/remove/role change, so the list loads again.
+const ProjectMembersTab = ({ project, version, canManage, canEditRoles, onAddPeople, onAddTeam, onRemove, onEditRoles }) => {
   const members = usePagedList(
     (params, signal) => listProjectMembers(project.id, params, signal),
     [project.id, version],
@@ -47,7 +48,12 @@ const ProjectMembersTab = ({ project, version, canManage, onAddPeople, onAddTeam
         isEmpty={members.items.length === 0}
         emptyMessage={query ? `No members match "${query}".` : "This project has no members yet."}
       >
-        <MembersTable members={members.items} template={project.template} onRemove={canManage ? onRemove : undefined} />
+        <MembersTable
+          members={members.items}
+          template={project.template}
+          onRemove={canManage ? onRemove : undefined}
+          onEditRoles={canEditRoles ? onEditRoles : undefined}
+        />
         <Pager
           page={members.page}
           size={members.size}
