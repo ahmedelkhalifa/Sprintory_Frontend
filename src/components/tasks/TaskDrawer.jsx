@@ -19,15 +19,13 @@ import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import FormField from "../forms/FormField";
 import ConfirmDialog from "../general/ConfirmDialog";
-import UserAvatar from "../general/UserAvatar";
+import AssigneePicker from "./AssigneePicker";
+import TaskValueSelect from "./TaskValueSelect";
 import { deleteTask, getTask, updateTask } from "../../api/tasksApi";
-import { listProjectMembers } from "../../api/projectsApi";
 import { useAsync } from "../../hooks/useAsync";
-import { usePagedList } from "../../hooks/usePagedList";
 import { useSubmit } from "../../hooks/useSubmit";
 import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_STAGES, TASK_TYPES } from "../../constants/tasks";
-import { memberLabel } from "../../utils/people";
 import { taskChanges, taskPath, taskStage } from "../../utils/task";
 import { TASK_TITLE_MAX, validateTask } from "../../utils/validation";
 
@@ -40,17 +38,6 @@ const Field = ({ id, label, children }) => (
     {children}
   </Box>
 );
-
-// a select built from one of the task value maps (types, priorities)
-const valueOptions = (values) =>
-  Object.values(values).map(({ value, label, Icon, tone }) => (
-    <MenuItem key={value} value={value}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        <Icon fontSize="small" sx={{ color: tone }} />
-        {label}
-      </Box>
-    </MenuItem>
-  ));
 
 // the status select: the board's columns, each with the dot color of its stage
 const columnOptions = (columns) =>
@@ -83,22 +70,12 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
   const [confirmDelete, setConfirmDelete] = useState(false);
   const save = useSubmit(TASK_ERROR_MESSAGES);
   const remove = useSubmit(TASK_ERROR_MESSAGES);
-  // the project's members, searched on the server as the user types
-  const people = usePagedList(
-    (params, signal) => listProjectMembers(project.id, params, signal),
-    [project.id],
-    { enabled: canEdit, size: 20 },
-  );
 
   const set = (field, value) => {
     setValues((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
   };
   const change = (field) => (e) => set(field, e.target.value);
-  // the current assignee stays a valid option even when the search doesn't return them
-  const current = values.assignee;
-  const assigneeOptions =
-    current && !people.items.some((member) => member.userId === current.userId) ? [current, ...people.items] : people.items;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -150,12 +127,8 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
           <FormField {...field("statusId")} label="Status" select>
             {columnOptions(columns)}
           </FormField>
-          <FormField {...field("type")} label="Type" select>
-            {valueOptions(TASK_TYPES)}
-          </FormField>
-          <FormField {...field("priority")} label="Priority" select>
-            {valueOptions(TASK_PRIORITIES)}
-          </FormField>
+          <TaskValueSelect {...field("type")} label="Type" values={TASK_TYPES} />
+          <TaskValueSelect {...field("priority")} label="Priority" values={TASK_PRIORITIES} />
           <FormField
             {...field("estimate")}
             label="Estimate"
@@ -165,28 +138,13 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
           />
         </Box>
 
-        <Field id="task-assignee" label="Assignee">
-          <Autocomplete
-            id="task-assignee"
-            value={values.assignee}
-            onChange={(_, member) => set("assignee", member)}
-            onInputChange={(_, text, reason) => reason === "input" && people.setSearch(text)}
-            options={assigneeOptions}
-            filterOptions={(options) => options} // the server already searched
-            getOptionLabel={memberLabel}
-            isOptionEqualToValue={(option, value) => option.userId === value.userId}
-            loading={people.loading}
-            disabled={!canEdit}
-            noOptionsText={people.search ? "No members match" : "No members"}
-            renderOption={({ key, ...props }, member) => (
-              <Box component="li" key={key} {...props} sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-                <UserAvatar user={member} size={26} />
-                {memberLabel(member)}
-              </Box>
-            )}
-            renderInput={(params) => <TextField {...params} size="small" placeholder="Unassigned" />}
-          />
-        </Field>
+        <AssigneePicker
+          id="task-assignee"
+          projectId={project.id}
+          value={values.assignee}
+          onChange={(member) => set("assignee", member)}
+          disabled={!canEdit}
+        />
 
         <Field id="task-labels" label="Labels">
           <Autocomplete

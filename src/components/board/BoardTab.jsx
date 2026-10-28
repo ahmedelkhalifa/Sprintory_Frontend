@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Alert, Box, Button, Paper, Snackbar, Typography } from "@mui/material";
@@ -42,13 +42,23 @@ const NoActiveSprint = ({ onOpenBacklog }) => (
 // Kanban (R16): every task by column, with the work-in-progress limits. Columns are the backend's (read-only
 // until column editing exists); anyone with EDIT_TASKS drags cards across and within columns.
 // `writable` is false in an archived project or workspace, which makes everything read-only.
-const BoardTab = ({ project, writable, onOpenBacklog }) => {
+// `taskVersion` goes up when a task is created outside the tab (the page's Quick actions).
+const BoardTab = ({ project, writable, taskVersion = 0, onOpenBacklog }) => {
   const canView = can(project, PERMISSIONS.VIEW_WORK);
+  // a reload, not a dependency: the board stays on screen while the new task loads in
   const boardState = useAsync((signal) => loadWork(project, "board", signal), [project.id], {
     enabled: canView,
     fallback: "Couldn't load the board. Please try again.",
     messages: TASK_ERROR_MESSAGES,
   });
+  const { reload: reloadBoard } = boardState;
+  // only changes while the tab is open: the first load already has every task created before it
+  const seenTaskVersion = useRef(taskVersion);
+  useEffect(() => {
+    if (taskVersion === seenTaskVersion.current) return;
+    seenTaskVersion.current = taskVersion;
+    reloadBoard();
+  }, [taskVersion, reloadBoard]);
   // moves show at once and are sent in the background; the loaded data wins again after the next load
   const [optimistic, setOptimistic] = useState({ source: null, tasks: null });
   const [openTaskId, setOpenTaskId] = useState(null);

@@ -76,14 +76,22 @@ export const ProjectMembersPage = () => {
 // .../backlog (Scrum only; ProjectPage sends Kanban projects back to Overview)
 export const ProjectBacklogPage = () => {
   const { project } = useProjectAccess();
-  return <BacklogTab project={project} writable={useProjectPage().writable} />;
+  const page = useProjectPage();
+  return <BacklogTab project={project} writable={page.writable} taskVersion={page.taskVersion} />;
 };
 
 // .../board
 export const ProjectBoardPage = () => {
   const { project } = useProjectAccess();
   const page = useProjectPage();
-  return <BoardTab project={project} writable={page.writable} onOpenBacklog={() => page.goToTab("backlog")} />;
+  return (
+    <BoardTab
+      project={project}
+      writable={page.writable}
+      taskVersion={page.taskVersion}
+      onOpenBacklog={() => page.goToTab("backlog")}
+    />
+  );
 };
 
 // .../settings
