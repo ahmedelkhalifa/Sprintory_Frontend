@@ -77,7 +77,14 @@ export const ProjectMembersPage = () => {
 export const ProjectBacklogPage = () => {
   const { project } = useProjectAccess();
   const page = useProjectPage();
-  return <BacklogTab project={project} writable={page.writable} taskVersion={page.taskVersion} />;
+  return (
+    <BacklogTab
+      project={project}
+      writable={page.writable}
+      taskVersion={page.taskVersion}
+      onCreateTask={() => page.openDialog({ type: "create-task" })}
+    />
+  );
 };
 
 // .../board
@@ -89,6 +96,7 @@ export const ProjectBoardPage = () => {
       project={project}
       writable={page.writable}
       taskVersion={page.taskVersion}
+      onCreateTask={() => page.openDialog({ type: "create-task" })}
       onOpenBacklog={() => page.goToTab("backlog")}
     />
   );

@@ -52,8 +52,9 @@ const NOT_ALLOWED = {
 // backlog below. Tasks are dragged by their handle or moved from their menu; who may move what follows the
 // project's permissions (ordering the backlog: Product Owner, anything with a sprint: Scrum Master).
 // `writable` is false in an archived project or workspace, which makes everything read-only.
-// `taskVersion` goes up when a task is created outside the tab (the page's Quick actions).
-const BacklogTab = ({ project, writable, taskVersion = 0 }) => {
+// `taskVersion` goes up when a task is created outside the tab (the page's Create task window);
+// `onCreateTask` opens that window, for the button on top (the quick bar above the backlog's rows stays).
+const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask }) => {
   const canView = can(project, PERMISSIONS.VIEW_WORK);
   // a reload, not a dependency: the lists stay on screen while the new task loads in
   const backlogState = useAsync((signal) => loadWork(project, "backlog", signal), [project.id], {
@@ -231,11 +232,18 @@ const BacklogTab = ({ project, writable, taskVersion = 0 }) => {
     <Box>
       <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 1.5, mb: 2 }}>
         <SearchField value={search} onChange={setSearch} placeholder="Search tasks" />
-        {canPlan && (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialog({ type: "create-sprint" })}>
-            Create sprint
-          </Button>
-        )}
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+          {canPlan && (
+            <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setDialog({ type: "create-sprint" })}>
+              Create sprint
+            </Button>
+          )}
+          {canEditTasks && onCreateTask && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
+              Create task
+            </Button>
+          )}
+        </Box>
       </Box>
 
       <DndContext
