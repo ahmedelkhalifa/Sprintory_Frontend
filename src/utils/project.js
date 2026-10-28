@@ -1,5 +1,5 @@
 import { PROJECT_ROLES, PROJECT_ROLES_BY_TEMPLATE, ROLE_MESSAGES } from "../constants/projects.js";
-import { parseWorkspaceId } from "./workspace.js";
+import { parseWorkspaceId, workspacePath } from "./workspace.js";
 
 const ROLE_LABEL = {
   PROJECT_MANAGER: "Project Manager",
@@ -65,6 +65,14 @@ export const suggestProjectKey = (name) => {
 // same rule as workspace ids: only positive whole numbers
 export const parseProjectId = parseWorkspaceId;
 
-export const projectsPath = (workspaceId) => `/workspaces/${workspaceId}/projects`;
+// a project response only has its workspaceId, so the workspace (for its slug) is passed separately
+export const projectsPath = (workspace) => `${workspacePath(workspace)}/projects`;
 
-export const projectPath = (project) => `${projectsPath(project.workspaceId)}/${project.id}`;
+export const projectPath = (workspace, project) => `${projectsPath(workspace)}/${project.id}`;
+
+// each project tab has its own url so a refresh or a shared link opens it; Overview is the project url itself
+export const projectTabPath = (workspace, project, tab) =>
+  tab === "overview" ? projectPath(workspace, project) : `${projectPath(workspace, project)}/${tab}`;
+
+// the tab in a url under `basePath` (the project's path): the segment right after it, Overview when there is none
+export const projectTabOf = (pathname, basePath) => pathname.slice(basePath.length).split("/")[1] || "overview";

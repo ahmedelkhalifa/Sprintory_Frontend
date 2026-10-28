@@ -28,7 +28,7 @@ const EMPTY_MESSAGES = {
   [PROJECT_STATUS.ARCHIVED]: "No archived projects.",
 };
 
-// /workspaces/:workspaceId/projects: WorkspaceAccessGuard has loaded the workspace
+// /workspaces/:workspaceSlug/projects: WorkspaceAccessGuard has loaded the workspace
 // (and remounts this page when the workspace changes, so nothing from the previous one is shown).
 // The workspace's projects, by tab (all / active / archived), searchable and paged.
 // Any member of an active workspace can create a project; the ⋮ menu shows what each project allows.
@@ -122,7 +122,7 @@ const ProjectsPage = () => {
         </LoadState>
       </SectionCard>
 
-      {dialog?.type === "create" && <CreateProjectDialog workspaceId={workspaceId} onClose={closeDialog} />}
+      {dialog?.type === "create" && <CreateProjectDialog onClose={closeDialog} />}
       {dialog?.type === "edit" && <EditProjectDialog project={dialog.project} onClose={closeDialog} onSaved={afterChange} />}
       {["archive", "restore", "delete"].includes(dialog?.type) && (
         <ProjectStatusDialog action={dialog.type} project={dialog.project} onClose={closeDialog} onDone={afterChange} />

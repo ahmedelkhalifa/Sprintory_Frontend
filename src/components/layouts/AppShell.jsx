@@ -16,6 +16,7 @@ import Logo from "../general/Logo";
 import { useAuth } from "../../context/AuthContext";
 import { useWorkspaces } from "../../context/WorkspaceContext";
 import { initials } from "../../utils/people";
+import { workspacePath } from "../../utils/workspace";
 import WorkspaceSwitcher from "./WorkspaceSwitcher";
 
 const DRAWER_WIDTH = 256;
@@ -66,7 +67,7 @@ const AppShell = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { currentId } = useWorkspaces();
+  const { current } = useWorkspaces();
   const name = displayName(user);
 
   const handleLogout = async () => {
@@ -86,10 +87,10 @@ const AppShell = () => {
   // without a current workspace, workspace pages send the user to pick one first
   const linkTo = (item) => {
     if (!item.workspacePath) return item.to;
-    return currentId ? `/workspaces/${currentId}/${item.workspacePath}` : "/workspaces";
+    return current ? `${workspacePath(current)}/${item.workspacePath}` : "/workspaces";
   };
   const isItemSelected = (item) =>
-    item.workspacePath ? Boolean(currentId) && isSelected(linkTo(item)) : isSelected(item.to);
+    item.workspacePath ? Boolean(current) && isSelected(linkTo(item)) : isSelected(item.to);
 
   // the permanent drawer sits under the top bar; the mobile one opens over it, so it shows the logo itself
   const drawerContent = (header) => (

@@ -22,9 +22,11 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import ConfirmDialog from "../../components/general/ConfirmDialog";
 import LoadState from "../../components/general/LoadState";
 import UserAvatar from "../../components/general/UserAvatar";
-import { getBoard, getProject, listProjectMembers } from "../../api/projectsApi";
+import PageLayout from "../../components/layouts/PageLayout";
+import { getBoard, listProjectMembers } from "../../api/projectsApi";
 import { deleteTask, getTask, updateTask } from "../../api/tasksApi";
 import { useAsync } from "../../hooks/useAsync";
+import { useProjectAccess, useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { useSubmit } from "../../hooks/useSubmit";
 import { PERMISSIONS } from "../../constants/projects";
 import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_STAGES, TASK_TYPES } from "../../constants/tasks";
@@ -208,7 +210,7 @@ const DescriptionField = ({ description, canEdit, onSave }) => {
 };
 
 // the task's page: the loaded task and its editable fields. Every change is saved at once, like in Jira.
-const TaskView = ({ project, initialTask, columns, members }) => {
+const TaskView = ({ workspace, project, initialTask, columns, members }) => {
     const navigate = useNavigate();
     const [task, setTask] = useState(initialTask);
     const [estimate, setEstimate] = useState(formatEstimate(initialTask.estimate));
@@ -245,7 +247,7 @@ const TaskView = ({ project, initialTask, columns, members }) => {
 
     const handleDelete = async () => {
         const { ok } = await remove.run(() => deleteTask(project.id, task.id));
-        if (ok) navigate(projectPath(project));
+        if (ok) navigate(projectPath(workspace, project));
     };
 
     // the response only has assigneeId: the member list gives the name, or at least the id
@@ -263,12 +265,9 @@ const TaskView = ({ project, initialTask, columns, members }) => {
         : inlineSx;
 
     return (
-        <Box sx={{ maxWidth: 1280, mx: "auto" }}>
+        <Box>
             <Breadcrumbs sx={{ mb: 2 }}>
-                <Link component={RouterLink} to={`/workspaces/${project.workspaceId}/projects`} underline="hover" color="inherit">
-                    Projects
-                </Link>
-                <Link component={RouterLink} to={projectPath(project)} underline="hover" color="inherit">
+                <Link component={RouterLink} to={projectPath(workspace, project)} underline="hover" color="inherit">
                     {project.name}
                 </Link>
                 <Typography color="text.primary">{task.key}</Typography>
@@ -472,33 +471,43 @@ const TaskView = ({ project, initialTask, columns, members }) => {
     );
 };
 
-// loads the project, the task, the board's columns and the project's members, then shows the task
+// /workspaces/:workspaceSlug/projects/:projectId/tasks/:taskId
+// the project and workspace come from the guards; this loads the task, the board's columns and the members
 const TaskPage = () => {
-    const { projectId, taskId } = useParams();
+    const { taskId } = useParams();
+    const { workspace } = useWorkspaceAccess();
+    const { project } = useProjectAccess();
     const state = useAsync(
         async (signal) => {
-            const [project, task, board, members] = await Promise.all([
-                getProject(projectId, signal),
-                getTask(projectId, taskId, signal),
-                getBoard(projectId, signal),
-                listProjectMembers(projectId, { size: 100 }, signal),
+            const [task, board, members] = await Promise.all([
+                getTask(project.id, taskId, signal),
+                getBoard(project.id, signal),
+                listProjectMembers(project.id, { size: 100 }, signal),
             ]);
-            return { project, task, columns: board.columns, members: members.content };
+            return { task, columns: board.columns, members: members.content };
         },
-        [projectId, taskId],
+        [project.id, taskId],
         { fallback: "Couldn't load the task. Please try again.", messages: TASK_ERROR_MESSAGES },
     );
 
-    if (!state.data) {
-        return (
-            <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2 }}>
-                <LoadState loading={!state.error} error={state.error} onRetry={state.reload} rows={6} />
-            </Paper>
-        );
-    }
-
-    const { project, task, columns, members } = state.data;
-    return <TaskView key={task.id} project={project} initialTask={task} columns={columns} members={members} />;
+    return (
+        <PageLayout>
+            {state.data ? (
+                <TaskView
+                    key={state.data.task.id}
+                    workspace={workspace}
+                    project={project}
+                    initialTask={state.data.task}
+                    columns={state.data.columns}
+                    members={state.data.members}
+                />
+            ) : (
+                <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2 }}>
+                    <LoadState loading={!state.error} error={state.error} onRetry={state.reload} rows={6} />
+                </Paper>
+            )}
+        </PageLayout>
+    );
 };
 
 export default TaskPage;

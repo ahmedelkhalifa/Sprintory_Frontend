@@ -5,6 +5,7 @@ import FormField from "../forms/FormField";
 import TemplatePicker from "./TemplatePicker";
 import { createProject } from "../../api/projectsApi";
 import { useSubmit } from "../../hooks/useSubmit";
+import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { projectPath, suggestProjectKey } from "../../utils/project";
 import { PROJECT_KEY_MAX, validateNewProject } from "../../utils/validation";
 import { PROJECT_ERROR_MESSAGES, TEMPLATES } from "../../constants/projects";
@@ -14,8 +15,9 @@ const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
 
 // "Create project" window: name, key, template and an optional description. The key is suggested from the name
 // until the user types their own. The creator becomes the project's Project Manager, and on success we open it.
-const CreateProjectDialog = ({ workspaceId, onClose }) => {
+const CreateProjectDialog = ({ onClose }) => {
   const navigate = useNavigate();
+  const { workspace } = useWorkspaceAccess();
   const [values, setValues] = useState({ name: "", key: "", description: "" });
   // once the user edits the key, the name stops changing it
   const [keyTouched, setKeyTouched] = useState(false);
@@ -44,9 +46,9 @@ const CreateProjectDialog = ({ workspaceId, onClose }) => {
       template,
       description: values.description.trim() || undefined,
     };
-    const { ok, result, error: apiError } = await submit.run(() => createProject(workspaceId, body));
+    const { ok, result, error: apiError } = await submit.run(() => createProject(workspace.id, body));
     if (ok) {
-      navigate(projectPath(result));
+      navigate(projectPath(workspace, result));
       return;
     }
     // the backend names the bad field: show it under the field instead of in the alert

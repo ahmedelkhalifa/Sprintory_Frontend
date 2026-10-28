@@ -17,6 +17,7 @@ import TemplateChip from "./TemplateChip";
 import StatusChip from "./StatusChip";
 import UserAvatar from "../general/UserAvatar";
 import { projectPath } from "../../utils/project";
+import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 
 const headCellSx = { color: "text.secondary", fontWeight: 500, borderColor: "divider" };
 // smaller screens drop the less important columns, so the table never scrolls sideways
@@ -54,6 +55,7 @@ const MembersPreview = ({ preview }) => {
 // `renderActions(project)` fills the last column (the ⋮ menu), or leave it out for no actions column.
 const ProjectsTable = ({ projects, previews = {}, renderActions }) => {
   const navigate = useNavigate();
+  const { workspace } = useWorkspaceAccess();
 
   return (
     <TableContainer>
@@ -81,7 +83,7 @@ const ProjectsTable = ({ projects, previews = {}, renderActions }) => {
 
         <TableBody>
           {projects.map((project) => {
-            const to = projectPath(project);
+            const to = projectPath(workspace, project);
             return (
               <TableRow
                 key={project.id}

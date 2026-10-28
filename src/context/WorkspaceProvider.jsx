@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useMatch } from "react-router-dom";
 import { WORKSPACES_CHANGED, listWorkspaces } from "../api/workspacesApi";
 import { errorMessage, isAbort } from "../utils/apiError";
-import { byName, parseWorkspaceId } from "../utils/workspace";
+import { byName, findWorkspace, parseWorkspaceId } from "../utils/workspace";
 import { WorkspaceContext } from "./WorkspaceContext";
 
 const STORAGE_KEY = "lastWorkspaceId";
@@ -24,30 +24,46 @@ const saveLast = (id) => {
   }
 };
 
-// Knows the user's workspaces and which one they are working in:
-// the one in the url (/workspaces/:workspaceId/...), otherwise the last one they opened.
-// Exposes { workspaces, loading, error, current, currentId } through useWorkspaces()
-const WorkspaceProvider = ({ children }) => {
-  const match = useMatch("/workspaces/:workspaceId/*");
-  const urlId = parseWorkspaceId(match?.params.workspaceId);
-  const [state, setState] = useState({ workspaces: [], loading: true, error: null });
-  const { workspaces, loading, error } = state;
+// a retry after a failed load goes through the same listener as a change
+const reload = () => window.dispatchEvent(new Event(WORKSPACES_CHANGED));
 
+// Knows the user's workspaces and which one they are working in:
+// the one in the url (/workspaces/:workspaceSlug/...), otherwise the last one they opened.
+// Exposes { workspaces, loading, refreshing, error, reload, current } through useWorkspaces().
+// The url names a workspace by its slug, so this list is also how WorkspaceAccessGuard finds its id.
+const WorkspaceProvider = ({ children }) => {
+  const match = useMatch("/workspaces/:workspaceSlug/*");
+  const segment = match?.params.workspaceSlug;
+  const [state, setState] = useState({ workspaces: [], loading: true, refreshing: true, error: null });
+  const { workspaces, loading, refreshing, error } = state;
+
+  // a url naming a workspace the user isn't in gives no current one, rather than the last one
+  const fromUrl = segment ? findWorkspace(workspaces, segment).workspace : null;
+  const current = segment ? fromUrl : (workspaces.find((w) => w.id === readLast()) ?? null);
+  const urlId = fromUrl?.id;
+
+  // the id, not the slug: it's what the API takes, and the list is matched against it
   useEffect(() => {
     if (urlId) saveLast(urlId);
   }, [urlId]);
 
   // reload whenever workspacesApi reports a create/rename/archive/restore/delete;
-  // the old list stays on screen until the new one arrives
+  // the old list stays on screen until the new one arrives, `refreshing` is true meanwhile
+  // (so a just-created workspace's url isn't taken for an unknown one)
   useEffect(() => {
     let controller;
     const load = () => {
       controller?.abort();
       controller = new AbortController();
+      setState((prev) => ({ ...prev, refreshing: true }));
       listWorkspaces(controller.signal)
-        .then((list) => setState({ workspaces: [...list].sort(byName), loading: false, error: null }))
+        .then((list) =>
+          setState({ workspaces: [...list].sort(byName), loading: false, refreshing: false, error: null }),
+        )
         .catch((err) => {
-          if (!isAbort(err)) setState({ workspaces: [], loading: false, error: errorMessage(err) });
+          if (!isAbort(err)) {
+            setState({ workspaces: [], loading: false, refreshing: false, error: errorMessage(err) });
+          }
         });
     };
 
@@ -59,13 +75,8 @@ const WorkspaceProvider = ({ children }) => {
     };
   }, []);
 
-  const wantedId = urlId ?? readLast();
-  const current = workspaces.find((w) => w.id === wantedId) ?? null;
-  // the url wins even before the list has loaded; a remembered id only counts if it still exists
-  const currentId = urlId ?? current?.id ?? null;
-
   return (
-    <WorkspaceContext.Provider value={{ workspaces, loading, error, current, currentId }}>
+    <WorkspaceContext.Provider value={{ workspaces, loading, refreshing, error, reload, current }}>
       {children}
     </WorkspaceContext.Provider>
   );

@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Alert, Box, Button, Paper, Snackbar, Typography } from "@mui/material";
 import ViewColumnOutlinedIcon from "@mui/icons-material/ViewColumnOutlined";
+import AddIcon from "@mui/icons-material/Add";
 import LoadState from "../general/LoadState";
 import QuickAddTask from "../tasks/QuickAddTask";
 import TaskDrawer from "../tasks/TaskDrawer";
@@ -19,8 +20,10 @@ import { PERMISSIONS } from "../../constants/projects";
 import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
 import { errorMessage } from "../../utils/apiError";
 import { can } from "../../utils/project";
-import { boardMove, groupByColumn } from "../../utils/board";
+import { applyColumnEdits, boardMove, groupByColumn, moveColumnId, NO_COLUMN_EDITS } from "../../utils/board";
 import { describeTasks, projectLabels } from "../../utils/task";
+import ColumnMenu from "./ColumnMenu";
+import ColumnFieldDialog from "./ColumnFieldDialog";
 
 // Scrum without an active sprint: nothing to work on yet, the sprint is started from the backlog
 const NoActiveSprint = ({ onOpenBacklog }) => (
@@ -42,13 +45,24 @@ const NoActiveSprint = ({ onOpenBacklog }) => (
 // Kanban (R16): every task by column, with the work-in-progress limits. Columns are the backend's (read-only
 // until column editing exists); anyone with EDIT_TASKS drags cards across and within columns.
 // `writable` is false in an archived project or workspace, which makes everything read-only.
-const BoardTab = ({ project, writable, onOpenBacklog }) => {
+// `taskVersion` goes up when a task is created outside the tab (the page's Create task window);
+// `onCreateTask` opens that window, for the Kanban board's button on top (its quick bar stays).
+const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, onOpenBacklog }) => {
   const canView = can(project, PERMISSIONS.VIEW_WORK);
+  // a reload, not a dependency: the board stays on screen while the new task loads in
   const boardState = useAsync((signal) => loadWork(project, "board", signal), [project.id], {
     enabled: canView,
     fallback: "Couldn't load the board. Please try again.",
     messages: TASK_ERROR_MESSAGES,
   });
+  const { reload: reloadBoard } = boardState;
+  // only changes while the tab is open: the first load already has every task created before it
+  const seenTaskVersion = useRef(taskVersion);
+  useEffect(() => {
+    if (taskVersion === seenTaskVersion.current) return;
+    seenTaskVersion.current = taskVersion;
+    reloadBoard();
+  }, [taskVersion, reloadBoard]);
   // moves show at once and are sent in the background; the loaded data wins again after the next load
   const [optimistic, setOptimistic] = useState({ source: null, tasks: null });
   const [openTaskId, setOpenTaskId] = useState(null);
@@ -56,6 +70,9 @@ const BoardTab = ({ project, writable, onOpenBacklog }) => {
   const [notice, setNotice] = useState(null); // { text, severity }
   const [dragging, setDragging] = useState(null); // { taskId, fromStatusId }
   const [overStatusId, setOverStatusId] = useState(null);
+  // UI-only column edits (the backend has no column endpoints yet); they are laid over the loaded columns
+  const [columnEdits, setColumnEdits] = useState(NO_COLUMN_EDITS);
+  const [columnDialog, setColumnDialog] = useState(null); // { type: "rename" | "wip", columnId }
   const sensors = useSensors(
     // a short move before dragging starts, so clicks on a card still open it
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -86,10 +103,28 @@ const BoardTab = ({ project, writable, onOpenBacklog }) => {
   // a Scrum board holds only the active sprint's tasks, a Kanban board all of them
   const inSprint = sprint && new Set(sprint.taskIds);
   const tasks = inSprint ? allTasks.filter((task) => inSprint.has(task.id)) : allTasks;
-  const board = groupByColumn(columns, tasks);
+  const edits = columnEdits.projectId === project.id ? columnEdits : NO_COLUMN_EDITS;
+  const shownColumns = applyColumnEdits(columns, edits);
+  const board = groupByColumn(shownColumns, tasks);
   const canMove = writable && can(project, PERMISSIONS.EDIT_TASKS);
   const canComplete = writable && can(project, PERMISSIONS.MANAGE_SPRINTS);
   const reload = boardState.reload;
+  // TODO: use a dedicated "manage board" permission once the backend has one
+  const canEditColumns = writable && can(project, PERMISSIONS.EDIT_TASKS);
+  const updateEdits = (change) => setColumnEdits({ ...edits, ...change, projectId: project.id });
+  // TODO(backend): each of these becomes an API call once column endpoints exist
+  const renameColumn = (id, name) => updateEdits({ names: { ...edits.names, [id]: name } });
+  const setWip = (id, limit) => updateEdits({ wip: { ...edits.wip, [id]: limit } });
+  const moveColumn = (id, step) => updateEdits({ order: moveColumnId(shownColumns, id, step) });
+  const removeColumn = (id) => updateEdits({ removed: [...edits.removed, id] });
+  const dialogColumn = columnDialog && board.find((column) => column.id === columnDialog.columnId);
+  const validateName = (id) => (value) => {
+    if (!value) return "Name is required.";
+    if (value.length > 100) return "Name must be at most 100 characters.";
+    if (shownColumns.some((c) => c.id !== id && c.name.toLowerCase() === value.toLowerCase())) return "Another column already has this name.";
+    return null;
+  };
+  const validateWip = (value) => (/^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 999 ? null : "Enter a whole number from 1 to 999.");
 
   const lookup = (taskId) => tasks.find((task) => task.id === taskId);
   const columnTasks = (statusId) => board.find((column) => column.id === statusId).tasks;
@@ -97,7 +132,7 @@ const BoardTab = ({ project, writable, onOpenBacklog }) => {
   // move = { taskId, statusId, afterTaskId (null = first in the column) }
   const applyMove = async (move) => {
     const before = allTasks;
-    setOptimistic({ source: data, tasks: describeTasks(boardMove(allTasks, columns, move), { members, columns }) });
+    setOptimistic({ source: data, tasks: describeTasks(boardMove(allTasks, shownColumns, move), { members, columns }) });
     try {
       await moveOnBoard(project.id, move.taskId, move);
     } catch (err) {
@@ -173,11 +208,21 @@ const BoardTab = ({ project, writable, onOpenBacklog }) => {
         />
       )}
 
-      {/* Kanban has no backlog page: new tasks start in the board's first column */}
+      {/* Kanban has no backlog page: new tasks start in the board's first column. The button opens the full
+          window, the bar below it adds one by title */}
       {!scrum && canMove && (
-        <Paper elevation={0} sx={{ mb: 2.5, border: 1, borderColor: "divider", borderRadius: 2, boxShadow: 1 }}>
-          <QuickAddTask projectId={project.id} onCreated={reload} />
-        </Paper>
+        <>
+          {onCreateTask && (
+            <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+              <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
+                Create task
+              </Button>
+            </Box>
+          )}
+          <Paper elevation={0} sx={{ mb: 2.5, border: 1, borderColor: "divider", borderRadius: 2, boxShadow: 1 }}>
+            <QuickAddTask projectId={project.id} onCreated={reload} />
+          </Paper>
+        </>
       )}
 
       <DndContext
@@ -190,12 +235,28 @@ const BoardTab = ({ project, writable, onOpenBacklog }) => {
       >
         {/* the columns keep their width and the board scrolls sideways when they don't fit */}
         <Box sx={{ display: "flex", alignItems: "stretch", gap: 2, overflowX: "auto", pb: 1 }}>
-          {board.map((column) => (
+          {board.map((column, index) => (
             <BoardColumn
               key={column.id}
               column={column}
               highlight={Boolean(dragging) && overStatusId === column.id && dragging.fromStatusId !== column.id}
               emptyText={canMove ? "Drop tasks here" : "No tasks"}
+              menu={
+                  canEditColumns && (
+                      <ColumnMenu
+                          column={column}
+                          kanban={!scrum}
+                          canMoveLeft={index > 0}
+                          canMoveRight={index < board.length - 1}
+                          onRename={() => setColumnDialog({ type: "rename", columnId: column.id })}
+                          onMoveLeft={() => moveColumn(column.id, -1)}
+                          onMoveRight={() => moveColumn(column.id, 1)}
+                          onEditWip={() => setColumnDialog({ type: "wip", columnId: column.id })}
+                          onClearWip={() => setWip(column.id, null)}
+                          onDelete={() => removeColumn(column.id)}
+                      />
+                  )
+              }
             >
               {column.tasks.map((task) => (
                 <BoardCard key={task.id} task={task} canDrag={canMove} onOpen={() => setOpenTaskId(task.id)} />
@@ -232,6 +293,28 @@ const BoardTab = ({ project, writable, onOpenBacklog }) => {
         />
       )}
 
+      {dialogColumn && columnDialog.type === "rename" && (
+          <ColumnFieldDialog
+              title="Rename column"
+              label="Column name"
+              initialValue={dialogColumn.name}
+              validate={validateName(dialogColumn.id)}
+              onSubmit={(name) => renameColumn(dialogColumn.id, name)}
+              onClose={() => setColumnDialog(null)}
+          />
+      )}
+      {dialogColumn && columnDialog.type === "wip" && (
+          <ColumnFieldDialog
+              title="Work-in-progress limit"
+              label="Max tasks in this column"
+              type="number"
+              initialValue={dialogColumn.wipLimit ?? ""}
+              helperText="The column turns red when it holds more tasks than this."
+              validate={validateWip}
+              onSubmit={(limit) => setWip(dialogColumn.id, Number(limit))}
+              onClose={() => setColumnDialog(null)}
+          />
+      )}
       <Snackbar
         open={Boolean(notice)}
         autoHideDuration={5000}

@@ -2,7 +2,7 @@ import { PERMISSIONS } from "../constants/projects.js";
 import { can, projectPath } from "./project.js";
 
 // the full task page (built separately); the drawer links to it
-export const taskPath = (project, taskId) => `${projectPath(project)}/tasks/${taskId}`;
+export const taskPath = (workspace, project, taskId) => `${projectPath(workspace, project)}/tasks/${taskId}`;
 
 // tasks without an estimate count as 0
 export const sumEstimates = (tasks) => tasks.reduce((sum, task) => sum + (Number(task.estimate) || 0), 0);

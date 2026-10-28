@@ -15,63 +15,85 @@ import WorkspaceMembersPage from "./pages/workspace/WorkspaceMembersPage";
 import TeamsPage from "./pages/teams/TeamsPage";
 import ProjectsPage from "./pages/projects/ProjectsPage";
 import ProjectPage from "./pages/projects/ProjectPage";
+import {
+    ProjectBacklogPage,
+    ProjectBoardPage,
+    ProjectComingSoonPage,
+    ProjectMembersPage,
+    ProjectOverviewPage,
+    ProjectSettingsPage,
+} from "./pages/projects/ProjectTabPages";
 import ProjectsRedirect from "./pages/projects/ProjectsRedirect";
 import TaskPage from "./pages/tasks/TaskPage";
 import AcceptInvitePage from "./pages/workspace/AcceptInvitePage";
 import { INVITE_PATH } from "./utils/invitation";
 
 const App = () => {
-  return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          {/* public */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/activate-account" element={<ActivateAccountPage />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
-          {/* also the target of the emailed reset link (?token=...) */}
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          {/* the emailed invitation link (?token=...); works signed in or not */}
-          <Route path={INVITE_PATH} element={<AcceptInvitePage />} />
+    return (
+        <BrowserRouter>
+            <AuthProvider>
+                <Routes>
+                    {/* public */}
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/activate-account" element={<ActivateAccountPage />} />
+                    <Route path="/verify-email" element={<VerifyEmailPage />} />
+                    {/* also the target of the emailed reset link (?token=...) */}
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
+                    {/* the emailed invitation link (?token=...); works signed in or not */}
+                    <Route path={INVITE_PATH} element={<AcceptInvitePage />} />
 
-          {/* protected: everything inside needs a logged-in user */}
-          <Route element={<ProtectedRoute />}>
-            <Route
-              element={
-                <WorkspaceProvider>
-                  <AppShell />
-                </WorkspaceProvider>
-              }
-            >
-              <Route path="/" element={<div>Home</div>} />
-              <Route path="/projects" element={<ProjectsRedirect />} />
-              <Route path="/workspaces" element={<WorkspacesPage />} />
-              {/* the guards load the workspace / project first; pages under them read it from the guard */}
-              <Route path="/workspaces/:workspaceId" element={<WorkspaceAccessGuard />}>
-                <Route index element={<WorkspacePage />} />
-                <Route path="members" element={<WorkspaceMembersPage />} />
-                <Route path="teams" element={<TeamsPage />} />
-                <Route path="projects" element={<ProjectsPage />} />
-                <Route path="projects/:projectId" element={<ProjectAccessGuard />}>
-                  <Route index element={<ProjectPage />} />
-                  <Route path="tasks/:taskId" element={<TaskPage />} />
-                </Route>
-              </Route>
-              {/* placeholders until these pages exist, so the sidebar links stay inside the shell */}
-              <Route path="/backlog" element={<div>Backlog</div>} />
-              <Route path="/board" element={<div>Board</div>} />
-              <Route path="/sprints" element={<div>Sprints</div>} />
-              <Route path="/reports" element={<div>Reports</div>} />
-              <Route path="/settings" element={<div>Settings</div>} />
-            </Route>
-          </Route>
+                    {/* protected: everything inside needs a logged-in user */}
+                    <Route element={<ProtectedRoute />}>
+                        <Route
+                            element={
+                                <WorkspaceProvider>
+                                    <AppShell />
+                                </WorkspaceProvider>
+                            }
+                        >
+                            <Route path="/" element={<div>Home</div>} />
+                            <Route path="/projects" element={<ProjectsRedirect />} />
+                            <Route path="/workspaces" element={<WorkspacesPage />} />
+                            {/* the guards load the workspace / project first; pages under them read it from the guard.
+                  the url names the workspace by slug (old /workspaces/<id> links redirect to it) */}
+                            <Route path="/workspaces/:workspaceSlug" element={<WorkspaceAccessGuard />}>
+                                <Route index element={<WorkspacePage />} />
+                                <Route path="members" element={<WorkspaceMembersPage />} />
+                                <Route path="teams" element={<TeamsPage />} />
+                                <Route path="projects" element={<ProjectsPage />} />
+                                <Route path="projects/:projectId" element={<ProjectAccessGuard />}>
+                                    {/* ProjectPage is the layout (header + tabs) and stays mounted; only the tab below it changes.
+                      paths match the ids in components/projects/overview/tabList.js */}
+                                    <Route element={<ProjectPage />}>
+                                        <Route index element={<ProjectOverviewPage />} />
+                                        <Route path="members" element={<ProjectMembersPage />} />
+                                        <Route path="backlog" element={<ProjectBacklogPage />} />
+                                        <Route path="board" element={<ProjectBoardPage />} />
+                                        <Route path="sprints" element={<ProjectComingSoonPage tab="sprints" />} />
+                                        <Route path="reports" element={<ProjectComingSoonPage tab="reports" />} />
+                                        <Route path="files" element={<ProjectComingSoonPage tab="files" />} />
+                                        <Route path="settings" element={<ProjectSettingsPage />} />
+                                        {/* anything else: ProjectPage redirects to Overview */}
+                                        <Route path="*" element={null} />
+                                    </Route>
+                                    <Route path="tasks/:taskId" element={<TaskPage />} />
+                                </Route>
+                            </Route>
+                            {/* placeholders until these pages exist, so the sidebar links stay inside the shell */}
+                            <Route path="/backlog" element={<div>Backlog</div>} />
+                            <Route path="/board" element={<div>Board</div>} />
+                            <Route path="/sprints" element={<div>Sprints</div>} />
+                            <Route path="/reports" element={<div>Reports</div>} />
+                            <Route path="/settings" element={<div>Settings</div>} />
+                        </Route>
+                    </Route>
 
-          <Route path="*" element={<div>Page not found</div>} />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
-  );
+                    <Route path="*" element={<div>Page not found</div>} />
+                </Routes>
+            </AuthProvider>
+        </BrowserRouter>
+    );
 };
 
 export default App;
