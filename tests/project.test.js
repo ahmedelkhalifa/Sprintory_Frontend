@@ -9,6 +9,8 @@ import {
   projectPath,
   projectRoleLabel,
   projectsPath,
+  projectTabOf,
+  projectTabPath,
   suggestProjectKey,
 } from "../src/utils/project.js";
 import { validateNewProject, validateProjectKey, validateProjectName } from "../src/utils/validation.js";
@@ -46,8 +48,18 @@ test("project urls live under their workspace", () => {
   const workspace = { id: 3, slug: "acme-engineering" };
   assert.equal(projectsPath(workspace), "/workspaces/acme-engineering/projects");
   assert.equal(projectPath(workspace, { id: 21, workspaceId: 3 }), "/workspaces/acme-engineering/projects/21");
+  assert.equal(projectTabPath(workspace, { id: 21 }, "overview"), "/workspaces/acme-engineering/projects/21");
+  assert.equal(projectTabPath(workspace, { id: 21 }, "board"), "/workspaces/acme-engineering/projects/21/board");
   assert.equal(parseProjectId("21"), 21);
   assert.equal(parseProjectId("abc"), null);
+});
+
+test("the project tab is read from the url segment after the project", () => {
+  const base = "/workspaces/acme/projects/21";
+  assert.equal(projectTabOf(base, base), "overview");
+  assert.equal(projectTabOf(`${base}/`, base), "overview");
+  assert.equal(projectTabOf(`${base}/members`, base), "members");
+  assert.equal(projectTabOf(`${base}/board/extra`, base), "board");
 });
 
 test("project names are required and at most 100 characters", () => {

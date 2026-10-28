@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Alert, Box, Stack } from "@mui/material";
+import { Navigate, Outlet, useLocation, useNavigate, useOutletContext } from "react-router-dom";
+import { Alert } from "@mui/material";
 import PageLayout from "../../components/layouts/PageLayout";
-import ProjectMembersTab from "../../components/projects/ProjectMembersTab";
 import AddPeopleDialog from "../../components/projects/AddPeopleDialog";
 import AddTeamDialog from "../../components/projects/AddTeamDialog";
 import RemoveMemberDialog from "../../components/projects/RemoveMemberDialog";
@@ -13,19 +12,11 @@ import ProjectOverviewHeader from "../../components/projects/overview/ProjectOve
 import QuickActionsMenu from "../../components/projects/overview/QuickActionsMenu";
 import ProjectSettingsMenu from "../../components/projects/overview/ProjectSettingsMenu";
 import ProjectTabs from "../../components/projects/overview/ProjectTabs";
-import ProjectStats from "../../components/projects/overview/ProjectStats";
-import RecentActivityCard from "../../components/projects/overview/RecentActivityCard";
-import ProjectDetailsCard from "../../components/projects/overview/ProjectDetailsCard";
-import ProjectMembersCard from "../../components/projects/overview/ProjectMembersCard";
-import ComingSoonPanel from "../../components/projects/overview/ComingSoonPanel";
-import BacklogTab from "../../components/backlog/BacklogTab";
-import BoardTab from "../../components/board/BoardTab";
-import ProjectSettingsTab from "../../components/projects/ProjectSettingsTab";
 import { tabsFor } from "../../components/projects/overview/tabList";
 import { listProjectMembers } from "../../api/projectsApi";
 import { useAsync } from "../../hooks/useAsync";
 import { useProjectAccess, useWorkspaceAccess } from "../../hooks/useResourceAccess";
-import { can, isProjectArchived, projectsPath } from "../../utils/project";
+import { can, isProjectArchived, projectPath, projectTabOf, projectTabPath, projectsPath } from "../../utils/project";
 import { isWorkspaceArchived } from "../../utils/workspace";
 import { PERMISSIONS } from "../../constants/projects";
 
@@ -33,17 +24,19 @@ import { PERMISSIONS } from "../../constants/projects";
 // and the members card shows the first 5, Project Managers first
 const MEMBERS_PREVIEW_SIZE = 20;
 
-// /workspaces/:workspaceSlug/projects/:projectId: ProjectAccessGuard has loaded the project (and remounts
-// this page when the project changes, so tabs and dialogs start fresh).
-// One project: Overview (stats, activity, details, members), Members, Backlog, Board, Settings, and tabs that are
-// coming soon.
+// /workspaces/:workspaceSlug/projects/:projectId/...: ProjectAccessGuard has loaded the project (and remounts
+// this page when the project changes, so dialogs start fresh).
+// Layout of one project: the header, the tabs and the page's windows, with the current tab's route in <Outlet />
+// (ProjectTabPages.jsx). It stays mounted while the tab changes, so none of this reloads; the tab is in the url.
 // Kanban projects have no Backlog / Sprints. Project Managers and workspace admins (MANAGE_MEMBERS)
 // can add and remove people, MANAGE_ROLES changes their roles; EDIT_SETTINGS / ARCHIVE_PROJECT unlock the settings menu.
 const ProjectPage = () => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  // the guard's { workspace, project, ... }, passed on so the tabs can still read it
+  const parent = useOutletContext();
   const { workspace } = useWorkspaceAccess();
   const { project, reloadProject } = useProjectAccess();
-  const [tab, setTab] = useState("overview");
   // which window is open: add-people / add-team / remove (+ member) / roles (+ member) / edit / archive / restore / delete
   const [dialog, setDialog] = useState(null);
   // bumped after every membership change, so member lists load again
@@ -59,11 +52,9 @@ const ProjectPage = () => {
   // hiding is only for usability, the backend refuses anyway
   const writable = !workspaceArchived && !projectArchived;
   const canManage = can(project, PERMISSIONS.MANAGE_MEMBERS) && writable;
-  const canEditRoles = can(project, PERMISSIONS.MANAGE_ROLES) && writable;
-  const canEdit = can(project, PERMISSIONS.EDIT_SETTINGS) && writable;
-  // a Kanban project has no Backlog / Sprints tab: fall back to Overview
   const tabs = tabsFor(project.template);
-  const currentTab = tabs.some((t) => t.id === tab) ? tab : "overview";
+  const tab = projectTabOf(pathname, projectPath(workspace, project));
+  const tabPath = (id) => projectTabPath(workspace, project, id);
 
   const closeDialog = () => setDialog(null);
   const afterChange = () => {
@@ -74,6 +65,22 @@ const ProjectPage = () => {
   const afterStatusChange = () => {
     if (dialog?.type === "delete") navigate(projectsPath(workspace), { replace: true });
     else afterChange();
+  };
+
+  // an unknown tab, or Backlog / Sprints in a Kanban project: Overview instead
+  if (!tabs.some((t) => t.id === tab)) return <Navigate to={tabPath("overview")} replace />;
+
+  const page = {
+    preview: previewState.data,
+    version,
+    writable,
+    workspaceArchived,
+    canManage,
+    canEditRoles: can(project, PERMISSIONS.MANAGE_ROLES) && writable,
+    canEdit: can(project, PERMISSIONS.EDIT_SETTINGS) && writable,
+    openDialog: setDialog,
+    afterChange,
+    goToTab: (id) => navigate(tabPath(id)),
   };
 
   return (
@@ -103,72 +110,9 @@ const ProjectPage = () => {
         </Alert>
       )}
 
-      <ProjectTabs value={currentTab} onChange={setTab} template={project.template} />
+      <ProjectTabs value={tab} tabs={tabs} pathFor={tabPath} />
 
-      {currentTab === "overview" && (
-        <Stack spacing={3}>
-          <ProjectStats project={project} />
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 2fr) minmax(0, 1fr)" },
-              gap: 3,
-              alignItems: "start",
-            }}
-          >
-            <RecentActivityCard project={project} members={previewState.data?.content} loading={!previewState.data} />
-            <Stack spacing={3}>
-              <ProjectDetailsCard
-                project={project}
-                workspace={workspace}
-                canEdit={canEdit}
-                onEdit={() => setDialog({ type: "edit" })}
-              />
-              <ProjectMembersCard
-                project={project}
-                preview={previewState.data}
-                loading={!previewState.data}
-                canManage={canManage}
-                onSeeAll={() => setTab("members")}
-                onAdd={() => setDialog({ type: "add-people" })}
-              />
-            </Stack>
-          </Box>
-        </Stack>
-      )}
-
-      {currentTab === "members" && (
-        <ProjectMembersTab
-          project={project}
-          version={version}
-          canManage={canManage}
-          canEditRoles={canEditRoles}
-          onAddPeople={() => setDialog({ type: "add-people" })}
-          onAddTeam={() => setDialog({ type: "add-team" })}
-          onRemove={(member) => setDialog({ type: "remove", member })}
-          onEditRoles={(member) => setDialog({ type: "roles", member })}
-        />
-      )}
-
-      {currentTab === "backlog" && <BacklogTab project={project} writable={writable} />}
-
-      {currentTab === "board" && (
-        <BoardTab project={project} writable={writable} onOpenBacklog={() => setTab("backlog")} />
-      )}
-
-      {currentTab === "settings" && (
-        <ProjectSettingsTab
-          project={project}
-          writable={writable}
-          workspaceArchived={workspaceArchived}
-          onSaved={afterChange}
-          onAction={(type) => setDialog({ type })}
-        />
-      )}
-
-      {!["overview", "members", "backlog", "board", "settings"].includes(currentTab) && (
-        <ComingSoonPanel title={tabs.find((t) => t.id === currentTab).label} />
-      )}
+      <Outlet context={{ ...parent, page }} />
 
       {dialog?.type === "add-people" && <AddPeopleDialog project={project} onClose={closeDialog} onAdded={afterChange} />}
       {dialog?.type === "add-team" && <AddTeamDialog project={project} onClose={closeDialog} onAdded={afterChange} />}

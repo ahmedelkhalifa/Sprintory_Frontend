@@ -15,6 +15,14 @@ import WorkspaceMembersPage from "./pages/workspace/WorkspaceMembersPage";
 import TeamsPage from "./pages/teams/TeamsPage";
 import ProjectsPage from "./pages/projects/ProjectsPage";
 import ProjectPage from "./pages/projects/ProjectPage";
+import {
+  ProjectBacklogPage,
+  ProjectBoardPage,
+  ProjectComingSoonPage,
+  ProjectMembersPage,
+  ProjectOverviewPage,
+  ProjectSettingsPage,
+} from "./pages/projects/ProjectTabPages";
 import ProjectsRedirect from "./pages/projects/ProjectsRedirect";
 import TaskPage from "./pages/tasks/TaskPage";
 import AcceptInvitePage from "./pages/workspace/AcceptInvitePage";
@@ -55,7 +63,20 @@ const App = () => {
                 <Route path="teams" element={<TeamsPage />} />
                 <Route path="projects" element={<ProjectsPage />} />
                 <Route path="projects/:projectId" element={<ProjectAccessGuard />}>
-                  <Route index element={<ProjectPage />} />
+                  {/* ProjectPage is the layout (header + tabs) and stays mounted; only the tab below it changes.
+                      paths match the ids in components/projects/overview/tabList.js */}
+                  <Route element={<ProjectPage />}>
+                    <Route index element={<ProjectOverviewPage />} />
+                    <Route path="members" element={<ProjectMembersPage />} />
+                    <Route path="backlog" element={<ProjectBacklogPage />} />
+                    <Route path="board" element={<ProjectBoardPage />} />
+                    <Route path="sprints" element={<ProjectComingSoonPage tab="sprints" />} />
+                    <Route path="reports" element={<ProjectComingSoonPage tab="reports" />} />
+                    <Route path="files" element={<ProjectComingSoonPage tab="files" />} />
+                    <Route path="settings" element={<ProjectSettingsPage />} />
+                    {/* anything else: ProjectPage redirects to Overview */}
+                    <Route path="*" element={null} />
+                  </Route>
                   {/* placeholder until the task page is built */}
                   <Route path="tasks/:taskId" element={<TaskPage />} />
                 </Route>

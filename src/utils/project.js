@@ -69,3 +69,10 @@ export const parseProjectId = parseWorkspaceId;
 export const projectsPath = (workspace) => `${workspacePath(workspace)}/projects`;
 
 export const projectPath = (workspace, project) => `${projectsPath(workspace)}/${project.id}`;
+
+// each project tab has its own url so a refresh or a shared link opens it; Overview is the project url itself
+export const projectTabPath = (workspace, project, tab) =>
+  tab === "overview" ? projectPath(workspace, project) : `${projectPath(workspace, project)}/${tab}`;
+
+// the tab in a url under `basePath` (the project's path): the segment right after it, Overview when there is none
+export const projectTabOf = (pathname, basePath) => pathname.slice(basePath.length).split("/")[1] || "overview";
