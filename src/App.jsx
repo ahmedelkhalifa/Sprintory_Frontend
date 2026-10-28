@@ -55,7 +55,6 @@ const App = () => {
                 <Route path="projects" element={<ProjectsPage />} />
                 <Route path="projects/:projectId" element={<ProjectAccessGuard />}>
                   <Route index element={<ProjectPage />} />
-                  {/* placeholder until the task page is built */}
                   <Route path="tasks/:taskId" element={<TaskPage />} />
                 </Route>
               </Route>
