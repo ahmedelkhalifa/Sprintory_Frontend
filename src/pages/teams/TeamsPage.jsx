@@ -22,7 +22,7 @@ import TeamMemberDrawer from "../../components/teams/TeamMemberDrawer";
 const PAGE_SIZE = 20;
 const DEBOUNCE_MS = 300;
 
-// /workspaces/:workspaceId/teams: WorkspaceAccessGuard has loaded the workspace
+// /workspaces/:workspaceSlug/teams: WorkspaceAccessGuard has loaded the workspace
 // (and remounts this page when the workspace changes, so another workspace's data is never shown)
 const TeamsPage = () => {
   const { workspace } = useWorkspaceAccess();

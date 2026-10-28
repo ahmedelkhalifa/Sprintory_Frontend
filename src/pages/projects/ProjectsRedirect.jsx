@@ -6,9 +6,9 @@ import { projectsPath } from "../../utils/project";
 // /projects: projects live under a workspace, so open the current one's list
 // (the login form lands here by default), or let the user pick a workspace first
 const ProjectsRedirect = () => {
-  const { loading, currentId } = useWorkspaces();
+  const { loading, current } = useWorkspaces();
   if (loading) return <CircularProgress />;
-  return <Navigate to={currentId ? projectsPath(currentId) : "/workspaces"} replace />;
+  return <Navigate to={current ? projectsPath(current) : "/workspaces"} replace />;
 };
 
 export default ProjectsRedirect;

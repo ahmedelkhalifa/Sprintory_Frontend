@@ -5,7 +5,7 @@ import { Add, SettingsOutlined } from "@mui/icons-material";
 import { createWorkspace } from "../../api/workspacesApi";
 import { useWorkspaces } from "../../context/WorkspaceContext";
 import { initials } from "../../utils/people";
-import { ROLE_LABEL, isWorkspaceAdmin, isWorkspaceArchived } from "../../utils/workspace";
+import { ROLE_LABEL, isWorkspaceAdmin, isWorkspaceArchived, workspacePath } from "../../utils/workspace";
 import NameDialog from "../../components/workspace/NameDialog";
 import WorkspaceSettingsDialog from "../../components/workspace/WorkspaceSettingsDialog";
 
@@ -71,7 +71,7 @@ const WorkspacesPage = () => {
         <WorkspaceCard
           key={w.id}
           workspace={w}
-          onOpen={() => navigate(`/workspaces/${w.id}`)}
+          onOpen={() => navigate(workspacePath(w))}
           onSettings={() => setSettingsFor(w)}
         />
       ))}

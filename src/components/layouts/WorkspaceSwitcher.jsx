@@ -4,7 +4,7 @@ import { Box, ButtonBase, Divider, Menu, MenuItem, Typography } from "@mui/mater
 import { CheckRounded, UnfoldMoreRounded } from "@mui/icons-material";
 import { useWorkspaces } from "../../context/WorkspaceContext";
 import { initials } from "../../utils/people";
-import { ROLE_LABEL } from "../../utils/workspace";
+import { ROLE_LABEL, workspacePath } from "../../utils/workspace";
 
 const badgeSx = (size) => ({
   width: size,
@@ -71,7 +71,7 @@ const WorkspaceSwitcher = () => {
         slotProps={{ paper: { sx: { minWidth: 220, mt: 0.5 } } }}
       >
         {workspaces.map((w) => (
-          <MenuItem key={w.id} onClick={() => go(`/workspaces/${w.id}`)} sx={{ gap: 1.5 }}>
+          <MenuItem key={w.id} onClick={() => go(workspacePath(w))} sx={{ gap: 1.5 }}>
             <Box sx={badgeSx(28)}>{initials(w.name)}</Box>
             <Typography noWrap sx={{ flexGrow: 1 }}>{w.name}</Typography>
             {w.id === current?.id && <CheckRounded fontSize="small" color="primary" />}

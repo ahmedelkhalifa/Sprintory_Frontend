@@ -8,6 +8,7 @@ import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 
 // The project page's tabs. `scrumOnly` tabs don't exist in Kanban projects (no backlog, no sprints).
+// Each id is also the tab's url segment (projectTabPath); their routes are in App.jsx.
 const TABS = [
   { id: "overview", label: "Overview", Icon: HomeOutlinedIcon },
   { id: "members", label: "Members", Icon: GroupOutlinedIcon },
@@ -21,3 +22,5 @@ const TABS = [
 
 // the tabs a project of this template has
 export const tabsFor = (template) => TABS.filter((tab) => !tab.scrumOnly || template === "SCRUM");
+
+export const tabLabel = (id) => TABS.find((tab) => tab.id === id)?.label ?? id;

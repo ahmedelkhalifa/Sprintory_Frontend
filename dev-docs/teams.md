@@ -38,7 +38,7 @@ Not logged in is always `401`.
 | POST | `/teams/{teamId}/members` | `{ userIds: [...] }` | `204` | `addTeamMembers` |
 | DELETE | `/teams/{teamId}/members/{userId}` | — | `204` | `removeTeamMember` |
 
-Frontend functions are in [src/api/teamsApi.js](../src/api/teamsApi.js). The page is [TeamsPage](../src/pages/teams/TeamsPage.jsx) at `/workspaces/:workspaceId/teams`.
+Frontend functions are in [src/api/teamsApi.js](../src/api/teamsApi.js). The page is [TeamsPage](../src/pages/teams/TeamsPage.jsx) at `/workspaces/:workspaceSlug/teams`.
 
 ```jsonc
 // TeamResponse (nothing else: no description, no member count)
