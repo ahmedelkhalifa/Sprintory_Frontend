@@ -2,7 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { errorCode, errorMessage, isAbort } from "../src/utils/apiError.js";
 import { initials, memberLabel } from "../src/utils/people.js";
-import { isWorkspaceAdmin, isWorkspaceArchived, parseWorkspaceId } from "../src/utils/workspace.js";
+import {
+  findWorkspace,
+  isWorkspaceAdmin,
+  isWorkspaceArchived,
+  parseWorkspaceId,
+  workspacePath,
+} from "../src/utils/workspace.js";
 import { validateResetPassword } from "../src/utils/validation.js";
 import { invitePath, sameEmail } from "../src/utils/invitation.js";
 
@@ -13,6 +19,18 @@ test("workspace ids from the url must be positive safe integers", () => {
   for (const value of ["", "0", "-1", "abc", "1.2", "9007199254740992", null, undefined]) {
     assert.equal(parseWorkspaceId(value), null);
   }
+});
+
+test("workspace urls use the slug; old id links are still found", () => {
+  const acme = { id: 3, slug: "acme" };
+  // a slug can look like a number, and then it wins over another workspace's id
+  const numeric = { id: 9, slug: "3" };
+  assert.equal(workspacePath(acme), "/workspaces/acme");
+  assert.deepEqual(findWorkspace([acme], "acme"), { workspace: acme, bySlug: true });
+  assert.deepEqual(findWorkspace([acme], "3"), { workspace: acme, bySlug: false });
+  assert.deepEqual(findWorkspace([acme, numeric], "3"), { workspace: numeric, bySlug: true });
+  assert.deepEqual(findWorkspace([acme], "other"), { workspace: null, bySlug: false });
+  assert.deepEqual(findWorkspace([acme], undefined), { workspace: null, bySlug: false });
 });
 
 test("admin and archived checks read the workspace response", () => {

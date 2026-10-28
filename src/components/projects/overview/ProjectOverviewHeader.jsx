@@ -7,6 +7,7 @@ import StatusChip from "../StatusChip";
 import UserAvatar from "../../general/UserAvatar";
 import { formatDate } from "../../../utils/format";
 import { isProjectArchived, projectsPath } from "../../../utils/project";
+import { useWorkspaceAccess } from "../../../hooks/useResourceAccess";
 
 // one "label: value" item of the meta row under the project name
 const Meta = ({ children }) => (
@@ -19,6 +20,7 @@ const Meta = ({ children }) => (
 // and on the right the action menus and the members' avatars.
 // `actions` are the Quick actions + Project settings buttons; `preview` is a PageResponse of the first members.
 const ProjectOverviewHeader = ({ project, preview, actions }) => {
+  const { workspace } = useWorkspaceAccess();
   const meta = [
     <TemplateChip key="template" template={project.template} />,
     isProjectArchived(project) && <StatusChip key="status" status={project.status} />,
@@ -30,7 +32,7 @@ const ProjectOverviewHeader = ({ project, preview, actions }) => {
     <Box sx={{ mb: 3 }}>
       <Link
         component={RouterLink}
-        to={projectsPath(project.workspaceId)}
+        to={projectsPath(workspace)}
         underline="hover"
         color="text.secondary"
         sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, fontSize: 14 }}

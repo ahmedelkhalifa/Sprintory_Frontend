@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Alert, Box, Button, Paper, Snackbar, Typography } from "@mui/material";
 import ViewColumnOutlinedIcon from "@mui/icons-material/ViewColumnOutlined";
+import AddIcon from "@mui/icons-material/Add";
 import LoadState from "../general/LoadState";
 import QuickAddTask from "../tasks/QuickAddTask";
 import TaskDrawer from "../tasks/TaskDrawer";
@@ -42,13 +43,24 @@ const NoActiveSprint = ({ onOpenBacklog }) => (
 // Kanban (R16): every task by column, with the work-in-progress limits. Columns are the backend's (read-only
 // until column editing exists); anyone with EDIT_TASKS drags cards across and within columns.
 // `writable` is false in an archived project or workspace, which makes everything read-only.
-const BoardTab = ({ project, writable, onOpenBacklog }) => {
+// `taskVersion` goes up when a task is created outside the tab (the page's Create task window);
+// `onCreateTask` opens that window, for the Kanban board's button on top (its quick bar stays).
+const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, onOpenBacklog }) => {
   const canView = can(project, PERMISSIONS.VIEW_WORK);
+  // a reload, not a dependency: the board stays on screen while the new task loads in
   const boardState = useAsync((signal) => loadWork(project, "board", signal), [project.id], {
     enabled: canView,
     fallback: "Couldn't load the board. Please try again.",
     messages: TASK_ERROR_MESSAGES,
   });
+  const { reload: reloadBoard } = boardState;
+  // only changes while the tab is open: the first load already has every task created before it
+  const seenTaskVersion = useRef(taskVersion);
+  useEffect(() => {
+    if (taskVersion === seenTaskVersion.current) return;
+    seenTaskVersion.current = taskVersion;
+    reloadBoard();
+  }, [taskVersion, reloadBoard]);
   // moves show at once and are sent in the background; the loaded data wins again after the next load
   const [optimistic, setOptimistic] = useState({ source: null, tasks: null });
   const [openTaskId, setOpenTaskId] = useState(null);
@@ -173,11 +185,21 @@ const BoardTab = ({ project, writable, onOpenBacklog }) => {
         />
       )}
 
-      {/* Kanban has no backlog page: new tasks start in the board's first column */}
+      {/* Kanban has no backlog page: new tasks start in the board's first column. The button opens the full
+          window, the bar below it adds one by title */}
       {!scrum && canMove && (
-        <Paper elevation={0} sx={{ mb: 2.5, border: 1, borderColor: "divider", borderRadius: 2, boxShadow: 1 }}>
-          <QuickAddTask projectId={project.id} onCreated={reload} />
-        </Paper>
+        <>
+          {onCreateTask && (
+            <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+              <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
+                Create task
+              </Button>
+            </Box>
+          )}
+          <Paper elevation={0} sx={{ mb: 2.5, border: 1, borderColor: "divider", borderRadius: 2, boxShadow: 1 }}>
+            <QuickAddTask projectId={project.id} onCreated={reload} />
+          </Paper>
+        </>
       )}
 
       <DndContext

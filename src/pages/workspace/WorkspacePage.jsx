@@ -8,7 +8,7 @@ import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { isAbort } from "../../utils/apiError";
 import { EMPTY_PAGE } from "../../utils/page";
 import { projectsPath } from "../../utils/project";
-import { ROLE_LABEL, isWorkspaceAdmin, isWorkspaceArchived } from "../../utils/workspace";
+import { ROLE_LABEL, isWorkspaceAdmin, isWorkspaceArchived, workspacePath } from "../../utils/workspace";
 import WorkspaceHeader from "../../components/workspace/WorkspaceHeader";
 import StatCards from "../../components/workspace/StatCards";
 import ProjectsTable from "../../components/workspace/ProjectsTable";
@@ -32,7 +32,7 @@ const withMembers = (items, listMembers, signal) =>
     }),
   );
 
-// /workspaces/:workspaceId: WorkspaceAccessGuard has loaded the workspace
+// /workspaces/:workspaceSlug: WorkspaceAccessGuard has loaded the workspace
 // (and remounts this page when the workspace changes, so nothing from the previous one is shown)
 const WorkspacePage = () => {
   const navigate = useNavigate();
@@ -99,11 +99,11 @@ const WorkspacePage = () => {
 
   const isAdmin = isWorkspaceAdmin(workspace);
   const archived = isWorkspaceArchived(workspace);
-  const teamsPath = `/workspaces/${workspace.id}/teams`;
-  const membersPath = `/workspaces/${workspace.id}/members`;
+  const teamsPath = `${workspacePath(workspace)}/teams`;
+  const membersPath = `${workspacePath(workspace)}/members`;
 
   const stats = [
-    { key: "projects", value: counts.projects, label: "Projects", to: projectsPath(workspace.id) },
+    { key: "projects", value: counts.projects, label: "Projects", to: projectsPath(workspace) },
     { key: "teams", value: counts.teams, label: "Teams", to: teamsPath },
     { key: "members", value: counts.members, label: "Members", to: membersPath },
     { key: "active", value: "—", label: "Active this week" }, // TODO: no endpoint yet
@@ -132,7 +132,7 @@ const WorkspacePage = () => {
             value="projects"
             label="Projects"
             component={RouterLink}
-            to={projectsPath(workspace.id)}
+            to={projectsPath(workspace)}
             sx={{ textTransform: "none", fontWeight: 500 }}
           />
           <Tab
@@ -199,7 +199,7 @@ const WorkspacePage = () => {
       )}
       {/* opens the new project once it's created */}
       {projectDialogOpen && (
-        <CreateProjectDialog workspaceId={workspace.id} onClose={() => setProjectDialogOpen(false)} />
+        <CreateProjectDialog onClose={() => setProjectDialogOpen(false)} />
       )}
       <NameDialog
         open={teamDialogOpen}

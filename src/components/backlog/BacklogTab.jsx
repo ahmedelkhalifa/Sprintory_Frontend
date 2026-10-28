@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -52,13 +52,24 @@ const NOT_ALLOWED = {
 // backlog below. Tasks are dragged by their handle or moved from their menu; who may move what follows the
 // project's permissions (ordering the backlog: Product Owner, anything with a sprint: Scrum Master).
 // `writable` is false in an archived project or workspace, which makes everything read-only.
-const BacklogTab = ({ project, writable }) => {
+// `taskVersion` goes up when a task is created outside the tab (the page's Create task window);
+// `onCreateTask` opens that window, for the button on top (the quick bar above the backlog's rows stays).
+const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask }) => {
   const canView = can(project, PERMISSIONS.VIEW_WORK);
+  // a reload, not a dependency: the lists stay on screen while the new task loads in
   const backlogState = useAsync((signal) => loadWork(project, "backlog", signal), [project.id], {
     enabled: canView,
     fallback: "Couldn't load the backlog. Please try again.",
     messages: TASK_ERROR_MESSAGES,
   });
+  const { reload: reloadBacklog } = backlogState;
+  // only changes while the tab is open: the first load already has every task created before it
+  const seenTaskVersion = useRef(taskVersion);
+  useEffect(() => {
+    if (taskVersion === seenTaskVersion.current) return;
+    seenTaskVersion.current = taskVersion;
+    reloadBacklog();
+  }, [taskVersion, reloadBacklog]);
   // moves show at once and are sent in the background; the loaded data wins again after the next load
   const [optimistic, setOptimistic] = useState({ source: null, state: null });
   const [search, setSearch] = useState("");
@@ -221,11 +232,18 @@ const BacklogTab = ({ project, writable }) => {
     <Box>
       <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 1.5, mb: 2 }}>
         <SearchField value={search} onChange={setSearch} placeholder="Search tasks" />
-        {canPlan && (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialog({ type: "create-sprint" })}>
-            Create sprint
-          </Button>
-        )}
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+          {canPlan && (
+            <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setDialog({ type: "create-sprint" })}>
+              Create sprint
+            </Button>
+          )}
+          {canEditTasks && onCreateTask && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
+              Create task
+            </Button>
+          )}
+        </Box>
       </Box>
 
       <DndContext

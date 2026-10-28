@@ -53,7 +53,7 @@ Source: `sprintory_backend/docs/roles-docs.md`, as of 24 Oct 2026. Shared rules 
 | Remove a member (admin), or leave (own `userId`) | `DELETE /workspaces/{workspaceId}/members/{userId}` | — | `204` |
 | Replace a member's project roles (`MANAGE_ROLES`) | `PUT /projects/{projectId}/members/{userId}/roles` | `{ "roles": ["PRODUCT_OWNER", "SCRUM_MASTER"] }` | `200` ProjectMemberResponse |
 
-In the frontend: `changeWorkspaceMemberRole` (`workspacesApi.js`, used by the workspace Members page at `/workspaces/:id/members`) and `setProjectMemberRoles` (`projectsApi.js`, used by the "Change roles" window on the project's Members tab). Removing a member / leaving a workspace has no UI yet.
+In the frontend: `changeWorkspaceMemberRole` (`workspacesApi.js`, used by the workspace Members page at `/workspaces/:workspaceSlug/members`) and `setProjectMemberRoles` (`projectsApi.js`, used by the "Change roles" window on the project's Members tab). Removing a member / leaving a workspace has no UI yet.
 
 ## Rules
 
