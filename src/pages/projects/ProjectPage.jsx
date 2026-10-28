@@ -26,6 +26,7 @@ import { useAsync } from "../../hooks/useAsync";
 import { useProjectAccess, useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { can, isProjectArchived, projectsPath } from "../../utils/project";
 import { isWorkspaceArchived } from "../../utils/workspace";
+import { EMPTY_TASK_FILTERS } from "../../utils/taskFilters";
 import { PERMISSIONS } from "../../constants/projects";
 
 // the overview loads one page of members (to find the Project Managers and name people in the activity)
@@ -46,6 +47,8 @@ const ProjectPage = () => {
   const [dialog, setDialog] = useState(null);
   // bumped after every membership change, so member lists load again
   const [version, setVersion] = useState(0);
+  // the Board and Backlog's filter bar: kept here so the filters stay when switching between those tabs
+  const [taskFilters, setTaskFilters] = useState(EMPTY_TASK_FILTERS);
 
   const previewState = useAsync(
     (signal) => listProjectMembers(project.id, { size: MEMBERS_PREVIEW_SIZE }, signal),
@@ -148,10 +151,18 @@ const ProjectPage = () => {
         />
       )}
 
-      {currentTab === "backlog" && <BacklogTab project={project} writable={writable} />}
+      {currentTab === "backlog" && (
+        <BacklogTab project={project} writable={writable} filters={taskFilters} onFiltersChange={setTaskFilters} />
+      )}
 
       {currentTab === "board" && (
-        <BoardTab project={project} writable={writable} onOpenBacklog={() => setTab("backlog")} />
+        <BoardTab
+          project={project}
+          writable={writable}
+          filters={taskFilters}
+          onFiltersChange={setTaskFilters}
+          onOpenBacklog={() => setTab("backlog")}
+        />
       )}
 
       {!["overview", "members", "backlog", "board"].includes(currentTab) && (

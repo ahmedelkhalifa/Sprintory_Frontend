@@ -10,11 +10,12 @@ const MAX_PAGE_SIZE = 100;
 export const listTasks = (projectId, params, signal) =>
   api.get(tasksPath(projectId), { params, signal }).then((res) => res.data);
 
-// every task of the project in `order` ("board" or "backlog"), fetching page after page
-export const listAllTasks = async (projectId, order, signal) => {
+// every task of the project that matches `params`, fetching page after page.
+// params: { order ("board" | "backlog"), and optionally the filters q, type, priority, statusId, assigneeId, label }
+export const listAllTasks = async (projectId, params, signal) => {
   const tasks = [];
   for (let page = 0; ; page += 1) {
-    const result = await listTasks(projectId, { order, page, size: MAX_PAGE_SIZE }, signal);
+    const result = await listTasks(projectId, { ...params, page, size: MAX_PAGE_SIZE }, signal);
     tasks.push(...result.content);
     if (page + 1 >= result.totalPages) return tasks;
   }

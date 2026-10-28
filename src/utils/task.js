@@ -134,18 +134,6 @@ export const taskChanges = (task, values) => {
   return changes;
 };
 
-// search on title, key and labels, ignoring case
-export const filterTasks = (tasks, query) => {
-  const q = query.trim().toLowerCase();
-  if (!q) return tasks;
-  return tasks.filter(
-    (task) =>
-      task.title.toLowerCase().includes(q) ||
-      task.key?.toLowerCase().includes(q) ||
-      task.labels?.some((label) => label.toLowerCase().includes(q)),
-  );
-};
-
 // every label used in these tasks, for the label picker's suggestions
 export const projectLabels = (tasks) =>
   [...new Set(tasks.flatMap((task) => task.labels ?? []))].sort((a, b) =>

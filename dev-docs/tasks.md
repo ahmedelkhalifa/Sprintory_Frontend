@@ -34,6 +34,22 @@ changing `EDIT_TASKS`; a workspace admin who isn't a member gets `403` on everyt
 
 Board order and backlog order are stored separately: moving a card on the board never changes the backlog.
 
+### Filters (real) — the Board and Backlog filter bar
+
+Backend §3.2: `GET …/tasks?q=&type=&priority=&statusId=&assigneeId=&label=&order=`, all optional, every one that is
+set narrows the list, **one value per filter**. `q` matches the title or the key (`mob-4` finds `MOB-42`); `type`,
+`priority` and `label` ignore case. Values in [utils/taskFilters.js](../src/utils/taskFilters.js) (`EMPTY_TASK_FILTERS`,
+`taskFilterParams`).
+
+- The bar ([components/tasks/filters/](../src/components/tasks/filters/)) has search, assignee avatars, and Type /
+  Priority / Status (board columns) / Label. Its state lives in `ProjectPage`, so it's shared by the Board and Backlog.
+- Both tabs still load every task (`loadWork`); [useTaskFilterMatches](../src/hooks/useTaskFilterMatches.js) asks
+  the backend which ids match (`listAllTasks` with the filters, same `order`) and the tabs show only those. So counts,
+  WIP limits, sprint progress and Complete sprint keep counting every task, and the backend alone decides what matches.
+- Board: dragging works while filtered; drop positions are worked out on the full column. Backlog: dragging is off
+  while filtered (a drop "before" a row would be ambiguous); the row menu's moves still work.
+- Not possible with today's API: several values for one filter (e.g. two assignees) and "Unassigned".
+
 ## Board (real)
 
 `GET /projects/{id}/board` (`getBoard` in [projectsApi.js](../src/api/projectsApi.js)) →

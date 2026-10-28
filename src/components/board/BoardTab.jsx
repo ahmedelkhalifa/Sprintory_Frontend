@@ -7,6 +7,7 @@ import LoadState from "../general/LoadState";
 import QuickAddTask from "../tasks/QuickAddTask";
 import TaskDrawer from "../tasks/TaskDrawer";
 import NoWorkAccess from "../tasks/NoWorkAccess";
+import TaskFilterBar from "../tasks/filters/TaskFilterBar";
 import { collisionDetection, isBelow } from "../tasks/dnd";
 import { loadWork } from "../tasks/loadWork";
 import BoardColumn from "./BoardColumn";
@@ -15,12 +16,14 @@ import SprintBoardHeader from "./SprintBoardHeader";
 import CompleteSprintDialog from "./CompleteSprintDialog";
 import { moveOnBoard } from "../../api/tasksApi";
 import { useAsync } from "../../hooks/useAsync";
+import { useTaskFilterMatches } from "../../hooks/useTaskFilterMatches";
 import { PERMISSIONS } from "../../constants/projects";
 import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
 import { errorMessage } from "../../utils/apiError";
 import { can } from "../../utils/project";
 import { boardMove, groupByColumn } from "../../utils/board";
 import { describeTasks, projectLabels } from "../../utils/task";
+import { EMPTY_TASK_FILTERS } from "../../utils/taskFilters";
 
 // Scrum without an active sprint: nothing to work on yet, the sprint is started from the backlog
 const NoActiveSprint = ({ onOpenBacklog }) => (
@@ -42,7 +45,9 @@ const NoActiveSprint = ({ onOpenBacklog }) => (
 // Kanban (R16): every task by column, with the work-in-progress limits. Columns are the backend's (read-only
 // until column editing exists); anyone with EDIT_TASKS drags cards across and within columns.
 // `writable` is false in an archived project or workspace, which makes everything read-only.
-const BoardTab = ({ project, writable, onOpenBacklog }) => {
+// `filters` come from the filter bar (shared with the Backlog): the backend says which tasks match, the board shows
+// only those, while the counts, WIP limits, sprint progress and drop positions keep using every task.
+const BoardTab = ({ project, writable, filters, onFiltersChange, onOpenBacklog }) => {
   const canView = can(project, PERMISSIONS.VIEW_WORK);
   const boardState = useAsync((signal) => loadWork(project, "board", signal), [project.id], {
     enabled: canView,
@@ -65,6 +70,8 @@ const BoardTab = ({ project, writable, onOpenBacklog }) => {
       keyboardCodes: { start: ["Space"], cancel: ["Escape"], end: ["Space", "Enter"] },
     }),
   );
+  // no filter requests for someone who can't see the work
+  const match = useTaskFilterMatches(project.id, "board", canView ? filters : EMPTY_TASK_FILTERS);
 
   if (!canView) return <NoWorkAccess />;
 
@@ -86,10 +93,17 @@ const BoardTab = ({ project, writable, onOpenBacklog }) => {
   // a Scrum board holds only the active sprint's tasks, a Kanban board all of them
   const inSprint = sprint && new Set(sprint.taskIds);
   const tasks = inSprint ? allTasks.filter((task) => inSprint.has(task.id)) : allTasks;
+  // `board` has every task (drop positions, counts); `shownBoard` only the ones the filters keep
   const board = groupByColumn(columns, tasks);
+  const visible = match.matches ? tasks.filter((task) => match.matches.has(task.id)) : tasks;
+  const shownBoard = match.matches ? groupByColumn(columns, visible) : board;
   const canMove = writable && can(project, PERMISSIONS.EDIT_TASKS);
   const canComplete = writable && can(project, PERMISSIONS.MANAGE_SPRINTS);
-  const reload = boardState.reload;
+  // a change can change what matches too
+  const reload = () => {
+    boardState.reload();
+    match.reload();
+  };
 
   const lookup = (taskId) => tasks.find((task) => task.id === taskId);
   const columnTasks = (statusId) => board.find((column) => column.id === statusId).tasks;
@@ -173,6 +187,17 @@ const BoardTab = ({ project, writable, onOpenBacklog }) => {
         />
       )}
 
+      <TaskFilterBar
+        filters={filters}
+        onChange={onFiltersChange}
+        members={members}
+        columns={columns}
+        labels={projectLabels(allTasks)}
+        match={match}
+        shown={visible.length}
+        total={tasks.length}
+      />
+
       {/* Kanban has no backlog page: new tasks start in the board's first column */}
       {!scrum && canMove && (
         <Paper elevation={0} sx={{ mb: 2.5, border: 1, borderColor: "divider", borderRadius: 2, boxShadow: 1 }}>
@@ -190,12 +215,15 @@ const BoardTab = ({ project, writable, onOpenBacklog }) => {
       >
         {/* the columns keep their width and the board scrolls sideways when they don't fit */}
         <Box sx={{ display: "flex", alignItems: "stretch", gap: 2, overflowX: "auto", pb: 1 }}>
-          {board.map((column) => (
+          {shownBoard.map((column, i) => (
             <BoardColumn
               key={column.id}
               column={column}
+              total={board[i].tasks.length}
               highlight={Boolean(dragging) && overStatusId === column.id && dragging.fromStatusId !== column.id}
-              emptyText={canMove ? "Drop tasks here" : "No tasks"}
+              emptyText={
+                match.matches && board[i].tasks.length > 0 ? "No matching tasks" : canMove ? "Drop tasks here" : "No tasks"
+              }
             >
               {column.tasks.map((task) => (
                 <BoardCard key={task.id} task={task} canDrag={canMove} onOpen={() => setOpenTaskId(task.id)} />

@@ -4,7 +4,6 @@ import {
   backlogView,
   canMoveTask,
   describeTasks,
-  filterTasks,
   findTask,
   formatEstimate,
   insertAfter,
@@ -154,14 +153,6 @@ test("taskChanges sends only what changed, and clear flags for emptied fields", 
     assigneeId: 9,
     labels: ["c"],
   });
-});
-
-test("filterTasks matches title, key and labels, ignoring case", () => {
-  const tasks = [task(1, { title: "Login page" }), task(2, { labels: ["Backend"] }), task(3)];
-  assert.deepEqual(ids(filterTasks(tasks, "login")), [1]);
-  assert.deepEqual(ids(filterTasks(tasks, "backend")), [2]);
-  assert.deepEqual(ids(filterTasks(tasks, "wr-3")), [3]);
-  assert.equal(filterTasks(tasks, "  ").length, 3);
 });
 
 test("projectLabels lists each label once, sorted", () => {
