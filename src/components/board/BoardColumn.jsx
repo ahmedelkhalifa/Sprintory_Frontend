@@ -34,21 +34,21 @@ const BoardColumn = ({ column, highlight, emptyText, menu, children }) => {
         transition: "border-color 0.15s, box-shadow 0.15s",
       })}
     >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 2, py: 1.5, borderBottom: 1, borderColor: "divider" }}>
-        <Typography component="h3" noWrap sx={{ fontWeight: 700, fontSize: 14, flexGrow: 1, textTransform: "uppercase", letterSpacing: 0.3 }}>
-          {column.name}
-        </Typography>
-        {column.wipLimit != null ? (
-          <Tooltip title={over ? `Over the work-in-progress limit of ${column.wipLimit}` : "Tasks / work-in-progress limit"}>
-            <Box component="span" sx={{ display: "inline-flex" }}>
-              <ToneChip label={`${count} / ${column.wipLimit}`} tone={over ? "error.main" : "text.secondary"} />
-                {menu}
-            </Box>
-          </Tooltip>
-        ) : (
-          <ToneChip label={count} tone="text.secondary" />
-        )}
-      </Box>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 2, py: 1.5, borderBottom: 1, borderColor: "divider" }}>
+            <Typography component="h3" noWrap sx={{ fontWeight: 700, fontSize: 14, flexGrow: 1, textTransform: "uppercase", letterSpacing: 0.3 }}>
+                {column.name}
+            </Typography>
+            {column.wipLimit != null ? (
+                <Tooltip title={over ? `Over the work-in-progress limit of ${column.wipLimit}` : "Tasks / work-in-progress limit"}>
+                    <Box component="span" sx={{ display: "inline-flex" }}>
+                        <ToneChip label={`${count} / ${column.wipLimit}`} tone={over ? "error.main" : "text.secondary"} />
+                    </Box>
+                </Tooltip>
+            ) : (
+                <ToneChip label={count} tone="text.secondary" />
+            )}
+            {menu}
+        </Box>
 
       <SortableContext items={column.tasks.map((task) => rowId(task.id))} strategy={verticalListSortingStrategy}>
         <Box ref={setNodeRef} sx={{ display: "flex", flexDirection: "column", gap: 1, p: 1, minHeight: 120, flexGrow: 1 }}>
