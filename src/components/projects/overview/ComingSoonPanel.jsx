@@ -1,7 +1,7 @@
 import { Box, Paper, Typography } from "@mui/material";
 import ConstructionOutlinedIcon from "@mui/icons-material/ConstructionOutlined";
 
-// Placeholder for a project tab whose feature isn't built yet (backlog, sprints, reports, files, settings)
+// Placeholder for a project tab whose feature isn't built yet (sprints, reports, files)
 const ComingSoonPanel = ({ title }) => (
   <Paper
     elevation={0}

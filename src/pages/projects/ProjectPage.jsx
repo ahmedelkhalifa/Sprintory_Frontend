@@ -20,6 +20,7 @@ import ProjectMembersCard from "../../components/projects/overview/ProjectMember
 import ComingSoonPanel from "../../components/projects/overview/ComingSoonPanel";
 import BacklogTab from "../../components/backlog/BacklogTab";
 import BoardTab from "../../components/board/BoardTab";
+import ProjectSettingsTab from "../../components/projects/ProjectSettingsTab";
 import { tabsFor } from "../../components/projects/overview/tabList";
 import { listProjectMembers } from "../../api/projectsApi";
 import { useAsync } from "../../hooks/useAsync";
@@ -34,7 +35,8 @@ const MEMBERS_PREVIEW_SIZE = 20;
 
 // /workspaces/:workspaceSlug/projects/:projectId: ProjectAccessGuard has loaded the project (and remounts
 // this page when the project changes, so tabs and dialogs start fresh).
-// One project: Overview (stats, activity, details, members), Members, Backlog, Board, and tabs that are coming soon.
+// One project: Overview (stats, activity, details, members), Members, Backlog, Board, Settings, and tabs that are
+// coming soon.
 // Kanban projects have no Backlog / Sprints. Project Managers and workspace admins (MANAGE_MEMBERS)
 // can add and remove people, MANAGE_ROLES changes their roles; EDIT_SETTINGS / ARCHIVE_PROJECT unlock the settings menu.
 const ProjectPage = () => {
@@ -154,7 +156,17 @@ const ProjectPage = () => {
         <BoardTab project={project} writable={writable} onOpenBacklog={() => setTab("backlog")} />
       )}
 
-      {!["overview", "members", "backlog", "board"].includes(currentTab) && (
+      {currentTab === "settings" && (
+        <ProjectSettingsTab
+          project={project}
+          writable={writable}
+          workspaceArchived={workspaceArchived}
+          onSaved={afterChange}
+          onAction={(type) => setDialog({ type })}
+        />
+      )}
+
+      {!["overview", "members", "backlog", "board", "settings"].includes(currentTab) && (
         <ComingSoonPanel title={tabs.find((t) => t.id === currentTab).label} />
       )}
 
