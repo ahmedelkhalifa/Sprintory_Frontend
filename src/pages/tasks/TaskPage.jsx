@@ -1,20 +1,48 @@
-import { Link as RouterLink, useParams } from "react-router-dom";
-import { Box, Button, Paper, Stack, Typography } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { useRef, useState } from "react";
+import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
+import {
+    Accordion,
+    AccordionDetails,
+    AccordionSummary,
+    Alert,
+    Autocomplete,
+    Box,
+    Breadcrumbs,
+    Button,
+    IconButton,
+    Link,
+    Menu,
+    MenuItem,
+    Paper,
+    TextField,
+    Typography,
+} from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import ConfirmDialog from "../../components/general/ConfirmDialog";
 import LoadState from "../../components/general/LoadState";
-import ToneChip from "../../components/general/ToneChip";
 import UserAvatar from "../../components/general/UserAvatar";
 import { getBoard, getProject, listProjectMembers } from "../../api/projectsApi";
-import { getTask } from "../../api/tasksApi";
+import { deleteTask, getTask, updateTask } from "../../api/tasksApi";
 import { useAsync } from "../../hooks/useAsync";
+import { useSubmit } from "../../hooks/useSubmit";
+import { PERMISSIONS } from "../../constants/projects";
 import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_STAGES, TASK_TYPES } from "../../constants/tasks";
 import { memberLabel } from "../../utils/people";
-import { projectPath } from "../../utils/project";
-import { formatEstimate, labelTone, taskStage } from "../../utils/task";
+import { can, projectPath } from "../../utils/project";
+import { formatEstimate, taskStage } from "../../utils/task";
+import { TASK_TITLE_MAX } from "../../utils/validation";
 
-// one row of the details card: a label on the left, the value on the right
-const Detail = ({ label, children }) => (
-    <Box sx={{ display: "grid", gridTemplateColumns: "110px 1fr", alignItems: "center", gap: 1, py: 1.25 }}>
+// fields look like plain text until hovered or focused, like Jira's
+const inlineSx = {
+    "& .MuiOutlinedInput-notchedOutline": { borderColor: "transparent" },
+    "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "divider" },
+    "& .Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "primary.main" },
+};
+
+// one row of the Details card: the label on the left, the field on the right
+const Row = ({ label, children }) => (
+    <Box sx={{ display: "grid", gridTemplateColumns: "130px minmax(0, 1fr)", alignItems: "center", gap: 1, py: 0.75 }}>
         <Typography variant="body2" color="text.secondary">
             {label}
         </Typography>
@@ -22,22 +50,429 @@ const Detail = ({ label, children }) => (
     </Box>
 );
 
-const None = () => <Typography color="text.disabled">None</Typography>;
+// a select built from one of the task value maps (types, priorities)
+const ValueSelect = ({ id, value, values, onChange, disabled }) => (
+    <TextField
+        select
+        fullWidth
+        size="small"
+        id={id}
+        value={value}
+        disabled={disabled}
+        sx={inlineSx}
+        onChange={(e) => onChange(e.target.value)}
+    >
+        {Object.values(values).map(({ value: v, label, Icon, tone }) => (
+            <MenuItem key={v} value={v}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Icon fontSize="small" sx={{ color: tone }} />
+                    {label}
+                </Box>
+            </MenuItem>
+        ))}
+    </TextField>
+);
 
-// an icon with a label, for the type and the priority
-const IconValue = ({ value }) =>
-    value ? (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-            <value.Icon fontSize="small" sx={{ color: value.tone }} />
-            {value.label}
-        </Box>
-    ) : (
-        <None />
+// the title: text until clicked, then a field. Enter or leaving it saves, Escape cancels
+const TitleField = ({ title, canEdit, onSave }) => {
+    const [editing, setEditing] = useState(false);
+    const [value, setValue] = useState(title);
+    const [error, setError] = useState("");
+    const done = useRef(false);
+
+    const start = () => {
+        if (!canEdit) return;
+        done.current = false;
+        setValue(title);
+        setError("");
+        setEditing(true);
+    };
+
+    const finish = (save) => {
+        if (done.current) return;
+        const trimmed = value.trim();
+        if (save && !trimmed) return setError("Title is required.");
+        done.current = true;
+        setEditing(false);
+        if (save && trimmed !== title) onSave(trimmed);
+    };
+
+    if (!editing) {
+        return (
+            <Typography
+                variant="h4"
+                component="h1"
+                onClick={start}
+                sx={{
+                    fontWeight: 700,
+                    wordBreak: "break-word",
+                    borderRadius: 1,
+                    px: 1,
+                    mx: -1,
+                    cursor: canEdit ? "text" : "default",
+                    "&:hover": canEdit ? { bgcolor: "action.hover" } : undefined,
+                }}
+            >
+                {title}
+            </Typography>
+        );
+    }
+    return (
+        <TextField
+            autoFocus
+            fullWidth
+            value={value}
+            error={Boolean(error)}
+            helperText={error}
+            onChange={(e) => {
+                setValue(e.target.value);
+                setError("");
+            }}
+            onBlur={() => finish(true)}
+            onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    finish(true);
+                }
+                if (e.key === "Escape") finish(false);
+            }}
+            slotProps={{
+                htmlInput: { maxLength: TASK_TITLE_MAX, "aria-label": "Title" },
+                input: { sx: { fontSize: 28, fontWeight: 700 } },
+            }}
+        />
     );
+};
 
-const formatDate = (iso) => (iso ? new Date(iso).toLocaleString() : "");
+// the description: text until clicked, then a box with Save and Cancel
+const DescriptionField = ({ description, canEdit, onSave }) => {
+    const [editing, setEditing] = useState(false);
+    const [value, setValue] = useState(description ?? "");
 
-// The task's own page: every field in read-only mode (the drawer is where tasks are edited).
+    if (editing) {
+        return (
+            <Box>
+                <TextField
+                    autoFocus
+                    multiline
+                    fullWidth
+                    minRows={6}
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    slotProps={{ htmlInput: { "aria-label": "Description" } }}
+                />
+                <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                    <Button
+                        variant="contained"
+                        size="small"
+                        onClick={() => {
+                            setEditing(false);
+                            if (value.trim() !== (description ?? "")) onSave(value.trim());
+                        }}
+                    >
+                        Save
+                    </Button>
+                    <Button size="small" color="inherit" onClick={() => setEditing(false)}>
+                        Cancel
+                    </Button>
+                </Box>
+            </Box>
+        );
+    }
+    return (
+        <Box
+            role={canEdit ? "button" : undefined}
+            tabIndex={canEdit ? 0 : undefined}
+            onClick={() => {
+                if (!canEdit) return;
+                setValue(description ?? "");
+                setEditing(true);
+            }}
+            sx={{
+                borderRadius: 1,
+                px: 1,
+                py: 0.5,
+                mx: -1,
+                minHeight: 40,
+                cursor: canEdit ? "text" : "default",
+                "&:hover": canEdit ? { bgcolor: "action.hover" } : undefined,
+            }}
+        >
+            {description ? (
+                <Typography sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{description}</Typography>
+            ) : (
+                <Typography color="text.disabled">{canEdit ? "Add a description..." : "No description"}</Typography>
+            )}
+        </Box>
+    );
+};
+
+// the task's page: the loaded task and its editable fields. Every change is saved at once, like in Jira.
+const TaskView = ({ project, initialTask, columns, members }) => {
+    const navigate = useNavigate();
+    const [task, setTask] = useState(initialTask);
+    const [estimate, setEstimate] = useState(formatEstimate(initialTask.estimate));
+    const [estimateError, setEstimateError] = useState("");
+    const [menu, setMenu] = useState(null);
+    const [confirmDelete, setConfirmDelete] = useState(false);
+    const save = useSubmit(TASK_ERROR_MESSAGES);
+    const remove = useSubmit(TASK_ERROR_MESSAGES);
+    const canEdit = can(project, PERMISSIONS.EDIT_TASKS);
+
+    // changes = only the fields that change (see taskChanges in utils/task.js); the response is the updated task
+    const commit = async (changes) => {
+        save.clearError();
+        const { ok } = await save.run(async () => {
+            const updated = await updateTask(project.id, task.id, changes);
+            setTask(updated);
+            setEstimate(formatEstimate(updated.estimate));
+        });
+        if (!ok) setEstimate(formatEstimate(task.estimate)); // put the typed estimate back after a refusal
+    };
+
+    const commitEstimate = () => {
+        const text = estimate.trim();
+        if (text === formatEstimate(task.estimate)) return setEstimateError("");
+        if (text === "") {
+            setEstimateError("");
+            return commit({ clearEstimate: true });
+        }
+        const points = Number(text);
+        if (!Number.isFinite(points) || points < 0) return setEstimateError("Enter 0 or more.");
+        setEstimateError("");
+        return commit({ estimate: points });
+    };
+
+    const handleDelete = async () => {
+        const { ok } = await remove.run(() => deleteTask(project.id, task.id));
+        if (ok) navigate(projectPath(project));
+    };
+
+    // the response only has assigneeId: the member list gives the name, or at least the id
+    const assignee =
+        task.assigneeId == null ? null : (members.find((m) => m.userId === task.assigneeId) ?? { userId: task.assigneeId });
+
+    const statusSx = canEdit
+        ? {
+            bgcolor: "primary.main",
+            borderRadius: 1,
+            "& .MuiSelect-select": { color: "primary.contrastText", fontWeight: 600 },
+            "& .MuiSvgIcon-root": { color: "primary.contrastText" },
+            "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+        }
+        : inlineSx;
+
+    return (
+        <Box sx={{ maxWidth: 1280, mx: "auto" }}>
+            <Breadcrumbs sx={{ mb: 2 }}>
+                <Link component={RouterLink} to={`/workspaces/${project.workspaceId}/projects`} underline="hover" color="inherit">
+                    Projects
+                </Link>
+                <Link component={RouterLink} to={projectPath(project)} underline="hover" color="inherit">
+                    {project.name}
+                </Link>
+                <Typography color="text.primary">{task.key}</Typography>
+            </Breadcrumbs>
+
+            {save.error && (
+                <Alert severity="error" onClose={save.clearError} sx={{ mb: 2 }}>
+                    {save.error}
+                </Alert>
+            )}
+
+            <Box
+                sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 1fr) 380px" },
+                    gap: 4,
+                    alignItems: "start",
+                }}
+            >
+                {/* left: the title, the description and the activity */}
+                <Box>
+                    <TitleField title={task.title} canEdit={canEdit} onSave={(title) => commit({ title })} />
+
+                    <Typography sx={{ fontWeight: 600, mt: 4, mb: 1 }}>Description</Typography>
+                    <DescriptionField
+                        key={task.updatedAt}
+                        description={task.description}
+                        canEdit={canEdit}
+                        onSave={(text) => commit(text ? { description: text } : { clearDescription: true })}
+                    />
+
+                    <Typography sx={{ fontWeight: 600, mt: 4, mb: 1 }}>Activity</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Comments and history will appear here once they are available.
+                    </Typography>
+                </Box>
+
+                {/* right: the status, the details and the dates */}
+                <Box>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+                        <TextField
+                            select
+                            size="small"
+                            value={task.statusId}
+                            disabled={!canEdit}
+                            onChange={(e) => commit({ statusId: e.target.value })}
+                            sx={{ minWidth: 160, ...statusSx }}
+                            slotProps={{ htmlInput: { "aria-label": "Status" } }}
+                        >
+                            {columns.map((column) => (
+                                <MenuItem key={column.id} value={column.id}>
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                        <Box
+                                            sx={{
+                                                width: 8,
+                                                height: 8,
+                                                borderRadius: "50%",
+                                                bgcolor: TASK_STAGES[taskStage(column.id, columns)].tone,
+                                            }}
+                                        />
+                                        {column.name}
+                                    </Box>
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                        <Box sx={{ flexGrow: 1 }} />
+                        {canEdit && (
+                            <>
+                                <IconButton aria-label="More actions" onClick={(e) => setMenu(e.currentTarget)}>
+                                    <MoreHorizIcon />
+                                </IconButton>
+                                <Menu anchorEl={menu} open={Boolean(menu)} onClose={() => setMenu(null)}>
+                                    <MenuItem
+                                        sx={{ color: "error.main" }}
+                                        onClick={() => {
+                                            setMenu(null);
+                                            setConfirmDelete(true);
+                                        }}
+                                    >
+                                        Delete task
+                                    </MenuItem>
+                                </Menu>
+                            </>
+                        )}
+                    </Box>
+
+                    <Accordion
+                        defaultExpanded
+                        disableGutters
+                        elevation={0}
+                        sx={{ border: 1, borderColor: "divider", borderRadius: 2, "&:before": { display: "none" } }}
+                    >
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                            <Typography sx={{ fontWeight: 600 }}>Details</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails sx={{ pt: 0 }}>
+                            <Row label="Assignee">
+                                <Autocomplete
+                                    value={assignee}
+                                    options={members}
+                                    disabled={!canEdit}
+                                    onChange={(_, member) =>
+                                        commit(member ? { assigneeId: member.userId } : { clearAssignee: true })
+                                    }
+                                    getOptionLabel={memberLabel}
+                                    isOptionEqualToValue={(option, value) => option.userId === value.userId}
+                                    noOptionsText="No members"
+                                    sx={inlineSx}
+                                    renderOption={({ key, ...props }, member) => (
+                                        <Box component="li" key={key} {...props} sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
+                                            <UserAvatar user={member} size={26} />
+                                            {memberLabel(member)}
+                                        </Box>
+                                    )}
+                                    renderInput={(params) => <TextField {...params} size="small" placeholder="Unassigned" />}
+                                />
+                            </Row>
+                            <Row label="Priority">
+                                <ValueSelect
+                                    id="task-priority"
+                                    value={task.priority}
+                                    values={TASK_PRIORITIES}
+                                    disabled={!canEdit}
+                                    onChange={(priority) => commit({ priority })}
+                                />
+                            </Row>
+                            <Row label="Type">
+                                <ValueSelect
+                                    id="task-type"
+                                    value={task.type}
+                                    values={TASK_TYPES}
+                                    disabled={!canEdit}
+                                    onChange={(type) => commit({ type })}
+                                />
+                            </Row>
+                            <Row label="Labels">
+                                <Autocomplete
+                                    multiple
+                                    freeSolo
+                                    options={[]}
+                                    value={task.labels ?? []}
+                                    disabled={!canEdit}
+                                    onChange={(_, next) => commit({ labels: [...new Set(next.map((l) => l.trim()).filter(Boolean))] })}
+                                    sx={inlineSx}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            size="small"
+                                            placeholder={task.labels?.length ? "" : canEdit ? "Add labels" : "None"}
+                                        />
+                                    )}
+                                />
+                            </Row>
+                            <Row label="Story points">
+                                <TextField
+                                    fullWidth
+                                    size="small"
+                                    type="number"
+                                    value={estimate}
+                                    disabled={!canEdit}
+                                    placeholder={canEdit ? "Add an estimate" : "None"}
+                                    error={Boolean(estimateError)}
+                                    helperText={estimateError}
+                                    onChange={(e) => setEstimate(e.target.value)}
+                                    onBlur={commitEstimate}
+                                    onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
+                                    sx={inlineSx}
+                                    slotProps={{ htmlInput: { min: 0, step: 1, "aria-label": "Story points" } }}
+                                />
+                            </Row>
+                        </AccordionDetails>
+                    </Accordion>
+
+                    <Box sx={{ mt: 2, px: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                            Created {new Date(task.createdAt).toLocaleString()}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                            Updated {new Date(task.updatedAt).toLocaleString()}
+                        </Typography>
+                    </Box>
+                </Box>
+            </Box>
+
+            {confirmDelete && (
+                <ConfirmDialog
+                    title="Delete this task?"
+                    message={`${task.key} "${task.title}" will be deleted. This can't be undone.`}
+                    confirmLabel="Delete task"
+                    destructive
+                    loading={remove.submitting}
+                    error={remove.error}
+                    onConfirm={handleDelete}
+                    onClose={() => {
+                        setConfirmDelete(false);
+                        remove.clearError();
+                    }}
+                />
+            )}
+        </Box>
+    );
+};
+
+// loads the project, the task, the board's columns and the project's members, then shows the task
 const TaskPage = () => {
     const { projectId, taskId } = useParams();
     const state = useAsync(
@@ -63,87 +498,7 @@ const TaskPage = () => {
     }
 
     const { project, task, columns, members } = state.data;
-    const type = TASK_TYPES[task.type];
-    // the response only has assigneeId: the member list gives the name, or at least the id
-    const assignee =
-        task.assigneeId == null ? null : (members.find((m) => m.userId === task.assigneeId) ?? { userId: task.assigneeId });
-    const estimate = formatEstimate(task.estimate);
-
-    return (
-        <Box sx={{ maxWidth: 1100, mx: "auto" }}>
-            <Button component={RouterLink} to={projectPath(project)} startIcon={<ArrowBackIcon />} sx={{ mb: 2 }}>
-                Back to {project.name}
-            </Button>
-
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-                {type && <type.Icon fontSize="small" sx={{ color: type.tone }} />}
-                <Typography color="text.secondary" sx={{ fontWeight: 600 }}>
-                    {task.key}
-                </Typography>
-            </Box>
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 3, wordBreak: "break-word" }}>
-                {task.title}
-            </Typography>
-
-            <Box
-                sx={{
-                    display: "grid",
-                    gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 2fr) minmax(0, 1fr)" },
-                    gap: 3,
-                    alignItems: "start",
-                }}
-            >
-                <Paper elevation={0} sx={{ p: 3, border: 1, borderColor: "divider", borderRadius: 2 }}>
-                    <Typography sx={{ fontWeight: 600, mb: 1.5 }}>Description</Typography>
-                    {task.description ? (
-                        <Typography sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{task.description}</Typography>
-                    ) : (
-                        <Typography color="text.disabled">No description</Typography>
-                    )}
-                </Paper>
-
-                <Paper elevation={0} sx={{ px: 3, py: 1.5, border: 1, borderColor: "divider", borderRadius: 2 }}>
-                    <Detail label="Status">
-                        <ToneChip label={task.statusName} tone={TASK_STAGES[taskStage(task.statusId, columns)].tone} />
-                    </Detail>
-                    <Detail label="Type">
-                        <IconValue value={type} />
-                    </Detail>
-                    <Detail label="Priority">
-                        <IconValue value={TASK_PRIORITIES[task.priority]} />
-                    </Detail>
-                    <Detail label="Assignee">
-                        {assignee ? (
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                <UserAvatar user={assignee} size={26} />
-                                {memberLabel(assignee)}
-                            </Box>
-                        ) : (
-                            <Typography color="text.disabled">Unassigned</Typography>
-                        )}
-                    </Detail>
-                    <Detail label="Estimate">{estimate ? <Typography>{estimate} points</Typography> : <None />}</Detail>
-                    <Detail label="Labels">
-                        {task.labels?.length ? (
-                            <Stack direction="row" useFlexGap spacing={0.75} sx={{ flexWrap: "wrap" }}>
-                                {task.labels.map((label) => (
-                                    <ToneChip key={label} label={label} tone={labelTone(label)} />
-                                ))}
-                            </Stack>
-                        ) : (
-                            <None />
-                        )}
-                    </Detail>
-                    <Detail label="Created">
-                        <Typography variant="body2">{formatDate(task.createdAt)}</Typography>
-                    </Detail>
-                    <Detail label="Updated">
-                        <Typography variant="body2">{formatDate(task.updatedAt)}</Typography>
-                    </Detail>
-                </Paper>
-            </Box>
-        </Box>
-    );
+    return <TaskView key={task.id} project={project} initialTask={task} columns={columns} members={members} />;
 };
 
 export default TaskPage;
