@@ -78,7 +78,7 @@ Frontend functions are in [src/api/workspacesApi.js](../src/api/workspacesApi.js
 
 - `GET /workspaces` is sorted by name, **not paginated**, and **includes archived** workspaces. Use `archivedAt` to show them separately.
 - Members list: `q` matches first name, last name or email. Sorted by first name, then last name.
-- The slug never changes, even after a rename. The API always uses the numeric id.
+- The slug never changes, even after a rename. The API always uses the numeric id. The frontend puts the slug in browser urls (`/workspaces/acme-engineering/...`, `workspacePath` in [utils/workspace.js](../src/utils/workspace.js)) and finds the id for it in the `GET /workspaces` list; old `/workspaces/<id>` links redirect to the slug.
 
 ## Flows
 

@@ -10,6 +10,7 @@ import { useAsync } from "../../hooks/useAsync";
 import { useSubmit } from "../../hooks/useSubmit";
 import { errorCode } from "../../utils/apiError";
 import { clearPendingInvite, sameEmail, savePendingInvite } from "../../utils/invitation";
+import { workspacePath } from "../../utils/workspace";
 
 const EXPIRED = "This invitation has expired or was already used.";
 const DEAD_LINK_CODES = ["RESOURCE_NOT_FOUND", "VALIDATION_ERROR"];
@@ -50,7 +51,7 @@ const AcceptInvitePage = () => {
 
   const handleAccept = async () => {
     const { ok, result, error } = await submit.run(() => acceptInvitation(token));
-    if (ok) navigate(`/workspaces/${result.id}`, { replace: true });
+    if (ok) navigate(workspacePath(result), { replace: true });
     else if (errorCode(error) === "RESOURCE_NOT_FOUND") setUsedUp(true);
   };
 

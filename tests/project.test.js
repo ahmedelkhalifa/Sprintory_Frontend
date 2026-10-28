@@ -43,8 +43,9 @@ test("a project without a status counts as active", () => {
 });
 
 test("project urls live under their workspace", () => {
-  assert.equal(projectsPath(3), "/workspaces/3/projects");
-  assert.equal(projectPath({ id: 21, workspaceId: 3 }), "/workspaces/3/projects/21");
+  const workspace = { id: 3, slug: "acme-engineering" };
+  assert.equal(projectsPath(workspace), "/workspaces/acme-engineering/projects");
+  assert.equal(projectPath(workspace, { id: 21, workspaceId: 3 }), "/workspaces/acme-engineering/projects/21");
   assert.equal(parseProjectId("21"), 21);
   assert.equal(parseProjectId("abc"), null);
 });

@@ -18,9 +18,9 @@ import { useSubmit } from "../../hooks/useSubmit";
 import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { WORKSPACE_ERROR_MESSAGES } from "../../constants/workspaces";
 import { memberLabel } from "../../utils/people";
-import { ROLE_LABEL, isWorkspaceAdmin, isWorkspaceArchived } from "../../utils/workspace";
+import { ROLE_LABEL, isWorkspaceAdmin, isWorkspaceArchived, workspacePath } from "../../utils/workspace";
 
-// /workspaces/:workspaceId/members: WorkspaceAccessGuard has loaded the workspace
+// /workspaces/:workspaceSlug/members: WorkspaceAccessGuard has loaded the workspace
 // (and remounts this page when the workspace changes).
 // Everyone in the workspace sees its members and their roles. Workspace admins can switch a member between
 // Admin and Member (and invite people); the backend refuses to leave the workspace without an admin.
@@ -62,7 +62,7 @@ const WorkspaceMembersPage = () => {
         title="Members"
         subtitle={workspace.name}
         breadcrumb={
-          <Button component={RouterLink} to={`/workspaces/${workspace.id}`} startIcon={<ArrowBackIcon />} color="inherit">
+          <Button component={RouterLink} to={workspacePath(workspace)} startIcon={<ArrowBackIcon />} color="inherit">
             Back to workspace
           </Button>
         }

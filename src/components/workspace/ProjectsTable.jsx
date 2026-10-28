@@ -7,10 +7,13 @@ import { alpha } from "@mui/material/styles";
 import { Add, FolderOpenOutlined, SearchOutlined } from "@mui/icons-material";
 import { initials } from "../../utils/people";
 import { projectPath } from "../../utils/project";
+import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import MemberStack from "./MemberStack";
 
 // one page of the workspace's projects, with search and paging done by the backend
 const ProjectsTable = ({ projects, total, totalPages, page, onPageChange, search, onSearch, canCreate, onCreate }) => {
+  const { workspace } = useWorkspaceAccess();
+
   return (
     <Card sx={{ p: 3 }}>
       <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 2 }}>
@@ -87,7 +90,7 @@ const ProjectsTable = ({ projects, total, totalPages, page, onPageChange, search
                     </Box>
                     <Link
                       component={RouterLink}
-                      to={projectPath(p)}
+                      to={projectPath(workspace, p)}
                       underline="hover"
                       color="text.primary"
                       sx={{ fontWeight: 600 }}

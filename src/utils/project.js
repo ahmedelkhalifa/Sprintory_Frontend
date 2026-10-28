@@ -1,5 +1,5 @@
 import { PROJECT_ROLES, PROJECT_ROLES_BY_TEMPLATE, ROLE_MESSAGES } from "../constants/projects.js";
-import { parseWorkspaceId } from "./workspace.js";
+import { parseWorkspaceId, workspacePath } from "./workspace.js";
 
 const ROLE_LABEL = {
   PROJECT_MANAGER: "Project Manager",
@@ -65,6 +65,7 @@ export const suggestProjectKey = (name) => {
 // same rule as workspace ids: only positive whole numbers
 export const parseProjectId = parseWorkspaceId;
 
-export const projectsPath = (workspaceId) => `/workspaces/${workspaceId}/projects`;
+// a project response only has its workspaceId, so the workspace (for its slug) is passed separately
+export const projectsPath = (workspace) => `${workspacePath(workspace)}/projects`;
 
-export const projectPath = (project) => `${projectsPath(project.workspaceId)}/${project.id}`;
+export const projectPath = (workspace, project) => `${projectsPath(workspace)}/${project.id}`;

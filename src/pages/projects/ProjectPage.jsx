@@ -32,7 +32,7 @@ import { PERMISSIONS } from "../../constants/projects";
 // and the members card shows the first 5, Project Managers first
 const MEMBERS_PREVIEW_SIZE = 20;
 
-// /workspaces/:workspaceId/projects/:projectId: ProjectAccessGuard has loaded the project (and remounts
+// /workspaces/:workspaceSlug/projects/:projectId: ProjectAccessGuard has loaded the project (and remounts
 // this page when the project changes, so tabs and dialogs start fresh).
 // One project: Overview (stats, activity, details, members), Members, Backlog, Board, and tabs that are coming soon.
 // Kanban projects have no Backlog / Sprints. Project Managers and workspace admins (MANAGE_MEMBERS)
@@ -70,7 +70,7 @@ const ProjectPage = () => {
     reloadProject(); // roles, name or status may have changed (or the user removed themselves)
   };
   const afterStatusChange = () => {
-    if (dialog?.type === "delete") navigate(projectsPath(project.workspaceId), { replace: true });
+    if (dialog?.type === "delete") navigate(projectsPath(workspace), { replace: true });
     else afterChange();
   };
 

@@ -25,6 +25,7 @@ import { listProjectMembers } from "../../api/projectsApi";
 import { useAsync } from "../../hooks/useAsync";
 import { usePagedList } from "../../hooks/usePagedList";
 import { useSubmit } from "../../hooks/useSubmit";
+import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_STAGES, TASK_TYPES } from "../../constants/tasks";
 import { memberLabel } from "../../utils/people";
 import { taskChanges, taskPath, taskStage } from "../../utils/task";
@@ -254,6 +255,7 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
 // task's own page. `columns` are the board's (the status choices), `members` the project's (to name the assignee),
 // `labels` the project's labels, suggested in the label picker; `onChanged` runs after a save or delete.
 const TaskDrawer = ({ project, taskId, columns, members, labels, canEdit, onClose, onChanged }) => {
+  const { workspace } = useWorkspaceAccess();
   const taskState = useAsync((signal) => getTask(project.id, taskId, signal), [project.id, taskId], {
     fallback: "Couldn't load the task. Please try again.",
     messages: TASK_ERROR_MESSAGES,
@@ -275,7 +277,7 @@ const TaskDrawer = ({ project, taskId, columns, members, labels, canEdit, onClos
         </Typography>
         <Button
           component={RouterLink}
-          to={taskPath(project, taskId)}
+          to={taskPath(workspace, project, taskId)}
           size="small"
           endIcon={<OpenInNewIcon fontSize="small" />}
         >

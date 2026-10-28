@@ -5,6 +5,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import OverviewCard from "./OverviewCard";
 import TemplateChip from "../TemplateChip";
 import { formatDate } from "../../../utils/format";
+import { workspacePath } from "../../../utils/workspace";
 
 // a "label    value" row of the details list
 const Row = ({ label, children }) => (
@@ -45,7 +46,7 @@ const ProjectDetailsCard = ({ project, workspace, canEdit, onEdit }) => (
         {workspace ? (
           <Link
             component={RouterLink}
-            to={`/workspaces/${workspace.id}`}
+            to={workspacePath(workspace)}
             underline="hover"
             sx={{ display: "inline-flex", alignItems: "center", gap: 0.5, fontWeight: 600, fontSize: 14, maxWidth: "100%" }}
           >

@@ -35,7 +35,7 @@ const COLUMNS = [
 ];
 
 test("taskPath nests the task under its project", () => {
-  assert.equal(taskPath({ id: 7, workspaceId: 3 }, 42), "/workspaces/3/projects/7/tasks/42");
+  assert.equal(taskPath({ id: 3, slug: "acme" }, { id: 7, workspaceId: 3 }, 42), "/workspaces/acme/projects/7/tasks/42");
 });
 
 test("sumEstimates counts missing estimates as 0", () => {

@@ -47,8 +47,9 @@ const App = () => {
               <Route path="/" element={<div>Home</div>} />
               <Route path="/projects" element={<ProjectsRedirect />} />
               <Route path="/workspaces" element={<WorkspacesPage />} />
-              {/* the guards load the workspace / project first; pages under them read it from the guard */}
-              <Route path="/workspaces/:workspaceId" element={<WorkspaceAccessGuard />}>
+              {/* the guards load the workspace / project first; pages under them read it from the guard.
+                  the url names the workspace by slug (old /workspaces/<id> links redirect to it) */}
+              <Route path="/workspaces/:workspaceSlug" element={<WorkspaceAccessGuard />}>
                 <Route index element={<WorkspacePage />} />
                 <Route path="members" element={<WorkspaceMembersPage />} />
                 <Route path="teams" element={<TeamsPage />} />
