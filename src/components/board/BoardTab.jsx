@@ -23,7 +23,7 @@ import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
 import { errorMessage } from "../../utils/apiError";
 import { can } from "../../utils/project";
 import { applyColumnEdits, boardMove, groupByColumn, moveColumnId, NO_COLUMN_EDITS } from "../../utils/board";
-import { describeTasks, projectLabels } from "../../utils/task";
+import { projectLabels, taskStage } from "../../utils/task";
 import { EMPTY_TASK_FILTERS } from "../../utils/taskFilters";
 import ColumnMenu from "./ColumnMenu";
 import ColumnFieldDialog from "./ColumnFieldDialog";
@@ -148,7 +148,11 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, o
   // move = { taskId, statusId, afterTaskId (null = first in the column) }
   const applyMove = async (move) => {
     const before = allTasks;
-    setOptimistic({ source: data, tasks: describeTasks(boardMove(allTasks, shownColumns, move), { members, columns }) });
+    // only the moved task gets a new object (and its new stage); the other cards keep theirs and skip re-rendering
+    const moved = boardMove(allTasks, shownColumns, move).map((task) =>
+      task.id === move.taskId ? { ...task, stage: taskStage(task.statusId, columns) } : task,
+    );
+    setOptimistic({ source: data, tasks: moved });
     try {
       await moveOnBoard(project.id, move.taskId, move);
     } catch (err) {
@@ -293,7 +297,7 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, o
               }
             >
               {column.tasks.map((task) => (
-                <BoardCard key={task.id} task={task} canDrag={canMove} onOpen={() => setOpenTaskId(task.id)} />
+                <BoardCard key={task.id} task={task} canDrag={canMove} onOpen={setOpenTaskId} />
               ))}
             </BoardColumn>
           ))}
