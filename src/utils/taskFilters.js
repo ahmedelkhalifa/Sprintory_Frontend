@@ -29,3 +29,11 @@ export const taskFilterParams = (filters) => {
 export const countTaskFilters = (filters) => Object.keys(taskFilterParams(filters)).length;
 
 export const hasTaskFilters = (filters) => countTaskFilters(filters) > 0;
+
+// how many filters are picked in the Filter window (everything but the search box), for its button
+export const countPickedFilters = (filters) => countTaskFilters({ ...filters, q: "" });
+
+// the name of the option picked in a filter group ({ options: [{ value, label }] }), or "" when nothing is picked
+// (or the picked value isn't an option any more, e.g. a column that was removed)
+export const pickedLabel = (group, value) =>
+  value === null || value === undefined ? "" : (group.options.find((option) => option.value === value)?.label ?? "");

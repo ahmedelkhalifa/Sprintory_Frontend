@@ -41,8 +41,11 @@ set narrows the list, **one value per filter**. `q` matches the title or the key
 `priority` and `label` ignore case. Values in [utils/taskFilters.js](../src/utils/taskFilters.js) (`EMPTY_TASK_FILTERS`,
 `taskFilterParams`).
 
-- The bar ([components/tasks/filters/](../src/components/tasks/filters/)) has search, assignee avatars, and Type /
-  Priority / Status (board columns) / Label. Its state lives in `ProjectPage`, so it's shared by the Board and Backlog.
+- The bar ([components/tasks/filters/](../src/components/tasks/filters/)) has the search box and a Filter button
+  (badge = how many are set) that opens a two-pane window, Jira style: Assignee / Type / Priority / Status (board
+  columns) / Label on the left, the picked one's options on the right (Assignee and Label are searchable). Picking
+  applies at once; set filters also show as removable chips under the bar. Its state lives in `ProjectPage`, so it's
+  shared by the Board and Backlog.
 - Both tabs still load every task (`loadWork`); [useTaskFilterMatches](../src/hooks/useTaskFilterMatches.js) asks
   the backend which ids match (`listAllTasks` with the filters, same `order`) and the tabs show only those. So counts,
   WIP limits, sprint progress and Complete sprint keep counting every task, and the backend alone decides what matches.
