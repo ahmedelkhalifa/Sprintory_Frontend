@@ -1,7 +1,8 @@
 import { Avatar, Box } from "@mui/material";
 import { initials, memberLabel } from "../../utils/people";
 
-const TONES = ["primary", "success", "warning"];
+// the theme's avatar colors: white initials stay readable on them in both color modes
+const TONES = ["avatar.blue", "avatar.green", "avatar.amber"];
 
 const avatarSx = (index) => ({
   width: 28,
@@ -21,7 +22,7 @@ const MemberStack = ({ members = [], total = 0 }) => {
       {members.map((member, i) => (
         <Avatar
           key={member.userId}
-          sx={{ ...avatarSx(i), bgcolor: `${TONES[i % TONES.length]}.main`, color: "common.white" }}
+          sx={{ ...avatarSx(i), bgcolor: TONES[i % TONES.length], color: "common.white" }}
         >
           {initials(memberLabel(member))}
         </Avatar>

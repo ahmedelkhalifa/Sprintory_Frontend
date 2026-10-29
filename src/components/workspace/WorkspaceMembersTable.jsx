@@ -88,7 +88,7 @@ const WorkspaceMembersTable = ({ members, canChange, currentUserId, savingId, on
                   ) : (
                     <ToneChip
                       label={ROLE_LABEL[member.role] ?? member.role}
-                      tone={member.role === WORKSPACE_ROLES.WORKSPACE_ADMIN ? "primary.dark" : "text.secondary"}
+                      tone={member.role === WORKSPACE_ROLES.WORKSPACE_ADMIN ? "navActive.text" : "text.secondary"}
                     />
                   )}
                 </TableCell>

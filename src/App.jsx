@@ -26,6 +26,7 @@ import {
 import ProjectsRedirect from "./pages/projects/ProjectsRedirect";
 import TaskPage from "./pages/tasks/TaskPage";
 import SearchPage from "./pages/search/SearchPage";
+import SettingsPage from "./pages/settings/SettingsPage";
 import AcceptInvitePage from "./pages/workspace/AcceptInvitePage";
 import { INVITE_PATH } from "./utils/invitation";
 
@@ -89,7 +90,7 @@ const App = () => {
               <Route path="/board" element={<div>Board</div>} />
               <Route path="/sprints" element={<div>Sprints</div>} />
               <Route path="/reports" element={<div>Reports</div>} />
-              <Route path="/settings" element={<div>Settings</div>} />
+              <Route path="/settings" element={<SettingsPage />} />
             </Route>
           </Route>
 
