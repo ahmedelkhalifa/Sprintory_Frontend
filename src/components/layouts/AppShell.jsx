@@ -3,16 +3,17 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { alpha } from "@mui/material/styles";
 import {
   AppBar, Avatar, Badge, Box, ButtonBase, Divider, Drawer, IconButton,
-  InputAdornment, List, ListItemButton, ListItemIcon, ListItemText,
-  Menu, MenuItem, TextField, Toolbar, Typography,
+  List, ListItemButton, ListItemIcon, ListItemText,
+  Menu, MenuItem, Toolbar, Typography,
 } from "@mui/material";
 import {
   HomeOutlined, FolderOpenOutlined, ViewListOutlined, ViewColumnOutlined,
   TimerOutlined, BarChartOutlined, GroupOutlined, SettingsOutlined,
-  SearchOutlined, NotificationsNoneOutlined, KeyboardArrowDown,
+  NotificationsNoneOutlined, KeyboardArrowDown,
   LogoutOutlined, Menu as MenuIcon,
 } from "@mui/icons-material";
 import Logo from "../general/Logo";
+import GlobalSearch from "../search/GlobalSearch";
 import { useAuth } from "../../context/AuthContext";
 import { useWorkspaces } from "../../context/WorkspaceContext";
 import { initials } from "../../utils/people";
@@ -151,31 +152,7 @@ const AppShell = () => {
             <Logo size={24} inverted />
           </Box>
 
-          {/* TODO: wire up search once the backend has a search endpoint */}
-          <TextField
-            placeholder="Search projects, tasks, or people..."
-            size="small"
-            sx={(theme) => ({
-              width: { xs: "100%", md: 480 },
-              "& .MuiOutlinedInput-root": {
-                color: "common.white",
-                bgcolor: onBar(theme, 0.12),
-                transition: "background-color 0.15s",
-                "&:hover, &.Mui-focused": { bgcolor: onBar(theme, 0.18) },
-                "& fieldset": { border: "none" },
-              },
-              "& .MuiInputBase-input::placeholder": { color: onBar(theme, 0.7), opacity: 1 },
-            })}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchOutlined sx={(theme) => ({ color: onBar(theme, 0.8) })} />
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
+          <GlobalSearch />
 
           <Box sx={{ flexGrow: 1 }} />
 

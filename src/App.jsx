@@ -25,6 +25,7 @@ import {
 } from "./pages/projects/ProjectTabPages";
 import ProjectsRedirect from "./pages/projects/ProjectsRedirect";
 import TaskPage from "./pages/tasks/TaskPage";
+import SearchPage from "./pages/search/SearchPage";
 import AcceptInvitePage from "./pages/workspace/AcceptInvitePage";
 import { INVITE_PATH } from "./utils/invitation";
 
@@ -55,6 +56,8 @@ const App = () => {
               <Route path="/" element={<div>Home</div>} />
               <Route path="/projects" element={<ProjectsRedirect />} />
               <Route path="/workspaces" element={<WorkspacesPage />} />
+              {/* results can span workspaces, so it sits outside the workspace guard */}
+              <Route path="/search" element={<SearchPage />} />
               {/* the guards load the workspace / project first; pages under them read it from the guard.
                   the url names the workspace by slug (old /workspaces/<id> links redirect to it) */}
               <Route path="/workspaces/:workspaceSlug" element={<WorkspaceAccessGuard />}>
