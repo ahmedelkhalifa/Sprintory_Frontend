@@ -10,6 +10,7 @@ Short summaries of the backend API contracts, for whoever works on the frontend 
 | [projects.md](projects.md) | projects (key, description, settings), project members, adding a team | `projects-docs.md` |
 | [roles.md](roles.md) | workspace and project roles, permissions, role endpoints | `roles-docs.md` |
 | [tasks.md](tasks.md) | tasks and the board (real), sprints (**assumed**: not in the backend yet) | `tasks-docs.md`, `projects-docs.md` §3.8 |
+| [search.md](search.md) | universal search (top bar and `/search` page) | `search-docs.md` |
 
 Auth (`/auth/**`, cookies, refresh) is summarized in [CLAUDE.md](../CLAUDE.md); full details are in `sprintory_backend/docs/auth-endpoints.md`.
 

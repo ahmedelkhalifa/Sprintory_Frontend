@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
   DialogTitle, Drawer, IconButton, InputAdornment, Paper, Snackbar, Stack, TextField, Typography,
@@ -13,7 +14,7 @@ import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { errorMessage, isAbort } from "../../utils/apiError";
 import { EMPTY_PAGE } from "../../utils/page";
 import { memberLabel } from "../../utils/people";
-import { isWorkspaceAdmin, isWorkspaceArchived } from "../../utils/workspace";
+import { isWorkspaceAdmin, isWorkspaceArchived, parseWorkspaceId } from "../../utils/workspace";
 import TeamCard from "../../components/teams/TeamCard";
 import TeamDetails from "../../components/teams/TeamDetails";
 import TeamFormDrawer from "../../components/teams/TeamFormDrawer";
@@ -47,6 +48,9 @@ const TeamsPage = () => {
   // selected team + its members
   const [selectedId, setSelectedId] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [seenLink, setSeenLink] = useState(null); // the ?team= value already acted on
+  const [linkedTeamId, setLinkedTeamId] = useState(null); // the linked team, kept selected off the loaded page
   const [memberSearch, setMemberSearch] = useState("");
   const [memberQuery, setMemberQuery] = useState("");
   const [memberIndex, setMemberIndex] = useState(0);
@@ -98,9 +102,34 @@ const TeamsPage = () => {
     return () => controller.abort();
   }, [workspaceId, query, page, reloadTeams, listKey]);
 
+  // a ?team=<id> link (from the search) selects that team, even when it isn't on the loaded page of the list;
+  // the param is dropped once read (effect below), so the url doesn't keep pointing at it
+  const linkParam = searchParams.get("team");
+  if (linkParam !== seenLink) {
+    setSeenLink(linkParam);
+    const linkedId = parseWorkspaceId(linkParam); // same id rules
+    if (linkedId) {
+      // what selectTeam does (it's declared further down)
+      setSelectedId(linkedId);
+      setDetailOpen(compact);
+      setMemberSearch("");
+      setMemberQuery("");
+      setMemberIndex(0);
+      setLinkedTeamId(linkedId);
+    }
+  }
+
+  useEffect(() => {
+    if (linkParam === null) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("team");
+    setSearchParams(next, { replace: true });
+  }, [linkParam, searchParams, setSearchParams]);
+
   const teams = pageData.content || [];
   // desktop defaults to the first visible team; mobile waits for an explicit tap
-  const activeId = teams.some((team) => team.id === selectedId) ? selectedId : compact ? null : teams[0]?.id;
+  const kept = selectedId !== null && (selectedId === linkedTeamId || teams.some((team) => team.id === selectedId));
+  const activeId = kept ? selectedId : compact ? null : teams[0]?.id;
   const admin = isWorkspaceAdmin(workspace);
   const canManage = admin && !isWorkspaceArchived(workspace);
 
@@ -129,6 +158,7 @@ const TeamsPage = () => {
         // the team was probably deleted meanwhile: say so and refresh the list
         setActionError(errorMessage(err, "Unable to load team details."));
         setDetailOpen(false);
+        setLinkedTeamId(null);
         setReloadTeams((n) => n + 1);
       });
     return () => controller.abort();
