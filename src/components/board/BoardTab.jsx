@@ -8,6 +8,7 @@ import LoadState from "../general/LoadState";
 import QuickAddTask from "../tasks/QuickAddTask";
 import TaskDrawer from "../tasks/TaskDrawer";
 import NoWorkAccess from "../tasks/NoWorkAccess";
+import TaskFilterBar from "../tasks/filters/TaskFilterBar";
 import { collisionDetection, isBelow } from "../tasks/dnd";
 import { loadWork } from "../tasks/loadWork";
 import BoardColumn from "./BoardColumn";
@@ -16,12 +17,14 @@ import SprintBoardHeader from "./SprintBoardHeader";
 import CompleteSprintDialog from "./CompleteSprintDialog";
 import { moveOnBoard } from "../../api/tasksApi";
 import { useAsync } from "../../hooks/useAsync";
+import { useTaskFilterMatches } from "../../hooks/useTaskFilterMatches";
 import { PERMISSIONS } from "../../constants/projects";
 import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
 import { errorMessage } from "../../utils/apiError";
 import { can } from "../../utils/project";
 import { applyColumnEdits, boardMove, groupByColumn, moveColumnId, NO_COLUMN_EDITS } from "../../utils/board";
 import { describeTasks, projectLabels } from "../../utils/task";
+import { EMPTY_TASK_FILTERS } from "../../utils/taskFilters";
 import ColumnMenu from "./ColumnMenu";
 import ColumnFieldDialog from "./ColumnFieldDialog";
 
@@ -47,7 +50,9 @@ const NoActiveSprint = ({ onOpenBacklog }) => (
 // `writable` is false in an archived project or workspace, which makes everything read-only.
 // `taskVersion` goes up when a task is created outside the tab (the page's Create task window);
 // `onCreateTask` opens that window, for the Kanban board's button on top (its quick bar stays).
-const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, onOpenBacklog }) => {
+// `filters` come from the filter bar (shared with the Backlog): the backend says which tasks match, the board shows
+// only those, while the counts, WIP limits, sprint progress and drop positions keep using every task.
+const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, onFiltersChange, onOpenBacklog }) => {
   const canView = can(project, PERMISSIONS.VIEW_WORK);
   // a reload, not a dependency: the board stays on screen while the new task loads in
   const boardState = useAsync((signal) => loadWork(project, "board", signal), [project.id], {
@@ -56,13 +61,17 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, onOpenBack
     messages: TASK_ERROR_MESSAGES,
   });
   const { reload: reloadBoard } = boardState;
+  // no filter requests for someone who can't see the work
+  const match = useTaskFilterMatches(project.id, "board", canView ? filters : EMPTY_TASK_FILTERS);
+  const { reload: reloadMatches } = match;
   // only changes while the tab is open: the first load already has every task created before it
   const seenTaskVersion = useRef(taskVersion);
   useEffect(() => {
     if (taskVersion === seenTaskVersion.current) return;
     seenTaskVersion.current = taskVersion;
     reloadBoard();
-  }, [taskVersion, reloadBoard]);
+    reloadMatches(); // the new task may match the filters
+  }, [taskVersion, reloadBoard, reloadMatches]);
   // moves show at once and are sent in the background; the loaded data wins again after the next load
   const [optimistic, setOptimistic] = useState({ source: null, tasks: null });
   const [openTaskId, setOpenTaskId] = useState(null);
@@ -105,10 +114,17 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, onOpenBack
   const tasks = inSprint ? allTasks.filter((task) => inSprint.has(task.id)) : allTasks;
   const edits = columnEdits.projectId === project.id ? columnEdits : NO_COLUMN_EDITS;
   const shownColumns = applyColumnEdits(columns, edits);
+  // `board` has every task (drop positions, counts); `shownBoard` only the ones the filters keep
   const board = groupByColumn(shownColumns, tasks);
+  const visible = match.matches ? tasks.filter((task) => match.matches.has(task.id)) : tasks;
+  const shownBoard = match.matches ? groupByColumn(shownColumns, visible) : board;
   const canMove = writable && can(project, PERMISSIONS.EDIT_TASKS);
   const canComplete = writable && can(project, PERMISSIONS.MANAGE_SPRINTS);
-  const reload = boardState.reload;
+  // a change can change what matches too
+  const reload = () => {
+    reloadBoard();
+    reloadMatches();
+  };
   // TODO: use a dedicated "manage board" permission once the backend has one
   const canEditColumns = writable && can(project, PERMISSIONS.EDIT_TASKS);
   const updateEdits = (change) => setColumnEdits({ ...edits, ...change, projectId: project.id });
@@ -208,6 +224,17 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, onOpenBack
         />
       )}
 
+      <TaskFilterBar
+        filters={filters}
+        onChange={onFiltersChange}
+        members={members}
+        columns={shownColumns}
+        labels={projectLabels(allTasks)}
+        match={match}
+        shown={visible.length}
+        total={tasks.length}
+      />
+
       {/* Kanban has no backlog page: new tasks start in the board's first column. The button opens the full
           window, the bar below it adds one by title */}
       {!scrum && canMove && (
@@ -235,12 +262,19 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, onOpenBack
       >
         {/* the columns keep their width and the board scrolls sideways when they don't fit */}
         <Box sx={{ display: "flex", alignItems: "stretch", gap: 2, overflowX: "auto", pb: 1 }}>
-          {board.map((column, index) => (
+          {shownBoard.map((column, index) => (
             <BoardColumn
               key={column.id}
               column={column}
+              total={board[index].tasks.length}
               highlight={Boolean(dragging) && overStatusId === column.id && dragging.fromStatusId !== column.id}
-              emptyText={canMove ? "Drop tasks here" : "No tasks"}
+              emptyText={
+                match.matches && board[index].tasks.length > 0
+                  ? "No matching tasks"
+                  : canMove
+                    ? "Drop tasks here"
+                    : "No tasks"
+              }
               menu={
                   canEditColumns && (
                       <ColumnMenu

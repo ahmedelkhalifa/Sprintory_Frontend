@@ -82,6 +82,8 @@ export const ProjectBacklogPage = () => {
       project={project}
       writable={page.writable}
       taskVersion={page.taskVersion}
+      filters={page.taskFilters}
+      onFiltersChange={page.setTaskFilters}
       onCreateTask={() => page.openDialog({ type: "create-task" })}
     />
   );
@@ -96,6 +98,8 @@ export const ProjectBoardPage = () => {
       project={project}
       writable={page.writable}
       taskVersion={page.taskVersion}
+      filters={page.taskFilters}
+      onFiltersChange={page.setTaskFilters}
       onCreateTask={() => page.openDialog({ type: "create-task" })}
       onOpenBacklog={() => page.goToTab("backlog")}
     />

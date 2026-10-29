@@ -189,7 +189,7 @@ export const completeSprint = async (sprintId, { carryOverSprintId = null, creat
   const { projectId } = findSprint(load(), sprintId);
   const project = await access(projectId, PERMISSIONS.MANAGE_SPRINTS);
   // the real board and tasks decide what is done
-  const [board, tasks] = await Promise.all([getBoard(projectId), listAllTasks(projectId, "backlog")]);
+  const [board, tasks] = await Promise.all([getBoard(projectId), listAllTasks(projectId, { order: "backlog" })]);
   await wait();
 
   const store = load();

@@ -19,6 +19,7 @@ import { useAsync } from "../../hooks/useAsync";
 import { useProjectAccess, useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { can, isProjectArchived, projectPath, projectTabOf, projectTabPath, projectsPath } from "../../utils/project";
 import { isWorkspaceArchived } from "../../utils/workspace";
+import { EMPTY_TASK_FILTERS } from "../../utils/taskFilters";
 import { PERMISSIONS } from "../../constants/projects";
 
 // the overview loads one page of members (to find the Project Managers and name people in the activity)
@@ -46,6 +47,9 @@ const ProjectPage = () => {
   // bumped after a task is created from Quick actions, so the Backlog / Board tab loads again
   const [taskVersion, setTaskVersion] = useState(0);
   const [createdTask, setCreatedTask] = useState(null);
+  // the Board and Backlog's filter bar: kept here (this layout stays mounted while the tab changes),
+  // so the filters stay when switching between those tabs
+  const [taskFilters, setTaskFilters] = useState(EMPTY_TASK_FILTERS);
 
   const previewState = useAsync(
     (signal) => listProjectMembers(project.id, { size: MEMBERS_PREVIEW_SIZE }, signal),
@@ -88,6 +92,8 @@ const ProjectPage = () => {
     preview: previewState.data,
     version,
     taskVersion,
+    taskFilters,
+    setTaskFilters,
     writable,
     workspaceArchived,
     canManage,
@@ -134,7 +140,7 @@ const ProjectPage = () => {
       {dialog?.type === "create-task" && (
         <CreateTaskDialog project={project} onClose={closeDialog} onCreated={afterTaskCreated} />
       )}
-      {dialog?.type === "add-people" &&<AddPeopleDialog project={project} onClose={closeDialog} onAdded={afterChange} />}
+      {dialog?.type === "add-people" && <AddPeopleDialog project={project} onClose={closeDialog} onAdded={afterChange} />}
       {dialog?.type === "add-team" && <AddTeamDialog project={project} onClose={closeDialog} onAdded={afterChange} />}
       {dialog?.type === "remove" && (
         <RemoveMemberDialog project={project} member={dialog.member} onClose={closeDialog} onRemoved={afterChange} />

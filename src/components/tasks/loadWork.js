@@ -13,7 +13,7 @@ const MEMBERS_SIZE = 100;
  */
 export const loadWork = async (project, order, signal) => {
   const [tasks, board, members, sprints] = await Promise.all([
-    listAllTasks(project.id, order, signal),
+    listAllTasks(project.id, { order }, signal),
     getBoard(project.id, signal),
     listProjectMembers(project.id, { size: MEMBERS_SIZE }, signal),
     project.template === "SCRUM" ? listSprints(project.id, signal) : [],

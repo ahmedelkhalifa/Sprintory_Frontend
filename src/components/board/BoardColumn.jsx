@@ -11,9 +11,12 @@ export const COLUMN_WIDTH = 280;
 
 // One board column: its name, how many tasks it holds (against its WIP limit, if it has one), then its cards,
 // which accept dropped tasks. `highlight` marks it as the place a dragged task will land.
-const BoardColumn = ({ column, highlight, emptyText, menu, children }) => {
+// While filters hide cards, `total` is the column's real task count, so the count and the WIP limit stay true.
+// `menu` is the column's actions button (rename, move, WIP limit, delete), shown in its header.
+const BoardColumn = ({ column, total, highlight, emptyText, menu, children }) => {
   const { setNodeRef } = useDroppable({ id: columnListId(column.id), data: { column: true, statusId: column.id } });
-  const count = column.tasks.length;
+  const count = total ?? column.tasks.length;
+  const shown = column.tasks.length;
   const over = overWip(column, count);
 
   return (
@@ -52,7 +55,7 @@ const BoardColumn = ({ column, highlight, emptyText, menu, children }) => {
 
       <SortableContext items={column.tasks.map((task) => rowId(task.id))} strategy={verticalListSortingStrategy}>
         <Box ref={setNodeRef} sx={{ display: "flex", flexDirection: "column", gap: 1, p: 1, minHeight: 120, flexGrow: 1 }}>
-          {count === 0 ? (
+          {shown === 0 ? (
             <Typography variant="body2" color="text.disabled" sx={{ px: 1, py: 3, textAlign: "center" }}>
               {emptyText}
             </Typography>

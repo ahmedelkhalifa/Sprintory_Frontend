@@ -10,7 +10,6 @@ import {
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Alert, Box, Button, Paper, Snackbar, Stack, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import SearchField from "../general/SearchField";
 import LoadState from "../general/LoadState";
 import ToneChip from "../general/ToneChip";
 import ConfirmDialog from "../general/ConfirmDialog";
@@ -22,12 +21,14 @@ import StartSprintDialog from "./StartSprintDialog";
 import QuickAddTask from "../tasks/QuickAddTask";
 import TaskDrawer from "../tasks/TaskDrawer";
 import NoWorkAccess from "../tasks/NoWorkAccess";
+import TaskFilterBar from "../tasks/filters/TaskFilterBar";
 import { collisionDetection, dropTarget, isBelow } from "../tasks/dnd";
 import { loadWork } from "../tasks/loadWork";
 import { rankInBacklog } from "../../api/tasksApi";
 import { deleteSprint, moveToSprint } from "../../api/sprintsApi";
 import { useAsync } from "../../hooks/useAsync";
 import { useSubmit } from "../../hooks/useSubmit";
+import { useTaskFilterMatches } from "../../hooks/useTaskFilterMatches";
 import { PERMISSIONS } from "../../constants/projects";
 import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
 import { errorMessage } from "../../utils/apiError";
@@ -35,12 +36,12 @@ import { can } from "../../utils/project";
 import {
   backlogView,
   canMoveTask,
-  filterTasks,
   findTask,
   movePermission,
   moveInBacklog,
   projectLabels,
 } from "../../utils/task";
+import { EMPTY_TASK_FILTERS, hasTaskFilters } from "../../utils/taskFilters";
 
 // why a drop was refused, by the permission it needed
 const NOT_ALLOWED = {
@@ -54,7 +55,9 @@ const NOT_ALLOWED = {
 // `writable` is false in an archived project or workspace, which makes everything read-only.
 // `taskVersion` goes up when a task is created outside the tab (the page's Create task window);
 // `onCreateTask` opens that window, for the button on top (the quick bar above the backlog's rows stays).
-const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask }) => {
+// `filters` come from the filter bar (shared with the Board): the backend says which tasks match, the lists show
+// only those (their counts and estimates still cover every task).
+const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, onFiltersChange }) => {
   const canView = can(project, PERMISSIONS.VIEW_WORK);
   // a reload, not a dependency: the lists stay on screen while the new task loads in
   const backlogState = useAsync((signal) => loadWork(project, "backlog", signal), [project.id], {
@@ -63,16 +66,19 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask }) => {
     messages: TASK_ERROR_MESSAGES,
   });
   const { reload: reloadBacklog } = backlogState;
+  // no filter requests for someone who can't see the work
+  const match = useTaskFilterMatches(project.id, "backlog", canView ? filters : EMPTY_TASK_FILTERS);
+  const { reload: reloadMatches } = match;
   // only changes while the tab is open: the first load already has every task created before it
   const seenTaskVersion = useRef(taskVersion);
   useEffect(() => {
     if (taskVersion === seenTaskVersion.current) return;
     seenTaskVersion.current = taskVersion;
     reloadBacklog();
-  }, [taskVersion, reloadBacklog]);
+    reloadMatches(); // the new task may match the filters
+  }, [taskVersion, reloadBacklog, reloadMatches]);
   // moves show at once and are sent in the background; the loaded data wins again after the next load
   const [optimistic, setOptimistic] = useState({ source: null, state: null });
-  const [search, setSearch] = useState("");
   const [openTaskId, setOpenTaskId] = useState(null);
   // which window is open: create-sprint / edit-sprint / start-sprint / delete-sprint (+ sprint)
   const [dialog, setDialog] = useState(null);
@@ -104,11 +110,18 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask }) => {
   const canPlan = writable && can(project, PERMISSIONS.MANAGE_SPRINTS);
   const canRank = writable && can(project, PERMISSIONS.MANAGE_BACKLOG);
   const mayMove = (fromSprintId, toSprintId) => writable && canMoveTask(project, fromSprintId, toSprintId);
-  // a filtered list hides rows, so dropping "before" a row would be ambiguous: no dragging while searching
-  const filtering = search.trim() !== "";
+  // a filtered list hides rows, so dropping "before" a row would be ambiguous: no dragging while filtering
+  // (the row menu's moves still work)
+  const filtering = hasTaskFilters(filters);
+  // only the tasks the backend says match the filters (all of them when no filter is set)
+  const keep = (tasks) => (match.matches ? tasks.filter((task) => match.matches.has(task.id)) : tasks);
   const view = backlogView(state);
   const activeSprint = view.sprints.find((sprint) => sprint.status === "ACTIVE");
-  const reload = backlogState.reload;
+  // a change can change what matches too
+  const reload = () => {
+    backlogState.reload();
+    match.reload();
+  };
 
   const listOf = (sprintId) =>
     sprintId === null ? view.backlog : view.sprints.find((sprint) => sprint.id === sprintId).tasks;
@@ -204,7 +217,7 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask }) => {
     mayMove(dragging.fromSprintId, sprintId);
 
   const rows = (tasks, sprintId) =>
-    filterTasks(tasks, search).map((task) => (
+    keep(tasks).map((task) => (
       <TaskRow
         key={task.id}
         task={task}
@@ -215,7 +228,7 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask }) => {
       />
     ));
 
-  const emptyText = (tasks, fallback) => (filtering && tasks.length > 0 ? `No tasks match "${search.trim()}".` : fallback);
+  const emptyText = (tasks, fallback) => (filtering && tasks.length > 0 ? "No tasks match these filters." : fallback);
   const draggedTask = dragging && lookup(dragging.taskId)?.task;
   const closeDialog = () => setDialog(null);
   const afterChange = () => {
@@ -230,21 +243,32 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask }) => {
 
   return (
     <Box>
-      <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 1.5, mb: 2 }}>
-        <SearchField value={search} onChange={setSearch} placeholder="Search tasks" />
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-          {canPlan && (
-            <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setDialog({ type: "create-sprint" })}>
-              Create sprint
-            </Button>
-          )}
-          {canEditTasks && onCreateTask && (
-            <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
-              Create task
-            </Button>
-          )}
-        </Box>
-      </Box>
+      <TaskFilterBar
+        filters={filters}
+        onChange={onFiltersChange}
+        members={data.members}
+        columns={data.columns}
+        labels={projectLabels(state.tasks)}
+        match={match}
+        shown={keep(state.tasks).length}
+        total={state.tasks.length}
+        actions={
+          (canPlan || (canEditTasks && onCreateTask)) && (
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+              {canPlan && (
+                <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setDialog({ type: "create-sprint" })}>
+                  Create sprint
+                </Button>
+              )}
+              {canEditTasks && onCreateTask && (
+                <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
+                  Create task
+                </Button>
+              )}
+            </Box>
+          )
+        }
+      />
 
       <DndContext
         sensors={sensors}
@@ -259,7 +283,7 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask }) => {
             <TaskList
               key={sprint.id}
               sprintId={sprint.id}
-              tasks={filterTasks(sprint.tasks, search)}
+              tasks={keep(sprint.tasks)}
               highlight={highlighted(sprint.id)}
               emptyText={emptyText(sprint.tasks, canPlan ? "Drag tasks here to plan this sprint." : "No tasks planned yet.")}
               header={
@@ -308,7 +332,7 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask }) => {
 
           <TaskList
             sprintId={null}
-            tasks={filterTasks(view.backlog, search)}
+            tasks={keep(view.backlog)}
             highlight={highlighted(null)}
             emptyHeight={288}
             emptyText={emptyText(
