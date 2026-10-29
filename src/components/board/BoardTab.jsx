@@ -233,23 +233,23 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, o
         match={match}
         shown={visible.length}
         total={tasks.length}
+        // Kanban has no backlog page: new tasks start in the board's first column. The button (on the filter
+        // row's right, like the Backlog's) opens the full window, the bar below adds one by title
+        actions={
+          !scrum &&
+          canMove &&
+          onCreateTask && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
+              Create task
+            </Button>
+          )
+        }
       />
 
-      {/* Kanban has no backlog page: new tasks start in the board's first column. The button opens the full
-          window, the bar below it adds one by title */}
       {!scrum && canMove && (
-        <>
-          {onCreateTask && (
-            <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
-              <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
-                Create task
-              </Button>
-            </Box>
-          )}
-          <Paper elevation={0} sx={{ mb: 2.5, border: 1, borderColor: "divider", borderRadius: 2, boxShadow: 1 }}>
-            <QuickAddTask projectId={project.id} onCreated={reload} />
-          </Paper>
-        </>
+        <Paper elevation={0} sx={{ mb: 2.5, border: 1, borderColor: "divider", borderRadius: 2, boxShadow: 1 }}>
+          <QuickAddTask projectId={project.id} onCreated={reload} />
+        </Paper>
       )}
 
       <DndContext
