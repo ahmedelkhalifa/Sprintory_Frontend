@@ -1,5 +1,4 @@
-import { Box, ThemeProvider } from "@mui/material";
-import { lightTheme } from "../../theme/theme";
+import { Box } from "@mui/material";
 import AuthHero from "../auth/AuthHero";
 import Logo from "../general/Logo";
 import LanguageSelect from "../general/LanguageSelect";
@@ -10,7 +9,7 @@ import LanguageSelect from "../general/LanguageSelect";
 // The page is exactly one screen tall (100dvh). If the form ever doesn't fit
 // (small laptop, phone), only the form column scrolls, never the whole page.
 // heroImage: optional photo for the left side, AuthHero has a default
-const AuthFrame = ({ heroImage, children }) => {
+const AuthLayout = ({ heroImage, children }) => {
   return (
     <Box
       sx={{
@@ -67,12 +66,5 @@ const AuthFrame = ({ heroImage, children }) => {
     </Box>
   );
 };
-
-// Always light, whatever the color mode: the photos and their cream fade are made for a light page
-const AuthLayout = ({ heroImage, children }) => (
-  <ThemeProvider theme={lightTheme}>
-    <AuthFrame heroImage={heroImage}>{children}</AuthFrame>
-  </ThemeProvider>
-);
 
 export default AuthLayout;

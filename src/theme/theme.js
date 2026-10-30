@@ -50,6 +50,9 @@ const PALETTES = {
     topBar: {
       background: "#1E3A5F", // Deep Navy: the app's top bar (white content on it)
     },
+    hero: {
+      background: "#FFFFFF", // under the auth pages' picture (multiplied: white keeps it as is)
+    },
     avatar: AVATAR,
   },
 
@@ -97,6 +100,9 @@ const PALETTES = {
     },
     topBar: {
       background: "#101A27",
+    },
+    hero: {
+      background: "#1D3150", // tints the auth pages' picture dark navy
     },
     avatar: AVATAR,
   },
@@ -150,6 +156,3 @@ export const createAppTheme = (mode) => {
     },
   });
 };
-
-// the auth pages always use it: their photos and cream fade are made for a light page
-export const lightTheme = createAppTheme("light");
