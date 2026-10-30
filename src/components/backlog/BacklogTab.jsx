@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -92,11 +92,66 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  if (!canView) return <NoWorkAccess />;
-
   const data = backlogState.data;
-  // { tasks, sprints }: what moves change; `view` below is the lists on screen
+  // { tasks, sprints }: what moves change; `view` is the lists on screen
   const state = optimistic.source === data && optimistic.state ? optimistic.state : data;
+  const view = useMemo(() => (state ? backlogView(state) : null), [state]);
+  const canPlan = writable && can(project, PERMISSIONS.MANAGE_SPRINTS);
+  const mayMove = useCallback(
+    (fromSprintId, toSprintId) => writable && canMoveTask(project, fromSprintId, toSprintId),
+    [writable, project],
+  );
+
+  // The rows' callbacks stay the same until the lists change, so the renders a drag causes (when it starts and when
+  // it crosses into another list) skip every row (TaskRow is memoized) instead of redrawing them all.
+  // move = { taskId, sprintId (null = backlog), afterTaskId (null = first) }
+  const applyMove = useCallback(
+    async (move) => {
+      const from = findTask(view, move.taskId);
+      if (!from) return;
+      if (!mayMove(from.sprintId, move.sprintId)) {
+        setNotice(NOT_ALLOWED[movePermission(from.sprintId, move.sprintId)]);
+        return;
+      }
+      const before = state;
+      setOptimistic({ source: data, state: moveInBacklog(state, move) });
+      try {
+        // ranking the backlog is the real backend; anything with a sprint goes to the (mocked) sprint endpoints
+        if (from.sprintId === null && move.sprintId === null) await rankInBacklog(project.id, move.taskId, move.afterTaskId);
+        else await moveToSprint(project.id, move);
+      } catch (err) {
+        setOptimistic({ source: data, state: before });
+        setNotice(errorMessage(err, "Couldn't move the task. Please try again.", TASK_ERROR_MESSAGES));
+      }
+    },
+    [view, state, data, mayMove, project.id],
+  );
+
+  // the menu's moves for a row, limited to what this user may do (worked out when the menu opens)
+  const movesFor = useCallback(
+    (task, sprintId) => {
+      const moves = [];
+      if (sprintId === null && mayMove(null, null)) {
+        const index = view.backlog.findIndex((t) => t.id === task.id);
+        const last = view.backlog.at(-1);
+        if (index > 0) moves.push({ label: "Move to top of backlog", sprintId: null, afterTaskId: null });
+        if (index < view.backlog.length - 1) moves.push({ label: "Move to bottom of backlog", sprintId: null, afterTaskId: last.id });
+      }
+      if (canPlan) {
+        view.sprints
+          .filter((sprint) => sprint.id !== sprintId)
+          .forEach((sprint) =>
+            moves.push({ label: `Move to ${sprint.name}`, sprintId: sprint.id, afterTaskId: sprint.tasks.at(-1)?.id ?? null }),
+          );
+        // it goes back to its own place in the backlog
+        if (sprintId !== null) moves.push({ label: "Move to backlog", sprintId: null, afterTaskId: null });
+      }
+      return moves.map((move) => ({ ...move, taskId: task.id }));
+    },
+    [view, mayMove, canPlan],
+  );
+
+  if (!canView) return <NoWorkAccess />;
 
   if (!state) {
     return (
@@ -107,15 +162,12 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
   }
 
   const canEditTasks = writable && can(project, PERMISSIONS.EDIT_TASKS);
-  const canPlan = writable && can(project, PERMISSIONS.MANAGE_SPRINTS);
   const canRank = writable && can(project, PERMISSIONS.MANAGE_BACKLOG);
-  const mayMove = (fromSprintId, toSprintId) => writable && canMoveTask(project, fromSprintId, toSprintId);
   // a filtered list hides rows, so dropping "before" a row would be ambiguous: no dragging while filtering
   // (the row menu's moves still work)
   const filtering = hasTaskFilters(filters);
   // only the tasks the backend says match the filters (all of them when no filter is set)
   const keep = (tasks) => (match.matches ? tasks.filter((task) => match.matches.has(task.id)) : tasks);
-  const view = backlogView(state);
   const activeSprint = view.sprints.find((sprint) => sprint.status === "ACTIVE");
   // a change can change what matches too
   const reload = () => {
@@ -125,47 +177,6 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
 
   const listOf = (sprintId) =>
     sprintId === null ? view.backlog : view.sprints.find((sprint) => sprint.id === sprintId).tasks;
-
-  // move = { taskId, sprintId (null = backlog), afterTaskId (null = first) }
-  const applyMove = async (move) => {
-    const from = findTask(view, move.taskId);
-    if (!from) return;
-    if (!mayMove(from.sprintId, move.sprintId)) {
-      setNotice(NOT_ALLOWED[movePermission(from.sprintId, move.sprintId)]);
-      return;
-    }
-    const before = state;
-    setOptimistic({ source: data, state: moveInBacklog(state, move) });
-    try {
-      // ranking the backlog is the real backend; anything with a sprint goes to the (mocked) sprint endpoints
-      if (from.sprintId === null && move.sprintId === null) await rankInBacklog(project.id, move.taskId, move.afterTaskId);
-      else await moveToSprint(project.id, move);
-    } catch (err) {
-      setOptimistic({ source: data, state: before });
-      setNotice(errorMessage(err, "Couldn't move the task. Please try again.", TASK_ERROR_MESSAGES));
-    }
-  };
-
-  // the menu's moves for a row, limited to what this user may do
-  const movesFor = (task, sprintId) => {
-    const moves = [];
-    if (sprintId === null && mayMove(null, null)) {
-      const index = view.backlog.findIndex((t) => t.id === task.id);
-      const last = view.backlog.at(-1);
-      if (index > 0) moves.push({ label: "Move to top of backlog", sprintId: null, afterTaskId: null });
-      if (index < view.backlog.length - 1) moves.push({ label: "Move to bottom of backlog", sprintId: null, afterTaskId: last.id });
-    }
-    if (canPlan) {
-      view.sprints
-        .filter((sprint) => sprint.id !== sprintId)
-        .forEach((sprint) =>
-          moves.push({ label: `Move to ${sprint.name}`, sprintId: sprint.id, afterTaskId: sprint.tasks.at(-1)?.id ?? null }),
-        );
-      // it goes back to its own place in the backlog
-      if (sprintId !== null) moves.push({ label: "Move to backlog", sprintId: null, afterTaskId: null });
-    }
-    return moves.map((move) => ({ ...move, taskId: task.id }));
-  };
 
   // rows in a sprint move only with MANAGE_SPRINTS; backlog rows with either permission
   const canDragFrom = (sprintId) => !filtering && (sprintId === null ? canRank || canPlan : canPlan);
@@ -221,10 +232,11 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
       <TaskRow
         key={task.id}
         task={task}
+        sprintId={sprintId}
         canDrag={canDragFrom(sprintId)}
-        moves={movesFor(task, sprintId)}
+        getMoves={movesFor}
         onMove={applyMove}
-        onOpen={() => setOpenTaskId(task.id)}
+        onOpen={setOpenTaskId}
       />
     ));
 

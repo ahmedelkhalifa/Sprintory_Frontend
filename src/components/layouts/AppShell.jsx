@@ -133,10 +133,12 @@ const AppShell = () => {
   );
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100dvh", bgcolor: "background.default" }}>
+    // white like the sidebar (its border separates them); background.default stays the light gray for
+    // inner fills (task rows, cards, chips) and the auth pages
+    <Box sx={{ display: "flex", minHeight: "100dvh", bgcolor: "background.paper" }}>
       {/* full-width navy bar above the sidebar; it keeps the default appBar z-index
           so slide-in drawers (team form, task details, mobile nav) still open over it */}
-      <AppBar position="fixed" elevation={0} sx={{ bgcolor: "primary.dark", color: "common.white" }}>
+      <AppBar position="fixed" elevation={0} sx={{ bgcolor: "topBar.background", color: "common.white" }}>
         <Toolbar sx={{ height: HEADER_HEIGHT, gap: 2, pl: { md: 3 } }}>
           <IconButton
             onClick={() => setMobileOpen(true)}

@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Box, Tooltip, Typography } from "@mui/material";
@@ -101,8 +102,16 @@ export const BoardCardContent = ({ task, raised = false, draggable = false }) =>
   );
 };
 
-// One task on the board. The whole card is dragged when `canDrag`; a click (or Enter) opens it, Space picks it up
-// with the keyboard.
+// the wrapper's fixed styles; what changes while dragging goes in `style`, which skips the sx / Emotion work
+const wrapperSx = {
+  borderRadius: 1.5,
+  outline: "none",
+  "&:focus-visible": { boxShadow: (theme) => `0 0 0 2px ${theme.palette.primary.main}` },
+};
+
+// One task on the board. The whole card is dragged when `canDrag`; a click (or Enter) opens it (`onOpen(taskId)`),
+// Space picks it up with the keyboard. Memoized: the tab re-renders when a drag starts or crosses into another
+// column, and a card only needs to when its own props change.
 const BoardCard = ({ task, canDrag, onOpen }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: rowId(task.id),
@@ -110,8 +119,12 @@ const BoardCard = ({ task, canDrag, onOpen }) => {
     data: { taskId: task.id },
   });
 
+  // dnd-kit re-renders the dragged card on every pointer move (it reads the drag position from context);
+  // the content only changes with the task, so the same element is reused and React skips it
+  const content = useMemo(() => <BoardCardContent task={task} draggable={canDrag} />, [task, canDrag]);
+
   const handleKeyDown = (e) => {
-    if (e.key === "Enter") onOpen();
+    if (e.key === "Enter") onOpen(task.id);
     else listeners?.onKeyDown?.(e);
   };
 
@@ -121,21 +134,16 @@ const BoardCard = ({ task, canDrag, onOpen }) => {
       {...attributes}
       {...listeners}
       onKeyDown={handleKeyDown}
-      onClick={onOpen}
+      onClick={() => onOpen(task.id)}
       tabIndex={0}
       role="button"
       aria-label={`${task.key} ${task.title}`}
-      style={{ transform: CSS.Translate.toString(transform), transition }}
-      sx={{
-        opacity: isDragging ? 0.4 : 1,
-        borderRadius: 1.5,
-        outline: "none",
-        "&:focus-visible": { boxShadow: (theme) => `0 0 0 2px ${theme.palette.primary.main}` },
-      }}
+      style={{ transform: CSS.Translate.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+      sx={wrapperSx}
     >
-      <BoardCardContent task={task} draggable={canDrag} />
+      {content}
     </Box>
   );
 };
 
-export default BoardCard;
+export default memo(BoardCard);

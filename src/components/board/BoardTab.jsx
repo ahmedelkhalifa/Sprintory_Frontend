@@ -23,7 +23,7 @@ import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
 import { errorMessage } from "../../utils/apiError";
 import { can } from "../../utils/project";
 import { applyColumnEdits, boardMove, groupByColumn, moveColumnId, NO_COLUMN_EDITS } from "../../utils/board";
-import { describeTasks, projectLabels } from "../../utils/task";
+import { projectLabels, taskStage } from "../../utils/task";
 import { EMPTY_TASK_FILTERS } from "../../utils/taskFilters";
 import ColumnMenu from "./ColumnMenu";
 import ColumnFieldDialog from "./ColumnFieldDialog";
@@ -148,7 +148,11 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, o
   // move = { taskId, statusId, afterTaskId (null = first in the column) }
   const applyMove = async (move) => {
     const before = allTasks;
-    setOptimistic({ source: data, tasks: describeTasks(boardMove(allTasks, shownColumns, move), { members, columns }) });
+    // only the moved task gets a new object (and its new stage); the other cards keep theirs and skip re-rendering
+    const moved = boardMove(allTasks, shownColumns, move).map((task) =>
+      task.id === move.taskId ? { ...task, stage: taskStage(task.statusId, columns) } : task,
+    );
+    setOptimistic({ source: data, tasks: moved });
     try {
       await moveOnBoard(project.id, move.taskId, move);
     } catch (err) {
@@ -233,23 +237,23 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, o
         match={match}
         shown={visible.length}
         total={tasks.length}
+        // Kanban has no backlog page: new tasks start in the board's first column. The button (on the filter
+        // row's right, like the Backlog's) opens the full window, the bar below adds one by title
+        actions={
+          !scrum &&
+          canMove &&
+          onCreateTask && (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
+              Create task
+            </Button>
+          )
+        }
       />
 
-      {/* Kanban has no backlog page: new tasks start in the board's first column. The button opens the full
-          window, the bar below it adds one by title */}
       {!scrum && canMove && (
-        <>
-          {onCreateTask && (
-            <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
-              <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
-                Create task
-              </Button>
-            </Box>
-          )}
-          <Paper elevation={0} sx={{ mb: 2.5, border: 1, borderColor: "divider", borderRadius: 2, boxShadow: 1 }}>
-            <QuickAddTask projectId={project.id} onCreated={reload} />
-          </Paper>
-        </>
+        <Paper elevation={0} sx={{ mb: 2.5, border: 1, borderColor: "divider", borderRadius: 2, boxShadow: 1 }}>
+          <QuickAddTask projectId={project.id} onCreated={reload} />
+        </Paper>
       )}
 
       <DndContext
@@ -293,7 +297,7 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, o
               }
             >
               {column.tasks.map((task) => (
-                <BoardCard key={task.id} task={task} canDrag={canMove} onOpen={() => setOpenTaskId(task.id)} />
+                <BoardCard key={task.id} task={task} canDrag={canMove} onOpen={setOpenTaskId} />
               ))}
             </BoardColumn>
           ))}

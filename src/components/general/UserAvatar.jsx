@@ -2,7 +2,7 @@ import { Avatar } from "@mui/material";
 import { initials, memberLabel } from "../../utils/people";
 
 // theme colors dark enough for white initials to stay readable
-const TONES = ["primary.main", "primary.dark", "success.main", "text.secondary"];
+const TONES = ["avatar.blue", "avatar.navy", "avatar.green", "avatar.slate"];
 
 // pick a color from the user's id or name, so the same person always gets the same color
 const colorFor = (seed = "") => {

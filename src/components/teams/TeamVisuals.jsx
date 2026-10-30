@@ -10,7 +10,7 @@ export const TeamIcon = ({ name, size = 52 }) => {
       aria-hidden="true"
       sx={(theme) => ({
         bgcolor: alpha(theme.palette.primary.main, 0.12),
-        color: "primary.dark",
+        color: "navActive.text",
         fontWeight: 800,
         borderRadius: 2,
         width: size,
@@ -34,7 +34,7 @@ export const PersonAvatar = ({ name, size = 34 }) => {
         height: size,
         fontSize: size < 34 ? "0.7rem" : "0.78rem",
         fontWeight: 700,
-        color: "primary.dark",
+        color: "navActive.text",
         bgcolor: alpha(theme.palette.primary.main, 0.13),
         border: `2px solid ${theme.palette.background.paper}`,
       })}

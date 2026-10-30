@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Box, ButtonBase, IconButton, Menu, MenuItem, Tooltip, Typography } from "@mui/material";
@@ -117,69 +117,87 @@ export const TaskRowContent = ({ task, handle, onOpen, actions, raised = false }
   );
 };
 
-// One task in the backlog or a sprint. It can be dragged by its handle when `canDrag`;
-// `moves` ({ label, sprintId, afterTaskId }) are the same moves offered as menu items, for touch and keyboard users.
-const TaskRow = ({ task, canDrag, moves, onMove, onOpen }) => {
+// the row's "..." button and its menu: Open details plus the moves, asked from `getMoves` only while it's open
+const RowActions = ({ task, sprintId, getMoves, onMove, onOpen }) => {
   const [anchor, setAnchor] = useState(null);
+  const moves = anchor ? getMoves(task, sprintId) : [];
+
+  const pick = (move) => {
+    setAnchor(null);
+    if (move) onMove(move);
+    else onOpen(task.id);
+  };
+
+  return (
+    <>
+      <IconButton size="small" aria-label={`Actions for ${task.key}`} onClick={(e) => setAnchor(e.currentTarget)}>
+        <MoreHorizIcon fontSize="small" />
+      </IconButton>
+      <Menu
+        anchorEl={anchor}
+        open={Boolean(anchor)}
+        onClose={() => setAnchor(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <MenuItem onClick={() => pick(null)}>Open details</MenuItem>
+        {moves.map((move) => (
+          <MenuItem key={move.label} onClick={() => pick(move)}>
+            {move.label}
+          </MenuItem>
+        ))}
+      </Menu>
+    </>
+  );
+};
+
+// One task in the backlog or a sprint (`sprintId`, null = backlog). It can be dragged by its handle when `canDrag`;
+// `getMoves(task, sprintId)` gives the same moves ({ label, sprintId, afterTaskId }) as menu items, for touch and
+// keyboard users, and `onMove(move)` / `onOpen(taskId)` act on them. Memoized: the tab re-renders when a drag starts
+// or crosses into another list, and a row only needs to when its own props change.
+const TaskRow = ({ task, sprintId, canDrag, getMoves, onMove, onOpen }) => {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: rowId(task.id),
     disabled: !canDrag,
     data: { taskId: task.id },
   });
 
-  const handle = canDrag ? (
-    <IconButton
-      ref={setActivatorNodeRef}
-      size="small"
-      aria-label={`Move ${task.key}`}
-      sx={{ cursor: "grab", color: "text.disabled", "&:hover": { color: "text.secondary" } }}
-      {...attributes}
-      {...listeners}
-    >
-      <DragIndicatorIcon fontSize="small" />
-    </IconButton>
-  ) : null;
-
-  const pick = (move) => {
-    setAnchor(null);
-    if (move) onMove(move);
-    else onOpen();
-  };
+  // dnd-kit re-renders the dragged row on every pointer move (it reads the drag position from context);
+  // none of these inputs change then, so the same element is reused and React skips the row's content
+  const content = useMemo(
+    () => (
+      <TaskRowContent
+        task={task}
+        handle={
+          canDrag ? (
+            <IconButton
+              ref={setActivatorNodeRef}
+              size="small"
+              aria-label={`Move ${task.key}`}
+              sx={{ cursor: "grab", color: "text.disabled", "&:hover": { color: "text.secondary" } }}
+              {...attributes}
+              {...listeners}
+            >
+              <DragIndicatorIcon fontSize="small" />
+            </IconButton>
+          ) : null
+        }
+        onOpen={() => onOpen(task.id)}
+        actions={<RowActions task={task} sprintId={sprintId} getMoves={getMoves} onMove={onMove} onOpen={onOpen} />}
+      />
+    ),
+    [task, sprintId, canDrag, getMoves, onMove, onOpen, attributes, listeners, setActivatorNodeRef],
+  );
 
   return (
     <Box
       ref={setNodeRef}
-      style={{ transform: CSS.Translate.toString(transform), transition }}
-      sx={{ opacity: isDragging ? 0.4 : 1, position: "relative" }}
+      // what changes while dragging goes in `style`, which skips the sx / Emotion work
+      style={{ transform: CSS.Translate.toString(transform), transition, opacity: isDragging ? 0.4 : 1, position: "relative" }}
     >
-      <TaskRowContent
-        task={task}
-        handle={handle}
-        onOpen={onOpen}
-        actions={
-          <>
-            <IconButton size="small" aria-label={`Actions for ${task.key}`} onClick={(e) => setAnchor(e.currentTarget)}>
-              <MoreHorizIcon fontSize="small" />
-            </IconButton>
-            <Menu
-              anchorEl={anchor}
-              open={Boolean(anchor)}
-              onClose={() => setAnchor(null)}
-              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-              transformOrigin={{ vertical: "top", horizontal: "right" }}
-            >
-              <MenuItem onClick={() => pick(null)}>Open details</MenuItem>
-              {moves.map((move) => (
-                <MenuItem key={move.label} onClick={() => pick(move)}>
-                  {move.label}
-                </MenuItem>
-              ))}
-            </Menu>
-          </>
-        }
-      />
+      {content}
     </Box>
   );
 };
 
-export default TaskRow;
+export default memo(TaskRow);

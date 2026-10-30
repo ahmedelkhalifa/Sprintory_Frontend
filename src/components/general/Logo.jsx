@@ -10,7 +10,7 @@ const Logo = ({ size = 28, inverted = false }) => {
       <BoltRoundedIcon
         sx={{
           fontSize: size * 1.3,
-          color: inverted ? "common.white" : "primary.dark",
+          color: inverted ? "common.white" : "navActive.text",
           transform: "skewX(-10deg)",
         }}
       />

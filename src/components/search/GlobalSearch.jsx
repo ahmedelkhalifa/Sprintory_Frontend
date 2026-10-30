@@ -316,7 +316,7 @@ const GlobalSearch = () => {
 
   // over the whole top bar (the Toolbar is position: relative), with a back button to close it
   return (
-    <Box sx={{ position: "absolute", inset: 0, zIndex: 1, display: "flex", alignItems: "center", gap: 1, px: 1, bgcolor: "primary.dark" }}>
+    <Box sx={{ position: "absolute", inset: 0, zIndex: 1, display: "flex", alignItems: "center", gap: 1, px: 1, bgcolor: "topBar.background" }}>
       <IconButton color="inherit" aria-label="Close search" onClick={collapse}>
         <ArrowBack />
       </IconButton>

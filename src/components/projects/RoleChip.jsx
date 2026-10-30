@@ -2,7 +2,7 @@ import ToneChip from "../general/ToneChip";
 import { projectRoleLabel } from "../../utils/project";
 
 const TONES = {
-  PROJECT_MANAGER: "primary.dark",
+  PROJECT_MANAGER: "navActive.text", // strong blue that stays readable in dark mode
   PRODUCT_OWNER: "primary.main",
   SCRUM_MASTER: "primary.main",
 };
