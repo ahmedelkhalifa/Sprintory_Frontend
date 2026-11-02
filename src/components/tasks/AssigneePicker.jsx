@@ -6,7 +6,8 @@ import { memberLabel } from "../../utils/people";
 
 // "Assignee" field: the project's members, searched on the server as the user types. `value` is a member
 // ({ userId, firstName, ... }) or null for unassigned; a member with only a userId still shows.
-const AssigneePicker = ({ id, projectId, value, onChange, disabled = false }) => {
+// `label={null}` leaves out the label above it (the task page puts its labels on the left)
+const AssigneePicker = ({ id, projectId, value, onChange, disabled = false, label = "Assignee" }) => {
   const people = usePagedList(
     (params, signal) => listProjectMembers(projectId, params, signal),
     [projectId],
@@ -17,9 +18,11 @@ const AssigneePicker = ({ id, projectId, value, onChange, disabled = false }) =>
 
   return (
     <Box>
-      <FormLabel htmlFor={id} sx={{ display: "block", mb: 0.5, fontSize: 14, fontWeight: 500, color: "text.primary" }}>
-        Assignee
-      </FormLabel>
+      {label && (
+        <FormLabel htmlFor={id} sx={{ display: "block", mb: 0.5, fontSize: 14, fontWeight: 500, color: "text.primary" }}>
+          {label}
+        </FormLabel>
+      )}
       <Autocomplete
         id={id}
         value={value}

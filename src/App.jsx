@@ -81,7 +81,7 @@ const App = () => {
                     {/* anything else: ProjectPage redirects to Overview */}
                     <Route path="*" element={null} />
                   </Route>
-                  {/* placeholder until the task page is built */}
+                  {/* a task's own page, outside ProjectPage: no project header or tabs */}
                   <Route path="tasks/:taskId" element={<TaskPage />} />
                 </Route>
               </Route>
