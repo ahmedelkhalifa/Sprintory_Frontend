@@ -10,6 +10,7 @@ Short summaries of the backend API contracts, for whoever works on the frontend 
 | [projects.md](projects.md) | projects (key, description, settings), project members, adding a team | `projects-docs.md` |
 | [roles.md](roles.md) | workspace and project roles, permissions, role endpoints | `roles-docs.md` |
 | [tasks.md](tasks.md) | tasks and the board (real), sprints (**assumed**: not in the backend yet) | `tasks-docs.md`, `projects-docs.md` §3.8 |
+| [audit-log.md](audit-log.md) | the workspace audit log (admins only, read-only), **backend not built yet** | `audit-log-docs.md` |
 | [search.md](search.md) | universal search (top bar and `/search` page) | `search-docs.md` |
 
 Auth (`/auth/**`, cookies, refresh) is summarized in [CLAUDE.md](../CLAUDE.md); full details are in `sprintory_backend/docs/auth-endpoints.md`.
@@ -72,4 +73,5 @@ Where the frontend is behind these contracts. Fix them, then update this table.
 | Sprints have no backend yet; the Backlog and Board tabs run them on an in-browser mock (on unless `VITE_MOCK_SPRINTS=false`). Tasks and the board are real | [tasks.md](tasks.md#sprints-assumed-mocked) | [sprintsApi.js](../src/api/sprintsApi.js), [sprintsMock.js](../src/mocks/sprintsMock.js) |
 | Board columns are read-only: no add / rename / reorder / delete or WIP limits until the backend has R16 (`CONFIGURE_BOARD`) | [tasks.md](tasks.md#board-real) | [BoardTab](../src/components/board/BoardTab.jsx) |
 | Archive / restore / delete a project, project `status` / `createdAt`, and the Archived tab are built against **assumed** endpoints the backend doesn't have yet (R30) | [projects.md](projects.md#assumed-by-the-frontend-not-in-the-backend-yet) | the `ASSUMED` block in [projectsApi.js](../src/api/projectsApi.js) |
+| The Audit Log page runs on an in-browser mock (on unless `VITE_MOCK_AUDIT=false`) until the backend has the endpoints (PMP-128). The "Recent activity" cards on the workspace and project overviews still show sample data | [audit-log.md](audit-log.md) | [auditApi.js](../src/api/auditApi.js), [auditMock.js](../src/mocks/auditMock.js) |
 | No UI for removing a workspace member or leaving a workspace (changing the workspace role is done: the Members page) | [roles.md](roles.md#endpoints) | `workspacesApi.js`, [WorkspaceMembersPage](../src/pages/workspace/WorkspaceMembersPage.jsx) |

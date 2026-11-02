@@ -7,7 +7,7 @@ import {
   Menu, MenuItem, Toolbar, Typography,
 } from "@mui/material";
 import {
-  HomeOutlined, FolderOpenOutlined, ViewListOutlined, ViewColumnOutlined,
+  HomeOutlined, FolderOpenOutlined, HistoryOutlined, ViewColumnOutlined,
   TimerOutlined, BarChartOutlined, GroupOutlined, SettingsOutlined,
   NotificationsNoneOutlined, KeyboardArrowDown,
   LogoutOutlined, Menu as MenuIcon,
@@ -17,7 +17,7 @@ import GlobalSearch from "../search/GlobalSearch";
 import { useAuth } from "../../context/AuthContext";
 import { useWorkspaces } from "../../context/WorkspaceContext";
 import { initials } from "../../utils/people";
-import { workspacePath } from "../../utils/workspace";
+import { isWorkspaceAdmin, workspacePath } from "../../utils/workspace";
 import WorkspaceSwitcher from "./WorkspaceSwitcher";
 
 const DRAWER_WIDTH = 256;
@@ -27,11 +27,12 @@ const NAV_ITEMS = [
   { label: "Home", to: "/", icon: <HomeOutlined /> },
   // workspace pages live under /workspaces/:id, see linkTo below
   { label: "Projects", workspacePath: "projects", icon: <FolderOpenOutlined /> },
-  { label: "Backlog", to: "/backlog", icon: <ViewListOutlined /> },
   { label: "Board", to: "/board", icon: <ViewColumnOutlined /> },
   { label: "Sprints", to: "/sprints", icon: <TimerOutlined /> },
   { label: "Reports", to: "/reports", icon: <BarChartOutlined /> },
   { label: "Teams", workspacePath: "teams", icon: <GroupOutlined /> },
+  // only workspace admins may read the log; the backend refuses everyone else anyway
+  { label: "Audit Log", workspacePath: "audit-log", icon: <HistoryOutlined />, adminOnly: true },
   { label: "Settings", to: "/settings", icon: <SettingsOutlined /> },
 ];
 
@@ -85,6 +86,9 @@ const AppShell = () => {
   const isSelected = (to) =>
     to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`);
 
+  // the admin-only entries need a current workspace whose role says admin
+  const navItems = NAV_ITEMS.filter((item) => !item.adminOnly || isWorkspaceAdmin(current));
+
   // without a current workspace, workspace pages send the user to pick one first
   const linkTo = (item) => {
     if (!item.workspacePath) return item.to;
@@ -115,7 +119,7 @@ const AppShell = () => {
         <WorkspaceSwitcher />
       </Box>
       <List sx={{ px: 1.5, display: "flex", flexDirection: "column", gap: 0.5 }}>
-        {NAV_ITEMS.map((item) => (
+        {navItems.map((item) => (
           <ListItemButton
             key={item.label}
             component={NavLink}
