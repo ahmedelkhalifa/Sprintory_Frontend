@@ -16,6 +16,7 @@ import {
   taskChanges,
   taskPath,
   taskStage,
+  taskValues,
 } from "../src/utils/task.js";
 import { validateSprint, validateTask } from "../src/utils/validation.js";
 
@@ -36,6 +37,24 @@ const COLUMNS = [
 
 test("taskPath nests the task under its project", () => {
   assert.equal(taskPath({ id: 3, slug: "acme" }, { id: 7, workspaceId: 3 }, 42), "/workspaces/acme/projects/7/tasks/42");
+});
+
+test("taskValues gives a task's form values, so one changed field becomes the only change", () => {
+  const current = task(1, { type: "TASK", priority: "MEDIUM", statusId: 11, labels: ["a"], description: null });
+  const values = taskValues(current);
+  assert.deepEqual(values, {
+    title: "Task 1",
+    description: "",
+    type: "TASK",
+    priority: "MEDIUM",
+    statusId: 11,
+    estimate: "",
+    labels: ["a"],
+    assigneeId: null,
+  });
+  assert.deepEqual(taskChanges(current, values), {});
+  assert.deepEqual(taskChanges(current, { ...values, priority: "HIGH" }), { priority: "HIGH" });
+  assert.deepEqual(taskChanges(current, { ...values, estimate: "2" }), { estimate: 2 });
 });
 
 test("sumEstimates counts missing estimates as 0", () => {

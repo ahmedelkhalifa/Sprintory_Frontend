@@ -9,7 +9,6 @@ import {
   Drawer,
   FormLabel,
   IconButton,
-  MenuItem,
   Skeleton,
   Stack,
   TextField,
@@ -21,12 +20,13 @@ import FormField from "../forms/FormField";
 import ConfirmDialog from "../general/ConfirmDialog";
 import AssigneePicker from "./AssigneePicker";
 import TaskValueSelect from "./TaskValueSelect";
+import { columnOptions } from "./columnOptions";
 import { deleteTask, getTask, updateTask } from "../../api/tasksApi";
 import { useAsync } from "../../hooks/useAsync";
 import { useSubmit } from "../../hooks/useSubmit";
 import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
-import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_STAGES, TASK_TYPES } from "../../constants/tasks";
-import { taskChanges, taskPath, taskStage } from "../../utils/task";
+import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_TYPES } from "../../constants/tasks";
+import { taskChanges, taskPath } from "../../utils/task";
 import { TASK_TITLE_MAX, validateTask } from "../../utils/validation";
 
 // a label above a field that isn't a FormField (the pickers)
@@ -38,17 +38,6 @@ const Field = ({ id, label, children }) => (
     {children}
   </Box>
 );
-
-// the status select: the board's columns, each with the dot color of its stage
-const columnOptions = (columns) =>
-  columns.map((column) => (
-    <MenuItem key={column.id} value={column.id}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: TASK_STAGES[taskStage(column.id, columns)].tone }} />
-        {column.name}
-      </Box>
-    </MenuItem>
-  ));
 
 // the response only has assigneeId: the member list gives the name, or at least the id
 const fromTask = (task, members) => ({

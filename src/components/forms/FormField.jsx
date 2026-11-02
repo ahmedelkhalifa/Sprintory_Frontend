@@ -6,12 +6,15 @@ import { SHORT_SCREEN } from "../../theme/media";
 const FormField = ({ id, label, icon, endAdornment, sx, slotProps, ...textFieldProps }) => {
   return (
     <Box sx={{ width: "100%", ...sx }}>
-      <FormLabel
-        htmlFor={id}
-        sx={{ display: "block", mb: 0.5, fontSize: 14, fontWeight: 500, color: "text.primary" }}
-      >
-        {label}
-      </FormLabel>
+      {/* no label: the caller shows its own (e.g. the task page's labels on the left) */}
+      {label && (
+        <FormLabel
+          htmlFor={id}
+          sx={{ display: "block", mb: 0.5, fontSize: 14, fontWeight: 500, color: "text.primary" }}
+        >
+          {label}
+        </FormLabel>
+      )}
       <TextField
         id={id}
         fullWidth

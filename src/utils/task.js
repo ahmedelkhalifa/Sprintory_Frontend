@@ -99,6 +99,19 @@ export const describeTasks = (tasks, { members = [], columns = [] }) => {
 
 const sameLabels = (a, b) => a.length === b.length && a.every((label, i) => label === b[i]);
 
+// a task's current values in the form's shape, the one taskChanges and validateTask take. The task page edits one
+// field at a time: it overrides that field and sends taskChanges(task, { ...taskValues(task), field })
+export const taskValues = (task) => ({
+  title: task.title,
+  description: task.description ?? "",
+  type: task.type,
+  priority: task.priority,
+  statusId: task.statusId,
+  estimate: task.estimate ?? "",
+  labels: task.labels ?? [],
+  assigneeId: task.assigneeId ?? null,
+});
+
 /**
  * The PATCH body for the task form: only the fields that changed. Emptied fields are sent as the backend's clear
  * flags (`clearAssignee`, `clearEstimate`, `clearDescription`), because null there means "unchanged".
