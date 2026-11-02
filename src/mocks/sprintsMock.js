@@ -6,7 +6,7 @@
 import { getBoard, getProject } from "../api/projectsApi";
 import { getTask, listAllTasks } from "../api/tasksApi";
 import { PERMISSIONS } from "../constants/projects";
-import { doneColumnId } from "../utils/board";
+import { doneColumnIds } from "../utils/board";
 import { insertAfter } from "../utils/task";
 import { validateSprint } from "../utils/validation";
 
@@ -200,11 +200,11 @@ export const completeSprint = async (sprintId, { carryOverSprintId = null, creat
     fail(400, "BAD_REQUEST", "Unfinished work can only move to a planned sprint.");
   }
 
-  const doneId = doneColumnId(board.columns);
+  const doneIds = doneColumnIds(board.columns);
   const statusOf = new Map(tasks.map((task) => [task.id, task.statusId]));
   const existing = sprint.taskIds.filter((id) => statusOf.has(id));
-  const done = existing.filter((id) => statusOf.get(id) === doneId);
-  const unfinished = existing.filter((id) => statusOf.get(id) !== doneId);
+  const done = existing.filter((id) => doneIds.has(statusOf.get(id)));
+  const unfinished = existing.filter((id) => !doneIds.has(statusOf.get(id)));
 
   let toSprint = target;
   if (createNew) {

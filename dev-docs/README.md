@@ -70,6 +70,6 @@ Where the frontend is behind these contracts. Fix them, then update this table.
 | Gap | Contract | Affects |
 | --- | --- | --- |
 | Sprints have no backend yet; the Backlog and Board tabs run them on an in-browser mock (on unless `VITE_MOCK_SPRINTS=false`). Tasks and the board are real | [tasks.md](tasks.md#sprints-assumed-mocked) | [sprintsApi.js](../src/api/sprintsApi.js), [sprintsMock.js](../src/mocks/sprintsMock.js) |
-| Board columns are read-only: no add / rename / reorder / delete or WIP limits until the backend has R16 (`CONFIGURE_BOARD`) | [tasks.md](tasks.md#board-real) | [BoardTab](../src/components/board/BoardTab.jsx) |
+| Board columns (R16) are built against backend branch `features/board-columns-wip` (PR #18, not merged into the backend's `main` yet). A non-member workspace admin can't configure columns from the Board tab (it needs `VIEW_WORK` to load) | [tasks.md](tasks.md#configuring-columns-real-r16-backend-docsboard-docsmd) | [BoardTab](../src/components/board/BoardTab.jsx) |
 | Archive / restore / delete a project, project `status` / `createdAt`, and the Archived tab are built against **assumed** endpoints the backend doesn't have yet (R30) | [projects.md](projects.md#assumed-by-the-frontend-not-in-the-backend-yet) | the `ASSUMED` block in [projectsApi.js](../src/api/projectsApi.js) |
 | No UI for removing a workspace member or leaving a workspace (changing the workspace role is done: the Members page) | [roles.md](roles.md#endpoints) | `workspacesApi.js`, [WorkspaceMembersPage](../src/pages/workspace/WorkspaceMembersPage.jsx) |

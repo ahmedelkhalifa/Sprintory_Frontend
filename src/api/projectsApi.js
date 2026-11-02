@@ -22,10 +22,34 @@ export const getProject = (projectId, signal) =>
 export const listProjectMembers = (projectId, params, signal) =>
   api.get(`/projects/${projectId}/members`, { params, signal }).then((res) => res.data);
 
-// needs VIEW_WORK (a workspace admin who isn't a member gets 403); { template, backlogEnabled, sprintsEnabled,
-// wipLimitsEnabled, activeSprintId, columns: [{ id, name, position, wipLimit }] } with the columns in order
+// needs VIEW_WORK or CONFIGURE_BOARD; { template, backlogEnabled, sprintsEnabled, wipLimitsEnabled, activeSprintId,
+// columns: [{ id, name, position, category, wipLimit, taskCount, wipExceeded }] } with the columns in order.
+// category is TODO / IN_PROGRESS / DONE; taskCount counts every task in the column (no filters)
 export const getBoard = (projectId, signal) =>
   api.get(`/projects/${projectId}/board`, { signal }).then((res) => res.data);
+
+// Board columns (backend docs/board-docs.md, R16): every change needs CONFIGURE_BOARD (Project Manager, workspace
+// admin) and answers the whole board. 400 BAD_REQUEST with a readable message when a rule says no (duplicate name,
+// 2–10 columns, the last TODO / DONE column, the Kanban backlog, ...)
+
+// { name, category, afterColumnId } (afterColumnId left out = at the end)
+export const createBoardColumn = (projectId, { name, category, afterColumnId = null }) =>
+  api.post(`/projects/${projectId}/board/columns`, { name, category, afterColumnId }).then((res) => res.data);
+
+// only the fields that change: { name, category, wipLimit } or { clearWipLimit: true }; a limited column that becomes
+// DONE must clear its limit in the same request
+export const updateBoardColumn = (projectId, columnId, changes) =>
+  api.patch(`/projects/${projectId}/board/columns/${columnId}`, changes).then((res) => res.data);
+
+// every column id once, in the new order (the Kanban backlog stays first)
+export const reorderBoardColumns = (projectId, columnIds) =>
+  api.put(`/projects/${projectId}/board/columns/order`, { columnIds }).then((res) => res.data);
+
+// a column that holds tasks needs `targetColumnId`: they move there. Soft delete, no restore (204, no body)
+export const deleteBoardColumn = (projectId, columnId, targetColumnId = null) =>
+  api.delete(`/projects/${projectId}/board/columns/${columnId}`, {
+    data: targetColumnId === null ? undefined : { targetColumnId },
+  });
 
 // needs MANAGE_MEMBERS; all or nothing: every id must be a workspace member, at most 100 per request
 export const addProjectMembers = (projectId, userIds) =>
