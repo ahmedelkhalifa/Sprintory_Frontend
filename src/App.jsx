@@ -29,6 +29,7 @@ import SearchPage from "./pages/search/SearchPage";
 import SettingsPage from "./pages/settings/SettingsPage";
 import AcceptInvitePage from "./pages/workspace/AcceptInvitePage";
 import { INVITE_PATH } from "./utils/invitation";
+import NotificationPreferencesPage from "./pages/settings/NotificationPreferencesPage";
 
 const App = () => {
   return (
@@ -91,6 +92,7 @@ const App = () => {
               <Route path="/sprints" element={<div>Sprints</div>} />
               <Route path="/reports" element={<div>Reports</div>} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/settings/notifications" element={<NotificationPreferencesPage />} />
             </Route>
           </Route>
 

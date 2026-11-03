@@ -27,6 +27,7 @@ import PageLayout from "../../components/layouts/PageLayout";
 import AssigneePicker from "../../components/tasks/AssigneePicker";
 import NoWorkAccess from "../../components/tasks/NoWorkAccess";
 import TaskValueSelect from "../../components/tasks/TaskValueSelect";
+import TaskWatchToggle from "../../components/tasks/TaskWatchToggle";
 import { columnOptions } from "../../components/tasks/columnOptions";
 import { loadWork } from "../../components/tasks/loadWork";
 import { deleteTask, getTask, updateTask } from "../../api/tasksApi";
@@ -42,12 +43,12 @@ import { isWorkspaceArchived } from "../../utils/workspace";
 
 // one row of the Details card: the label on the left, the field on the right
 const Row = ({ id, label, children }) => (
-  <Box sx={{ display: "grid", gridTemplateColumns: "110px minmax(0, 1fr)", alignItems: "start", gap: 1, py: 0.75 }}>
-    <FormLabel htmlFor={id} sx={{ pt: 1.25, fontSize: 14, color: "text.secondary" }}>
-      {label}
-    </FormLabel>
-    <Box sx={{ minWidth: 0 }}>{children}</Box>
-  </Box>
+    <Box sx={{ display: "grid", gridTemplateColumns: "110px minmax(0, 1fr)", alignItems: "start", gap: 1, py: 0.75 }}>
+      <FormLabel htmlFor={id} sx={{ pt: 1.25, fontSize: 14, color: "text.secondary" }}>
+        {label}
+      </FormLabel>
+      <Box sx={{ minWidth: 0 }}>{children}</Box>
+    </Box>
 );
 
 // the title: text until clicked, then a field. Enter or leaving it saves, Escape cancels.
@@ -79,48 +80,48 @@ const TitleField = ({ title, canEdit, error, onEdit, onSave }) => {
 
   if (draft === null) {
     return (
-      <Typography
-        variant="h4"
-        component="h1"
-        onClick={start}
-        sx={{
-          fontWeight: 700,
-          wordBreak: "break-word",
-          borderRadius: 1,
-          px: 1,
-          mx: -1,
-          cursor: canEdit ? "text" : "default",
-          "&:hover": canEdit ? { bgcolor: "action.hover" } : undefined,
-        }}
-      >
-        {title}
-      </Typography>
+        <Typography
+            variant="h4"
+            component="h1"
+            onClick={start}
+            sx={{
+              fontWeight: 700,
+              wordBreak: "break-word",
+              borderRadius: 1,
+              px: 1,
+              mx: -1,
+              cursor: canEdit ? "text" : "default",
+              "&:hover": canEdit ? { bgcolor: "action.hover" } : undefined,
+            }}
+        >
+          {title}
+        </Typography>
     );
   }
   return (
-    <TextField
-      autoFocus
-      fullWidth
-      value={draft}
-      error={Boolean(error)}
-      helperText={error}
-      onChange={(e) => {
-        setDraft(e.target.value);
-        onEdit();
-      }}
-      onBlur={finish}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          finish();
-        }
-        if (e.key === "Escape") cancel();
-      }}
-      slotProps={{
-        htmlInput: { maxLength: TASK_TITLE_MAX, "aria-label": "Title" },
-        input: { sx: { fontSize: 28, fontWeight: 700 } },
-      }}
-    />
+      <TextField
+          autoFocus
+          fullWidth
+          value={draft}
+          error={Boolean(error)}
+          helperText={error}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            onEdit();
+          }}
+          onBlur={finish}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              finish();
+            }
+            if (e.key === "Escape") cancel();
+          }}
+          slotProps={{
+            htmlInput: { maxLength: TASK_TITLE_MAX, "aria-label": "Title" },
+            input: { sx: { fontSize: 28, fontWeight: 700 } },
+          }}
+      />
   );
 };
 
@@ -130,57 +131,57 @@ const DescriptionField = ({ description, canEdit, saving, onSave }) => {
 
   if (draft !== null) {
     return (
-      <Box>
-        <TextField
-          autoFocus
-          multiline
-          fullWidth
-          minRows={6}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          slotProps={{ htmlInput: { "aria-label": "Description" } }}
-        />
-        <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
-          <Button
-            variant="contained"
-            size="small"
-            loading={saving}
-            onClick={async () => {
-              const { ok } = await onSave(draft);
-              if (ok) setDraft(null);
-            }}
-          >
-            Save
-          </Button>
-          <Button size="small" color="inherit" disabled={saving} onClick={() => setDraft(null)}>
-            Cancel
-          </Button>
+        <Box>
+          <TextField
+              autoFocus
+              multiline
+              fullWidth
+              minRows={6}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              slotProps={{ htmlInput: { "aria-label": "Description" } }}
+          />
+          <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+            <Button
+                variant="contained"
+                size="small"
+                loading={saving}
+                onClick={async () => {
+                  const { ok } = await onSave(draft);
+                  if (ok) setDraft(null);
+                }}
+            >
+              Save
+            </Button>
+            <Button size="small" color="inherit" disabled={saving} onClick={() => setDraft(null)}>
+              Cancel
+            </Button>
+          </Box>
         </Box>
-      </Box>
     );
   }
   return (
-    <Box
-      role={canEdit ? "button" : undefined}
-      tabIndex={canEdit ? 0 : undefined}
-      onClick={() => canEdit && setDraft(description ?? "")}
-      onKeyDown={(e) => canEdit && e.key === "Enter" && setDraft(description ?? "")}
-      sx={{
-        borderRadius: 1,
-        px: 1,
-        py: 0.5,
-        mx: -1,
-        minHeight: 40,
-        cursor: canEdit ? "text" : "default",
-        "&:hover": canEdit ? { bgcolor: "action.hover" } : undefined,
-      }}
-    >
-      {description ? (
-        <Typography sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{description}</Typography>
-      ) : (
-        <Typography color="text.disabled">{canEdit ? "Add a description..." : "No description"}</Typography>
-      )}
-    </Box>
+      <Box
+          role={canEdit ? "button" : undefined}
+          tabIndex={canEdit ? 0 : undefined}
+          onClick={() => canEdit && setDraft(description ?? "")}
+          onKeyDown={(e) => canEdit && e.key === "Enter" && setDraft(description ?? "")}
+          sx={{
+            borderRadius: 1,
+            px: 1,
+            py: 0.5,
+            mx: -1,
+            minHeight: 40,
+            cursor: canEdit ? "text" : "default",
+            "&:hover": canEdit ? { bgcolor: "action.hover" } : undefined,
+          }}
+      >
+        {description ? (
+            <Typography sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{description}</Typography>
+        ) : (
+            <Typography color="text.disabled">{canEdit ? "Add a description..." : "No description"}</Typography>
+        )}
+      </Box>
   );
 };
 
@@ -251,219 +252,220 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
 
   // the response only has assigneeId: the member list gives the name, or at least the id
   const assignee =
-    task.assigneeId == null ? null : (people.find((m) => m.userId === task.assigneeId) ?? { userId: task.assigneeId });
+      task.assigneeId == null ? null : (people.find((m) => m.userId === task.assigneeId) ?? { userId: task.assigneeId });
   const type = TASK_TYPES[task.type];
 
   const statusSx = canEdit
-    ? {
+      ? {
         bgcolor: "primary.main",
         borderRadius: 1,
         "& .MuiSelect-select": { color: "primary.contrastText", fontWeight: 600 },
         "& .MuiSvgIcon-root": { color: "primary.contrastText" },
         "& .MuiOutlinedInput-notchedOutline": { border: "none" },
       }
-    : undefined;
+      : undefined;
 
   return (
-    <Box>
-      <Breadcrumbs sx={{ mb: 2 }}>
-        <Link component={RouterLink} to={projectPath(workspace, project)} underline="hover" color="inherit">
-          {project.name}
-        </Link>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, color: "text.primary" }}>
-          {type && <type.Icon fontSize="small" sx={{ color: type.tone }} />}
-          <Typography>{task.key}</Typography>
-        </Box>
-      </Breadcrumbs>
+      <Box>
+        <Breadcrumbs sx={{ mb: 2 }}>
+          <Link component={RouterLink} to={projectPath(workspace, project)} underline="hover" color="inherit">
+            {project.name}
+          </Link>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, color: "text.primary" }}>
+            {type && <type.Icon fontSize="small" sx={{ color: type.tone }} />}
+            <Typography>{task.key}</Typography>
+          </Box>
+        </Breadcrumbs>
 
-      {save.error && (
-        <Alert severity="error" onClose={save.clearError} sx={{ mb: 2 }}>
-          {save.error}
-        </Alert>
-      )}
+        {save.error && (
+            <Alert severity="error" onClose={save.clearError} sx={{ mb: 2 }}>
+              {save.error}
+            </Alert>
+        )}
 
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 1fr) 380px" },
-          gap: 4,
-          alignItems: "start",
-        }}
-      >
-        {/* left: the title, the description and the activity */}
-        <Box>
-          <TitleField
-            title={task.title}
-            canEdit={canEdit}
-            error={errors.title}
-            onEdit={() => clearError("title")}
-            onSave={(title) => saveFields({ title })}
-          />
+        <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 1fr) 380px" },
+              gap: 4,
+              alignItems: "start",
+            }}
+        >
+          {/* left: the title, the description and the activity */}
+          <Box>
+            <TitleField
+                title={task.title}
+                canEdit={canEdit}
+                error={errors.title}
+                onEdit={() => clearError("title")}
+                onSave={(title) => saveFields({ title })}
+            />
 
-          <Typography sx={{ fontWeight: 600, mt: 4, mb: 1 }}>Description</Typography>
-          <DescriptionField
-            description={task.description}
-            canEdit={canEdit}
-            saving={save.submitting}
-            onSave={(description) => saveFields({ description })}
-          />
+            <Typography sx={{ fontWeight: 600, mt: 4, mb: 1 }}>Description</Typography>
+            <DescriptionField
+                description={task.description}
+                canEdit={canEdit}
+                saving={save.submitting}
+                onSave={(description) => saveFields({ description })}
+            />
 
-          <Typography sx={{ fontWeight: 600, mt: 4, mb: 1 }}>Activity</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Comments and history will appear here once they are available.
-          </Typography>
-        </Box>
+            <Typography sx={{ fontWeight: 600, mt: 4, mb: 1 }}>Activity</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Comments and history will appear here once they are available.
+            </Typography>
+          </Box>
 
-        {/* right: the status, the details and the dates */}
-        <Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-            <TextField
-              select
-              size="small"
-              value={task.statusId}
-              disabled={locked}
-              onChange={(e) => saveFields({ statusId: e.target.value })}
-              sx={{ minWidth: 160, ...statusSx }}
-              slotProps={{ htmlInput: { "aria-label": "Status" } }}
+          {/* right: the status, the details and the dates */}
+          <Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+              <TextField
+                  select
+                  size="small"
+                  value={task.statusId}
+                  disabled={locked}
+                  onChange={(e) => saveFields({ statusId: e.target.value })}
+                  sx={{ minWidth: 160, ...statusSx }}
+                  slotProps={{ htmlInput: { "aria-label": "Status" } }}
+              >
+                {columnOptions(columns)}
+              </TextField>
+              <Box sx={{ flexGrow: 1 }} />
+
+              {/* Кнопка отслеживания задачи */}
+              <TaskWatchToggle projectId={project.id} taskId={task.id} />
+
+              {canEdit && (
+                  <>
+                    <IconButton aria-label="More actions" onClick={(e) => setMenu(e.currentTarget)}>
+                      <MoreHorizIcon />
+                    </IconButton>
+                    <Menu anchorEl={menu} open={Boolean(menu)} onClose={() => setMenu(null)}>
+                      <MenuItem
+                          sx={{ color: "error.main" }}
+                          onClick={() => {
+                            setMenu(null);
+                            setConfirmDelete(true);
+                          }}
+                      >
+                        Delete task
+                      </MenuItem>
+                    </Menu>
+                  </>
+              )}
+            </Box>
+
+            <Accordion
+                defaultExpanded
+                disableGutters
+                elevation={0}
+                sx={{ border: 1, borderColor: "divider", borderRadius: 2, "&:before": { display: "none" } }}
             >
-              {columnOptions(columns)}
-            </TextField>
-            <Box sx={{ flexGrow: 1 }} />
-            {canEdit && (
-              <>
-                <IconButton aria-label="More actions" onClick={(e) => setMenu(e.currentTarget)}>
-                  <MoreHorizIcon />
-                </IconButton>
-                <Menu anchorEl={menu} open={Boolean(menu)} onClose={() => setMenu(null)}>
-                  <MenuItem
-                    sx={{ color: "error.main" }}
-                    onClick={() => {
-                      setMenu(null);
-                      setConfirmDelete(true);
-                    }}
-                  >
-                    Delete task
-                  </MenuItem>
-                </Menu>
-              </>
-            )}
-          </Box>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography sx={{ fontWeight: 600 }}>Details</Typography>
+              </AccordionSummary>
+              <AccordionDetails sx={{ pt: 0 }}>
+                <Row id="task-assignee" label="Assignee">
+                  <AssigneePicker
+                      id="task-assignee"
+                      label={null}
+                      projectId={project.id}
+                      value={assignee}
+                      onChange={saveAssignee}
+                      disabled={locked}
+                  />
+                </Row>
+                <Row id="task-priority" label="Priority">
+                  <TaskValueSelect
+                      id="task-priority"
+                      values={TASK_PRIORITIES}
+                      value={task.priority}
+                      disabled={locked}
+                      onChange={(e) => saveFields({ priority: e.target.value })}
+                  />
+                </Row>
+                <Row id="task-type" label="Type">
+                  <TaskValueSelect
+                      id="task-type"
+                      values={TASK_TYPES}
+                      value={task.type}
+                      disabled={locked}
+                      onChange={(e) => saveFields({ type: e.target.value })}
+                  />
+                </Row>
+                <Row id="task-labels" label="Labels">
+                  <Autocomplete
+                      id="task-labels"
+                      multiple
+                      freeSolo
+                      options={labels}
+                      value={task.labels ?? []}
+                      disabled={locked}
+                      onChange={(_, next) =>
+                          saveFields({ labels: [...new Set(next.map((label) => label.trim()).filter(Boolean))] })
+                      }
+                      renderInput={(params) => (
+                          <TextField
+                              {...params}
+                              size="small"
+                              placeholder={task.labels?.length ? "" : canEdit ? "Add labels" : "None"}
+                              error={Boolean(errors.labels)}
+                              helperText={errors.labels}
+                          />
+                      )}
+                  />
+                </Row>
+                <Row id="task-estimate" label="Story points">
+                  <FormField
+                      id="task-estimate"
+                      type="number"
+                      value={estimate ?? formatEstimate(task.estimate)}
+                      disabled={locked}
+                      placeholder={canEdit ? "Add an estimate" : "None"}
+                      error={Boolean(errors.estimate)}
+                      helperText={errors.estimate}
+                      onChange={(e) => {
+                        setEstimate(e.target.value);
+                        clearError("estimate");
+                      }}
+                      onBlur={saveEstimate}
+                      onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
+                      slotProps={{ htmlInput: { min: 0, step: 1 } }}
+                  />
+                </Row>
+              </AccordionDetails>
+            </Accordion>
 
-          <Accordion
-            defaultExpanded
-            disableGutters
-            elevation={0}
-            sx={{ border: 1, borderColor: "divider", borderRadius: 2, "&:before": { display: "none" } }}
-          >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography sx={{ fontWeight: 600 }}>Details</Typography>
-            </AccordionSummary>
-            <AccordionDetails sx={{ pt: 0 }}>
-              <Row id="task-assignee" label="Assignee">
-                <AssigneePicker
-                  id="task-assignee"
-                  label={null}
-                  projectId={project.id}
-                  value={assignee}
-                  onChange={saveAssignee}
-                  disabled={locked}
-                />
-              </Row>
-              <Row id="task-priority" label="Priority">
-                <TaskValueSelect
-                  id="task-priority"
-                  values={TASK_PRIORITIES}
-                  value={task.priority}
-                  disabled={locked}
-                  onChange={(e) => saveFields({ priority: e.target.value })}
-                />
-              </Row>
-              <Row id="task-type" label="Type">
-                <TaskValueSelect
-                  id="task-type"
-                  values={TASK_TYPES}
-                  value={task.type}
-                  disabled={locked}
-                  onChange={(e) => saveFields({ type: e.target.value })}
-                />
-              </Row>
-              <Row id="task-labels" label="Labels">
-                <Autocomplete
-                  id="task-labels"
-                  multiple
-                  freeSolo
-                  options={labels}
-                  value={task.labels ?? []}
-                  disabled={locked}
-                  onChange={(_, next) =>
-                    saveFields({ labels: [...new Set(next.map((label) => label.trim()).filter(Boolean))] })
-                  }
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      size="small"
-                      placeholder={task.labels?.length ? "" : canEdit ? "Add labels" : "None"}
-                      error={Boolean(errors.labels)}
-                      helperText={errors.labels}
-                    />
-                  )}
-                />
-              </Row>
-              <Row id="task-estimate" label="Story points">
-                <FormField
-                  id="task-estimate"
-                  type="number"
-                  value={estimate ?? formatEstimate(task.estimate)}
-                  disabled={locked}
-                  placeholder={canEdit ? "Add an estimate" : "None"}
-                  error={Boolean(errors.estimate)}
-                  helperText={errors.estimate}
-                  onChange={(e) => {
-                    setEstimate(e.target.value);
-                    clearError("estimate");
-                  }}
-                  onBlur={saveEstimate}
-                  onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
-                  slotProps={{ htmlInput: { min: 0, step: 1 } }}
-                />
-              </Row>
-            </AccordionDetails>
-          </Accordion>
-
-          <Box sx={{ mt: 2, px: 0.5 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-              Created {new Date(task.createdAt).toLocaleString()}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-              Updated {new Date(task.updatedAt).toLocaleString()}
-            </Typography>
+            <Box sx={{ mt: 2, px: 0.5 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                Created {new Date(task.createdAt).toLocaleString()}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                Updated {new Date(task.updatedAt).toLocaleString()}
+              </Typography>
+            </Box>
           </Box>
         </Box>
-      </Box>
 
-      {confirmDelete && (
-        <ConfirmDialog
-          title="Delete this task?"
-          message={`${task.key} "${task.title}" will be deleted. This can't be undone.`}
-          confirmLabel="Delete task"
-          destructive
-          loading={remove.submitting}
-          error={remove.error}
-          onConfirm={handleDelete}
-          onClose={() => {
-            setConfirmDelete(false);
-            remove.clearError();
-          }}
-        />
-      )}
-    </Box>
+        {confirmDelete && (
+            <ConfirmDialog
+                title="Delete this task?"
+                message={`${task.key} "${task.title}" will be deleted. This can't be undone.`}
+                confirmLabel="Delete task"
+                destructive
+                loading={remove.submitting}
+                error={remove.error}
+                onConfirm={handleDelete}
+                onClose={() => {
+                  setConfirmDelete(false);
+                  remove.clearError();
+                }}
+            />
+        )}
+      </Box>
   );
 };
 
 // /workspaces/:workspaceSlug/projects/:projectId/tasks/:taskId
-// The project and workspace come from the guards. It sits outside ProjectPage (no header or tabs), so it checks
-// the work access and the archived state itself. Loads the task plus what the board loads (loadWork): the columns,
-// the members to name the assignee, and the tasks for the project's labels.
 const TaskPage = () => {
   const { taskId } = useParams();
   const { workspace } = useWorkspaceAccess();
@@ -474,48 +476,48 @@ const TaskPage = () => {
   const canEdit = !workspaceArchived && !projectArchived && can(project, PERMISSIONS.EDIT_TASKS);
 
   const state = useAsync(
-    async (signal) => {
-      const [task, work] = await Promise.all([getTask(project.id, taskId, signal), loadWork(project, "board", signal)]);
-      return { task, columns: work.columns, members: work.members, labels: projectLabels(work.tasks) };
-    },
-    [project.id, taskId],
-    { enabled: canView, fallback: "Couldn't load the task. Please try again.", messages: TASK_ERROR_MESSAGES },
+      async (signal) => {
+        const [task, work] = await Promise.all([getTask(project.id, taskId, signal), loadWork(project, "board", signal)]);
+        return { task, columns: work.columns, members: work.members, labels: projectLabels(work.tasks) };
+      },
+      [project.id, taskId],
+      { enabled: canView, fallback: "Couldn't load the task. Please try again.", messages: TASK_ERROR_MESSAGES },
   );
 
   if (!canView) {
     return (
-      <PageLayout>
-        <NoWorkAccess />
-      </PageLayout>
+        <PageLayout>
+          <NoWorkAccess />
+        </PageLayout>
     );
   }
 
   return (
-    <PageLayout>
-      {(workspaceArchived || projectArchived) && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          {workspaceArchived
-            ? "This workspace is archived. Projects are read-only."
-            : "This project is archived. Restore it from Project settings to make changes."}
-        </Alert>
-      )}
-      {state.data ? (
-        <TaskView
-          key={state.data.task.id}
-          workspace={workspace}
-          project={project}
-          initialTask={state.data.task}
-          columns={state.data.columns}
-          members={state.data.members}
-          labels={state.data.labels}
-          canEdit={canEdit}
-        />
-      ) : (
-        <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2 }}>
-          <LoadState loading={!state.error} error={state.error} onRetry={state.reload} rows={6} />
-        </Paper>
-      )}
-    </PageLayout>
+      <PageLayout>
+        {(workspaceArchived || projectArchived) && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              {workspaceArchived
+                  ? "This workspace is archived. Projects are read-only."
+                  : "This project is archived. Restore it from Project settings to make changes."}
+            </Alert>
+        )}
+        {state.data ? (
+            <TaskView
+                key={state.data.task.id}
+                workspace={workspace}
+                project={project}
+                initialTask={state.data.task}
+                columns={state.data.columns}
+                members={state.data.members}
+                labels={state.data.labels}
+                canEdit={canEdit}
+            />
+        ) : (
+            <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2 }}>
+              <LoadState loading={!state.error} error={state.error} onRetry={state.reload} rows={6} />
+            </Paper>
+        )}
+      </PageLayout>
   );
 };
 
