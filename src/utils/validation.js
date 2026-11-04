@@ -67,6 +67,19 @@ export const validateTask = (values) => {
   });
 };
 
+// subtasks (backend tasks-docs §10): title required, at most 255 characters; the time is whole minutes, 1 or more,
+// or empty for none (a subtask has no story points)
+export const validateSubtask = (values) => {
+  const title = (values.title ?? "").trim();
+  const minutes = values.estimateMinutes;
+  const blank = minutes === "" || minutes == null;
+  return onlyErrors({
+    title: !title ? "Title is required" : title.length > TASK_TITLE_MAX ? `Use at most ${TASK_TITLE_MAX} characters` : "",
+    estimateMinutes:
+      blank || (Number.isInteger(Number(minutes)) && Number(minutes) >= 1) ? "" : "Enter whole minutes, 1 or more",
+  });
+};
+
 // sprints: dates are optional while planning, required to start one (`requireDates`)
 export const validateSprint = (values, { requireDates = false } = {}) => {
   const { startDate, endDate } = values;

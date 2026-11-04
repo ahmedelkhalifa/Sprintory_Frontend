@@ -3,21 +3,26 @@ import assert from "node:assert/strict";
 import {
   backlogView,
   canMoveTask,
+  describeHistory,
   describeTasks,
   findTask,
   formatEstimate,
+  formatMinutes,
   insertAfter,
   labelTone,
   movePermission,
   moveInBacklog,
   projectLabels,
+  subtaskChanges,
+  subtaskProgress,
+  subtaskValues,
   sumEstimates,
   taskChanges,
   taskPath,
   taskStage,
   taskValues,
 } from "../src/utils/task.js";
-import { validateSprint, validateTask } from "../src/utils/validation.js";
+import { validateSprint, validateSubtask, validateTask } from "../src/utils/validation.js";
 
 const task = (id, extra = {}) => ({ id, title: `Task ${id}`, key: `WR-${id}`, labels: [], estimate: null, ...extra });
 
@@ -203,4 +208,54 @@ test("validateSprint checks capacity and dates; starting needs both dates", () =
   assert.ok(validateSprint({ startDate: "2026-11-10", endDate: "2026-11-01" }).endDate);
   const start = validateSprint({ startDate: "", endDate: "" }, { requireDates: true });
   assert.ok(start.startDate && start.endDate);
+});
+
+// ----- subtasks -----
+
+const subtask = (extra = {}) => ({ id: 57, title: "Write tests", statusId: 11, assigneeId: null, estimateMinutes: null, ...extra });
+
+test("subtaskChanges sends only what changed, and clear flags for an emptied assignee or time", () => {
+  const current = subtask({ assigneeId: 7, estimateMinutes: 90 });
+  const values = subtaskValues(current);
+  assert.deepEqual(subtaskChanges(current, values), {});
+  assert.deepEqual(subtaskChanges(current, { ...values, title: "  Write more tests " }), { title: "Write more tests" });
+  assert.deepEqual(subtaskChanges(current, { ...values, statusId: 13 }), { statusId: 13 });
+  assert.deepEqual(subtaskChanges(current, { ...values, assigneeId: null }), { clearAssignee: true });
+  assert.deepEqual(subtaskChanges(current, { ...values, estimateMinutes: "" }), { clearEstimateMinutes: true });
+  assert.deepEqual(subtaskChanges(current, { ...values, estimateMinutes: "45" }), { estimateMinutes: 45 });
+  // never story points: a subtask's PATCH has no `estimate`
+  assert.equal("estimate" in subtaskChanges(subtask(), { ...subtaskValues(subtask()), estimateMinutes: "30" }), false);
+});
+
+test("formatMinutes reads like a time", () => {
+  assert.equal(formatMinutes(90), "1h 30m");
+  assert.equal(formatMinutes(45), "45m");
+  assert.equal(formatMinutes(120), "2h");
+  assert.equal(formatMinutes(null), "");
+  assert.equal(formatMinutes(""), "");
+});
+
+test("subtaskProgress: done of total, 0 % without subtasks", () => {
+  assert.deepEqual(subtaskProgress({ subtaskDone: 3, subtaskTotal: 5 }), { done: 3, total: 5, percent: 60 });
+  assert.deepEqual(subtaskProgress({}), { done: 0, total: 0, percent: 0 });
+});
+
+test("validateSubtask: title required, time in whole minutes of 1 or more, or empty", () => {
+  assert.deepEqual(validateSubtask({ title: "Tests", estimateMinutes: "" }), {});
+  assert.deepEqual(validateSubtask({ title: "Tests", estimateMinutes: "30" }), {});
+  assert.ok(validateSubtask({ title: "  " }).title);
+  assert.ok(validateSubtask({ title: "x".repeat(256) }).title);
+  for (const bad of ["0", "-5", "1.5", "abc"]) assert.ok(validateSubtask({ title: "Tests", estimateMinutes: bad }).estimateMinutes, bad);
+});
+
+test("describeHistory puts the moves oldest first and names who made them", () => {
+  const members = [{ userId: 7, firstName: "Ada", lastName: "Lovelace" }];
+  const events = [
+    { id: 2, actorId: 7, fromColumnName: "In Progress", toColumnName: "Done", changedAt: "2026-11-02T10:00:00Z" },
+    { id: 1, actorId: 9, fromColumnName: "To Do", toColumnName: "In Progress", changedAt: "2026-11-01T10:00:00Z" },
+  ];
+  const [first, second] = describeHistory(events, members);
+  assert.deepEqual([first.id, second.id], [1, 2]);
+  assert.equal(first.actor, null); // not in the loaded members
+  assert.equal(second.actor.firstName, "Ada");
 });
