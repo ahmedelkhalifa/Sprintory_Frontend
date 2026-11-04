@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Accordion,
@@ -9,7 +9,6 @@ import {
   Box,
   Breadcrumbs,
   Button,
-  FormLabel,
   IconButton,
   Link,
   Menu,
@@ -25,9 +24,14 @@ import ConfirmDialog from "../../components/general/ConfirmDialog";
 import LoadState from "../../components/general/LoadState";
 import PageLayout from "../../components/layouts/PageLayout";
 import AssigneePicker from "../../components/tasks/AssigneePicker";
+import DetailRow from "../../components/tasks/DetailRow";
 import NoWorkAccess from "../../components/tasks/NoWorkAccess";
+import TaskActivity from "../../components/tasks/TaskActivity";
+import TaskStatusSelect from "../../components/tasks/TaskStatusSelect";
+import TaskTitleField from "../../components/tasks/TaskTitleField";
 import TaskValueSelect from "../../components/tasks/TaskValueSelect";
-import { columnOptions } from "../../components/tasks/columnOptions";
+import SubtaskList from "../../components/tasks/subtasks/SubtaskList";
+import SubtaskView from "../../components/tasks/subtasks/SubtaskView";
 import { loadWork } from "../../components/tasks/loadWork";
 import { deleteTask, getTask, updateTask } from "../../api/tasksApi";
 import { useAsync } from "../../hooks/useAsync";
@@ -36,93 +40,9 @@ import { useSubmit } from "../../hooks/useSubmit";
 import { PERMISSIONS } from "../../constants/projects";
 import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_TYPES } from "../../constants/tasks";
 import { can, isProjectArchived, projectPath } from "../../utils/project";
-import { formatEstimate, projectLabels, taskChanges, taskValues } from "../../utils/task";
-import { TASK_TITLE_MAX, validateTask } from "../../utils/validation";
+import { formatEstimate, projectLabels, subtaskProgress, taskChanges, taskValues } from "../../utils/task";
+import { validateTask } from "../../utils/validation";
 import { isWorkspaceArchived } from "../../utils/workspace";
-
-// one row of the Details card: the label on the left, the field on the right
-const Row = ({ id, label, children }) => (
-  <Box sx={{ display: "grid", gridTemplateColumns: "110px minmax(0, 1fr)", alignItems: "start", gap: 1, py: 0.75 }}>
-    <FormLabel htmlFor={id} sx={{ pt: 1.25, fontSize: 14, color: "text.secondary" }}>
-      {label}
-    </FormLabel>
-    <Box sx={{ minWidth: 0 }}>{children}</Box>
-  </Box>
-);
-
-// the title: text until clicked, then a field. Enter or leaving it saves, Escape cancels.
-// It stays open when the save fails, so nothing typed is lost.
-const TitleField = ({ title, canEdit, error, onEdit, onSave }) => {
-  const [draft, setDraft] = useState(null); // null: showing the title
-  // after Escape, or while saving, the blur that follows must not save (again)
-  const closing = useRef(false);
-
-  const start = () => {
-    if (!canEdit) return;
-    closing.current = false;
-    onEdit();
-    setDraft(title);
-  };
-  const cancel = () => {
-    closing.current = true;
-    onEdit();
-    setDraft(null);
-  };
-  const finish = async () => {
-    if (closing.current || draft === null) return;
-    if (draft.trim() === title) return cancel();
-    closing.current = true;
-    const { ok } = await onSave(draft);
-    if (ok) setDraft(null);
-    else closing.current = false;
-  };
-
-  if (draft === null) {
-    return (
-      <Typography
-        variant="h4"
-        component="h1"
-        onClick={start}
-        sx={{
-          fontWeight: 700,
-          wordBreak: "break-word",
-          borderRadius: 1,
-          px: 1,
-          mx: -1,
-          cursor: canEdit ? "text" : "default",
-          "&:hover": canEdit ? { bgcolor: "action.hover" } : undefined,
-        }}
-      >
-        {title}
-      </Typography>
-    );
-  }
-  return (
-    <TextField
-      autoFocus
-      fullWidth
-      value={draft}
-      error={Boolean(error)}
-      helperText={error}
-      onChange={(e) => {
-        setDraft(e.target.value);
-        onEdit();
-      }}
-      onBlur={finish}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          finish();
-        }
-        if (e.key === "Escape") cancel();
-      }}
-      slotProps={{
-        htmlInput: { maxLength: TASK_TITLE_MAX, "aria-label": "Title" },
-        input: { sx: { fontSize: 28, fontWeight: 700 } },
-      }}
-    />
-  );
-};
 
 // the description: text until clicked, then a box with Save and Cancel. A failed save keeps the box open.
 const DescriptionField = ({ description, canEdit, saving, onSave }) => {
@@ -185,7 +105,8 @@ const DescriptionField = ({ description, canEdit, saving, onSave }) => {
 };
 
 // The loaded task and its fields. Every change is saved at once, like in Jira: one field at a time, checked with
-// validateTask and sent as taskChanges (only what changed, clear flags for emptied fields).
+// validateTask and sent as taskChanges (only what changed, clear flags for emptied fields). Under the description
+// come its subtasks (SubtaskList) and the activity (TaskActivity).
 // `canEdit` = EDIT_TASKS and neither the workspace nor the project archived.
 const TaskView = ({ workspace, project, initialTask, columns, members, labels, canEdit }) => {
   const navigate = useNavigate();
@@ -196,6 +117,8 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
   const [people, setPeople] = useState(members); // to name the assignee, plus anyone picked beyond the first page
   const [menu, setMenu] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // a move to Done the backend refused because subtasks are open: the same changes, waiting for a confirmation
+  const [confirmDone, setConfirmDone] = useState(null);
   const save = useSubmit(TASK_ERROR_MESSAGES);
   const remove = useSubmit(TASK_ERROR_MESSAGES);
   // one save at a time: each change is computed from the task the last save returned
@@ -226,8 +149,25 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
       save.clearError();
       return { ok: false, invalid: true };
     }
+    // into Done with open subtasks: allowed, but only once the user confirms (backend tasks-docs §10.3)
+    if (data?.code === "OPEN_SUBTASKS_CONFIRMATION_REQUIRED") {
+      save.clearError();
+      setConfirmDone(changes);
+    }
     return { ok: false };
   };
+
+  const moveToDoneAnyway = async () => {
+    const { ok, result } = await save.run(() => updateTask(project.id, task.id, { ...confirmDone, confirmOpenSubtasks: true }));
+    setConfirmDone(null);
+    if (ok) setTask(result);
+  };
+
+  // a subtask was added, changed or deleted: the parent's "3 / 5 done" comes from the backend, so ask again
+  const refreshTask = () =>
+    getTask(project.id, task.id)
+      .then(setTask)
+      .catch(() => {}); // the counts stay as they were; the list itself already shows the change
 
   const saveEstimate = async () => {
     if (estimate === null) return;
@@ -253,16 +193,8 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
   const assignee =
     task.assigneeId == null ? null : (people.find((m) => m.userId === task.assigneeId) ?? { userId: task.assigneeId });
   const type = TASK_TYPES[task.type];
-
-  const statusSx = canEdit
-    ? {
-        bgcolor: "primary.main",
-        borderRadius: 1,
-        "& .MuiSelect-select": { color: "primary.contrastText", fontWeight: 600 },
-        "& .MuiSvgIcon-root": { color: "primary.contrastText" },
-        "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-      }
-    : undefined;
+  const progress = subtaskProgress(task);
+  const doneColumn = confirmDone && columns.find((column) => column.id === confirmDone.statusId);
 
   return (
     <Box>
@@ -290,9 +222,9 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
           alignItems: "start",
         }}
       >
-        {/* left: the title, the description and the activity */}
+        {/* left: the title, the description, the subtasks and the activity */}
         <Box>
-          <TitleField
+          <TaskTitleField
             title={task.title}
             canEdit={canEdit}
             error={errors.title}
@@ -308,26 +240,29 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
             onSave={(description) => saveFields({ description })}
           />
 
-          <Typography sx={{ fontWeight: 600, mt: 4, mb: 1 }}>Activity</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Comments and history will appear here once they are available.
-          </Typography>
+          <SubtaskList
+            workspace={workspace}
+            project={project}
+            parent={task}
+            columns={columns}
+            members={people}
+            canEdit={canEdit}
+            onChanged={refreshTask}
+          />
+
+          <TaskActivity project={project} task={task} members={people} />
         </Box>
 
         {/* right: the status, the details and the dates */}
         <Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-            <TextField
-              select
-              size="small"
+            <TaskStatusSelect
               value={task.statusId}
+              columns={columns}
+              canEdit={canEdit}
               disabled={locked}
-              onChange={(e) => saveFields({ statusId: e.target.value })}
-              sx={{ minWidth: 160, ...statusSx }}
-              slotProps={{ htmlInput: { "aria-label": "Status" } }}
-            >
-              {columnOptions(columns)}
-            </TextField>
+              onChange={(statusId) => saveFields({ statusId })}
+            />
             <Box sx={{ flexGrow: 1 }} />
             {canEdit && (
               <>
@@ -359,7 +294,7 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
               <Typography sx={{ fontWeight: 600 }}>Details</Typography>
             </AccordionSummary>
             <AccordionDetails sx={{ pt: 0 }}>
-              <Row id="task-assignee" label="Assignee">
+              <DetailRow id="task-assignee" label="Assignee">
                 <AssigneePicker
                   id="task-assignee"
                   label={null}
@@ -368,8 +303,8 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
                   onChange={saveAssignee}
                   disabled={locked}
                 />
-              </Row>
-              <Row id="task-priority" label="Priority">
+              </DetailRow>
+              <DetailRow id="task-priority" label="Priority">
                 <TaskValueSelect
                   id="task-priority"
                   values={TASK_PRIORITIES}
@@ -377,8 +312,8 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
                   disabled={locked}
                   onChange={(e) => saveFields({ priority: e.target.value })}
                 />
-              </Row>
-              <Row id="task-type" label="Type">
+              </DetailRow>
+              <DetailRow id="task-type" label="Type">
                 <TaskValueSelect
                   id="task-type"
                   values={TASK_TYPES}
@@ -386,8 +321,8 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
                   disabled={locked}
                   onChange={(e) => saveFields({ type: e.target.value })}
                 />
-              </Row>
-              <Row id="task-labels" label="Labels">
+              </DetailRow>
+              <DetailRow id="task-labels" label="Labels">
                 <Autocomplete
                   id="task-labels"
                   multiple
@@ -408,8 +343,8 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
                     />
                   )}
                 />
-              </Row>
-              <Row id="task-estimate" label="Story points">
+              </DetailRow>
+              <DetailRow id="task-estimate" label="Story points">
                 <FormField
                   id="task-estimate"
                   type="number"
@@ -426,7 +361,7 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
                   onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
                   slotProps={{ htmlInput: { min: 0, step: 1 } }}
                 />
-              </Row>
+              </DetailRow>
             </AccordionDetails>
           </Accordion>
 
@@ -456,6 +391,19 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
           }}
         />
       )}
+
+      {confirmDone && (
+        <ConfirmDialog
+          title="Move to Done with open subtasks?"
+          message={`${
+            progress.total > 0 ? `${progress.total - progress.done} of ${progress.total} subtasks aren't done yet. ` : ""
+          }Move ${task.key} to ${doneColumn?.name ?? "Done"} anyway? The subtasks keep their status.`}
+          confirmLabel="Move anyway"
+          loading={save.submitting}
+          onConfirm={moveToDoneAnyway}
+          onClose={() => setConfirmDone(null)}
+        />
+      )}
     </Box>
   );
 };
@@ -463,7 +411,8 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
 // /workspaces/:workspaceSlug/projects/:projectId/tasks/:taskId
 // The project and workspace come from the guards. It sits outside ProjectPage (no header or tabs), so it checks
 // the work access and the archived state itself. Loads the task plus what the board loads (loadWork): the columns,
-// the members to name the assignee, and the tasks for the project's labels.
+// the members to name the assignee, and the tasks for the project's labels. A subtask (`parentTaskId`) also loads
+// its parent and gets its own, smaller view (SubtaskView).
 const TaskPage = () => {
   const { taskId } = useParams();
   const { workspace } = useWorkspaceAccess();
@@ -476,7 +425,8 @@ const TaskPage = () => {
   const state = useAsync(
     async (signal) => {
       const [task, work] = await Promise.all([getTask(project.id, taskId, signal), loadWork(project, "board", signal)]);
-      return { task, columns: work.columns, members: work.members, labels: projectLabels(work.tasks) };
+      const parent = task.parentTaskId == null ? null : await getTask(project.id, task.parentTaskId, signal);
+      return { task, parent, columns: work.columns, members: work.members, labels: projectLabels(work.tasks) };
     },
     [project.id, taskId],
     { enabled: canView, fallback: "Couldn't load the task. Please try again.", messages: TASK_ERROR_MESSAGES },
@@ -499,7 +449,18 @@ const TaskPage = () => {
             : "This project is archived. Restore it from Project settings to make changes."}
         </Alert>
       )}
-      {state.data ? (
+      {state.data?.parent ? (
+        <SubtaskView
+          key={state.data.task.id}
+          workspace={workspace}
+          project={project}
+          initialTask={state.data.task}
+          parent={state.data.parent}
+          columns={state.data.columns}
+          members={state.data.members}
+          canEdit={canEdit}
+        />
+      ) : state.data ? (
         <TaskView
           key={state.data.task.id}
           workspace={workspace}

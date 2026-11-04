@@ -103,7 +103,8 @@ const SubtaskRow = ({ workspace, project, parentId, subtask, columns, people, ca
           </Link>
         </Box>
 
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: { xs: 3, sm: 0 } }}>
+        {/* on phones this goes to a second line, kept to the right like on wide screens */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: { xs: "auto", sm: 0 } }}>
           {time && (
             <Tooltip title="Time estimate">
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>

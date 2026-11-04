@@ -3,9 +3,10 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Box, Tooltip, Typography } from "@mui/material";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlineOutlined";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import UserAvatar from "../general/UserAvatar";
 import { TASK_PRIORITIES, TASK_TYPES } from "../../constants/tasks";
-import { formatEstimate } from "../../utils/task";
+import { formatEstimate, subtaskProgress } from "../../utils/task";
 import { memberLabel } from "../../utils/people";
 import { rowId } from "../tasks/dnd";
 
@@ -15,6 +16,8 @@ export const BoardCardContent = ({ task, raised = false, draggable = false }) =>
   const type = TASK_TYPES[task.type] ?? TASK_TYPES.TASK;
   const priority = TASK_PRIORITIES[task.priority] ?? TASK_PRIORITIES.MEDIUM;
   const estimate = formatEstimate(task.estimate);
+  // subtasks aren't cards of their own (PMP-132): the parent shows how many are done
+  const subtasks = subtaskProgress(task);
 
   return (
     <Box
@@ -54,6 +57,23 @@ export const BoardCardContent = ({ task, raised = false, draggable = false }) =>
         <Tooltip title={`${priority.label} priority`}>
           <priority.Icon fontSize="small" sx={{ color: priority.tone }} aria-label={`${priority.label} priority`} />
         </Tooltip>
+        {subtasks.total > 0 && (
+          <Tooltip title={`${subtasks.done} of ${subtasks.total} subtasks done`}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 0.25,
+                fontSize: 12,
+                fontWeight: 600,
+                color: subtasks.done === subtasks.total ? "success.main" : "text.secondary",
+              }}
+            >
+              <AccountTreeOutlinedIcon sx={{ fontSize: 14 }} />
+              {subtasks.done}/{subtasks.total}
+            </Box>
+          </Tooltip>
+        )}
         {estimate && (
           <Tooltip title="Estimate">
             <Box
