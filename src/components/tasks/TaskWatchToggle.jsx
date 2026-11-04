@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
-import notificationsApi from "../../api/notificationsApi.js";
+import notificationsApi from "../../api/notificationsApi";
 
 const TaskWatchToggle = ({ projectId, taskId }) => {
     const [isWatching, setIsWatching] = useState(false);
@@ -10,8 +10,9 @@ const TaskWatchToggle = ({ projectId, taskId }) => {
 
     useEffect(() => {
         const controller = new AbortController();
-        notificationsApi.getWatchStatus(projectId, taskId, controller.signal)
-            .then(res => setIsWatching(res.watching))
+        notificationsApi
+            .getWatchStatus(projectId, taskId, controller.signal)
+            .then((res) => setIsWatching(res.watching))
             .catch(() => {})
             .finally(() => setIsLoading(false));
 
