@@ -55,26 +55,6 @@ export const AUDIT_FIELD_LABELS = {
   failedAttempts: "Failed attempts",
 };
 
-// labels for values that are raw API names (role enums, templates). "MEMBER" is "Member": the entry doesn't say
-// whether the project was Scrum, where the app elsewhere calls it Developer
-export const AUDIT_VALUE_LABELS = {
-  WORKSPACE_ADMIN: "Admin",
-  WORKSPACE_MEMBER: "Member",
-  PROJECT_MANAGER: "Project Manager",
-  PRODUCT_OWNER: "Product Owner",
-  SCRUM_MASTER: "Scrum Master",
-  MEMBER: "Member",
-  VIEWER: "Viewer",
-  SCRUM: "Scrum",
-  KANBAN: "Kanban",
-};
-
-// what to tell the user when the log can't be read, by error code
-export const AUDIT_ERROR_MESSAGES = {
-  ACCESS_DENIED: "Only workspace admins can view the audit log.",
-  RESOURCE_NOT_FOUND: "This workspace no longer exists, or you no longer have access to it.",
-};
-
 // the backend never stores secrets, so none can come back; a change of a field that looks like one is dropped
 // anyway, so a mistake on the server can't reach the screen (story: no passwords, tokens or links in entries)
 export const SENSITIVE_FIELD = /pass(word)?|token|secret|credential|hash|link/i;

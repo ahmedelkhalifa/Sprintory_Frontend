@@ -1,23 +1,23 @@
 import process from "node:process";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { AUDIT_ACTIONS, AUDIT_ACTION_GROUPS, AUDIT_ERROR_MESSAGES } from "../src/constants/audit.js";
+import { AUDIT_ACTIONS, AUDIT_ACTION_GROUPS } from "../src/constants/audit.js";
 import {
   EMPTY_AUDIT_FILTERS,
   actorLabel,
   auditActionLabel,
   auditQuery,
+  auditSentence,
   dayRangeToInstants,
   filtersFromSearchParams,
   filtersToSearchParams,
   formatUtc,
   hasAuditFilters,
+  sentenceCoversChanges,
   truncateText,
   validateDayRange,
   visibleChanges,
 } from "../src/utils/audit.js";
-import { auditActors, auditQueryError, queryAuditEntries } from "../src/mocks/auditFilter.js";
-import { errorMessage } from "../src/utils/apiError.js";
 
 // the page's dates are local days: run in a fixed zone (UTC+3, no daylight saving) so the expected instants are exact
 process.env.TZ = "Etc/GMT-3";
@@ -171,70 +171,79 @@ test("long values are cut for the table", () => {
   assert.ok(cut.text.endsWith("…"));
 });
 
-test("only an admin's view has the log: a member's 403 reads as an admins-only message", () => {
-  const forbidden = { response: { status: 403, data: { code: "ACCESS_DENIED", message: "You do not have access to this resource." } } };
-  assert.equal(errorMessage(forbidden, undefined, AUDIT_ERROR_MESSAGES), "Only workspace admins can view the audit log.");
+test("only role and template values get labels; free text stays as written", () => {
+  const changes = visibleChanges(
+    entry(1, "2026-11-02T14:05:31Z", {
+      action: "PROJECT_CREATED",
+      changes: [
+        { field: "template", oldValue: null, newValue: "SCRUM" },
+        { field: "description", oldValue: null, newValue: "Ask a VIEWER, MEMBER or admin" },
+      ],
+    }),
+  );
+  assert.deepEqual(changes.map((c) => c.newText), ["Scrum", "Ask a VIEWER, MEMBER or admin"]);
 });
 
-// ---- the mock's filtering follows audit-log-docs.md §3.1 ----
-
-const LOG = [
-  entry(1, "2026-11-01T10:00:00.000Z"),
-  entry(2, "2026-11-02T10:00:00.000Z", { action: "TASK_DELETED", area: "TASK", target: { type: "TASK", id: 4, name: "MOB-4 Fix" }, changes: [] }),
-  entry(3, "2026-11-02T10:00:00.000Z", { actor: { id: 31, name: "Grace Hopper", email: "grace@example.com" }, project: { id: 16, name: "Web" } }),
-  entry(4, "2026-11-03T08:00:00.000Z", { action: "WORKSPACE_ROLE_CHANGED", area: "WORKSPACE", project: null }),
-  entry(5, "2026-11-03T09:00:00.000Z", { action: "LOGIN_FAILED_REPEATED", area: "SECURITY", actor: null, project: null }),
-];
-
-test("the log comes newest first, ties by id descending", () => {
-  assert.deepEqual(queryAuditEntries(LOG).content.map((e) => e.id), [5, 4, 3, 2, 1]);
+test("each entry reads as one sentence on a phone, with the names stored in it", () => {
+  assert.equal(
+    auditSentence(entry(1, "2026-11-02T14:05:31Z")),
+    'Ada Lovelace changed Linus Torvalds\'s roles in "Mobile App" from Member to Project Manager, Member',
+  );
+  assert.equal(
+    auditSentence(
+      entry(2, "2026-11-02T14:05:31Z", {
+        action: "PROJECT_MEMBER_ADDED",
+        changes: [
+          { field: "roles", oldValue: null, newValue: "MEMBER" },
+          { field: "viaTeam", oldValue: null, newValue: "Backend" },
+        ],
+      }),
+    ),
+    'Ada Lovelace added Linus Torvalds to "Mobile App" (via team "Backend")',
+  );
+  assert.equal(
+    auditSentence(
+      entry(3, "2026-11-02T14:05:31Z", {
+        action: "LOGIN_FAILED_REPEATED",
+        area: "SECURITY",
+        actor: null,
+        project: null,
+        changes: [{ field: "failedAttempts", oldValue: null, newValue: "5" }],
+      }),
+    ),
+    "5 failed sign-in attempts for Linus Torvalds",
+  );
+  assert.equal(
+    auditSentence(
+      entry(4, "2026-11-02T14:05:31Z", {
+        action: "WORKSPACE_ROLE_CHANGED",
+        area: "WORKSPACE",
+        project: null,
+        changes: [{ field: "role", oldValue: "WORKSPACE_MEMBER", newValue: "WORKSPACE_ADMIN" }],
+      }),
+    ),
+    "Ada Lovelace changed Linus Torvalds's workspace role from Member to Admin",
+  );
+  assert.equal(
+    auditSentence(
+      entry(5, "2026-11-02T14:05:31Z", {
+        action: "TASK_DELETED",
+        area: "TASK",
+        target: { type: "TASK", id: 42, name: "MOB-42 Fix login" },
+        changes: [],
+      }),
+    ),
+    'Ada Lovelace deleted MOB-42 Fix login in "Mobile App"',
+  );
+  // an action the app doesn't know yet still reads
+  assert.equal(
+    auditSentence(entry(6, "2026-11-02T14:05:31Z", { action: "BOARD_COLUMN_MOVED" })),
+    "Ada Lovelace · Board column moved · Linus Torvalds",
+  );
 });
 
-test("filters combine with AND; actions and areas are OR inside; from is inclusive and to exclusive", () => {
-  const ids = (query) => queryAuditEntries(LOG, query).content.map((e) => e.id);
-  assert.deepEqual(ids({ from: "2026-11-02T10:00:00.000Z" }), [5, 4, 3, 2]);
-  assert.deepEqual(ids({ to: "2026-11-02T10:00:00.000Z" }), [1]);
-  assert.deepEqual(ids({ actorId: "31" }), [3]);
-  assert.deepEqual(ids({ projectId: "15" }), [2, 1]);
-  assert.deepEqual(ids({ actions: "task_deleted, workspace_role_changed" }), [4, 2]);
-  assert.deepEqual(ids({ areas: "SECURITY,TASK" }), [5, 2]);
-  assert.deepEqual(ids({ projectId: "15", actions: "PROJECT_ROLES_CHANGED" }), [1]);
-  // an actor or project that doesn't exist is not an error, it matches nothing
-  assert.deepEqual(ids({ actorId: "999" }), []);
-  assert.deepEqual(ids({ projectId: "999" }), []);
-  // the system never matches an actor filter
-  assert.deepEqual(ids({ actorId: "5" }), []);
-});
-
-test("the log is paged, 0-based, the size capped at 100 and a page past the end empty", () => {
-  const page = queryAuditEntries(LOG, { page: 1, size: 2 });
-  assert.deepEqual(page.content.map((e) => e.id), [3, 2]);
-  assert.deepEqual([page.page, page.size, page.totalElements, page.totalPages], [1, 2, 5, 3]);
-  assert.equal(queryAuditEntries(LOG, { size: 500 }).size, 100);
-  assert.equal(queryAuditEntries(LOG, { page: -4 }).page, 0);
-  assert.deepEqual(queryAuditEntries(LOG, { page: 9, size: 2 }).content, []);
-});
-
-test("the mock refuses the queries the backend refuses with 400", () => {
-  assert.match(auditQueryError({ from: "yesterday" }), /Invalid 'from'/);
-  assert.equal(auditQueryError({ from: "2026-11-03T00:00:00Z", to: "2026-11-01T00:00:00Z" }), "'from' must be before 'to'.");
-  assert.equal(auditQueryError({ from: "2026-11-01T00:00:00Z", to: "2026-11-01T00:00:00Z" }), "'from' must be before 'to'.");
-  assert.equal(auditQueryError({ actorId: "-1" }), "'actorId' must be a positive ID.");
-  assert.equal(auditQueryError({ actions: "FOO" }), "Invalid 'actions' filter: FOO.");
-  assert.equal(auditQueryError({ areas: "NOPE" }), "Invalid 'areas' filter: NOPE.");
-  assert.equal(auditQueryError({ actorId: "17", actions: "TASK_DELETED", areas: "TASK" }), "");
-  assert.equal(auditQueryError({}), "");
-});
-
-test("the actor list has each person once, with their latest name, people who left included, the system left out", () => {
-  const log = [
-    entry(1, "2026-11-01T10:00:00.000Z", { actor: { id: 9, name: "Bob Old Name", email: "bob@example.com" } }),
-    entry(2, "2026-11-02T10:00:00.000Z", { actor: { id: 9, name: "Bob Smith", email: "bob@example.com" } }),
-    entry(3, "2026-11-02T11:00:00.000Z", { actor: { id: 17, name: "ada lovelace", email: "ada@example.com" } }),
-    entry(4, "2026-11-02T12:00:00.000Z", { actor: null }),
-  ];
-  assert.deepEqual(auditActors(log), [
-    { id: 17, name: "ada lovelace", email: "ada@example.com" },
-    { id: 9, name: "Bob Smith", email: "bob@example.com" },
-  ]);
+test("the phone view lists the changes only where the sentence doesn't say them", () => {
+  assert.equal(sentenceCoversChanges("PROJECT_ROLES_CHANGED"), true);
+  assert.equal(sentenceCoversChanges("PROJECT_SETTINGS_CHANGED"), false);
+  assert.equal(sentenceCoversChanges("BOARD_COLUMN_MOVED"), false);
 });

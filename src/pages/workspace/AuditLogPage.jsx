@@ -1,5 +1,6 @@
 import { Link as RouterLink, useSearchParams } from "react-router-dom";
-import { Alert, Box, Button, Typography } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import { Alert, Box, Button, Typography, useMediaQuery } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import PageLayout from "../../components/layouts/PageLayout";
@@ -7,14 +8,16 @@ import PageHeader from "../../components/general/PageHeader";
 import SectionCard from "../../components/general/SectionCard";
 import LoadState from "../../components/general/LoadState";
 import Pager from "../../components/general/Pager";
+import NotFound from "../../components/general/NotFound";
 import AuditFilters from "../../components/audit/AuditFilters";
 import AuditLogTable from "../../components/audit/AuditLogTable";
+import AuditLogCards from "../../components/audit/AuditLogCards";
 import { listAuditActors, listAuditLog } from "../../api/auditApi";
 import { listProjects } from "../../api/projectsApi";
 import { useAsync } from "../../hooks/useAsync";
 import { usePagedList } from "../../hooks/usePagedList";
 import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
-import { AUDIT_ERROR_MESSAGES, AUDIT_PAGE_SIZE } from "../../constants/audit";
+import { AUDIT_PAGE_SIZE } from "../../constants/audit";
 import {
   EMPTY_AUDIT_FILTERS,
   auditQuery,
@@ -50,6 +53,9 @@ const AuditLogPage = () => {
   const { workspace } = useWorkspaceAccess();
   const [searchParams, setSearchParams] = useSearchParams();
   const isAdmin = isWorkspaceAdmin(workspace);
+  // the wide table doesn't fit a phone: one sentence per entry instead
+  const theme = useTheme();
+  const phone = useMediaQuery(theme.breakpoints.down("sm"));
   const filters = filtersFromSearchParams(searchParams);
   const filtersKey = JSON.stringify(filters);
 
@@ -64,7 +70,7 @@ const AuditLogPage = () => {
   const log = usePagedList(
     (params, signal) => listAuditLog(workspace.id, { ...auditQuery(filters), ...params }, signal),
     [workspace.id, filtersKey],
-    { enabled: isAdmin, size: AUDIT_PAGE_SIZE, fallback: "Couldn't load the audit log. Please try again.", messages: AUDIT_ERROR_MESSAGES },
+    { enabled: isAdmin, size: AUDIT_PAGE_SIZE, fallback: "Couldn't load the audit log. Please try again." },
   );
 
   // a filter change goes back to the first page
@@ -74,7 +80,16 @@ const AuditLogPage = () => {
   };
   const filtered = hasAuditFilters(filters);
 
-  const denied = !isAdmin || log.error === AUDIT_ERROR_MESSAGES.ACCESS_DENIED;
+  const denied = !isAdmin || log.errorCode === "ACCESS_DENIED";
+
+  // the workspace is gone or the user was removed from it since the guard loaded it: its usual not-found screen
+  if (log.errorCode === "RESOURCE_NOT_FOUND") {
+    return (
+      <PageLayout>
+        <NotFound title="Workspace not found" backTo="/workspaces" backLabel="Back to workspaces" />
+      </PageLayout>
+    );
+  }
 
   return (
     <PageLayout>
@@ -91,7 +106,6 @@ const AuditLogPage = () => {
       <SectionCard
         title="Entries"
         count={denied || log.loading || log.error ? undefined : log.total}
-        header={denied ? <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>Entries</Typography> : undefined}
       >
         {denied ? (
           <AdminsOnly workspace={workspace} />
@@ -126,7 +140,7 @@ const AuditLogPage = () => {
                 </Box>
               ) : (
                 <>
-                  <AuditLogTable entries={log.items} />
+                  {phone ? <AuditLogCards entries={log.items} /> : <AuditLogTable entries={log.items} />}
                   <Pager
                     page={log.page}
                     size={log.size}

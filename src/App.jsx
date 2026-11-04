@@ -28,7 +28,6 @@ import TaskPage from "./pages/tasks/TaskPage";
 import SearchPage from "./pages/search/SearchPage";
 import SettingsPage from "./pages/settings/SettingsPage";
 import AuditLogPage from "./pages/workspace/AuditLogPage";
-import AuditLogRedirect from "./pages/workspace/AuditLogRedirect";
 import AcceptInvitePage from "./pages/workspace/AcceptInvitePage";
 import { INVITE_PATH } from "./utils/invitation";
 
@@ -89,8 +88,6 @@ const App = () => {
                 </Route>
               </Route>
               {/* placeholders until these pages exist, so the sidebar links stay inside the shell */}
-              {/* the sidebar's Audit Log entry (it replaced Backlog) opens the current workspace's audit log */}
-              <Route path="/backlog" element={<AuditLogRedirect />} />
               <Route path="/board" element={<div>Board</div>} />
               <Route path="/sprints" element={<div>Sprints</div>} />
               <Route path="/reports" element={<div>Reports</div>} />

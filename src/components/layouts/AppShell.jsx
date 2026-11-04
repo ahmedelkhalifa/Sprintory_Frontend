@@ -32,7 +32,7 @@ const NAV_ITEMS = [
   { label: "Reports", to: "/reports", icon: <BarChartOutlined /> },
   { label: "Teams", workspacePath: "teams", icon: <GroupOutlined /> },
   // only workspace admins may read the log; the backend refuses everyone else anyway
-  { label: "Audit Log", workspacePath: "audit-log", icon: <HistoryOutlined />, adminOnly: true },
+  { label: "Audit log", workspacePath: "audit-log", icon: <HistoryOutlined />, adminOnly: true },
   { label: "Settings", to: "/settings", icon: <SettingsOutlined /> },
 ];
 
