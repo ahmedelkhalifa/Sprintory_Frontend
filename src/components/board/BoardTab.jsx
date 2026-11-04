@@ -15,18 +15,23 @@ import BoardColumn from "./BoardColumn";
 import BoardCard, { BoardCardContent } from "./BoardCard";
 import SprintBoardHeader from "./SprintBoardHeader";
 import CompleteSprintDialog from "./CompleteSprintDialog";
+import ColumnMenu from "./ColumnMenu";
+import ColumnFieldDialog from "./ColumnFieldDialog";
+import ColumnDialog from "./ColumnDialog";
+import DeleteColumnDialog from "./DeleteColumnDialog";
+import AddColumnButton from "./AddColumnButton";
 import { moveOnBoard } from "../../api/tasksApi";
+import { reorderBoardColumns, updateBoardColumn } from "../../api/projectsApi";
 import { useAsync } from "../../hooks/useAsync";
 import { useTaskFilterMatches } from "../../hooks/useTaskFilterMatches";
 import { PERMISSIONS } from "../../constants/projects";
-import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
+import { COLUMN_ERROR_MESSAGES, TASK_ERROR_MESSAGES } from "../../constants/tasks";
 import { errorMessage } from "../../utils/apiError";
 import { can } from "../../utils/project";
-import { applyColumnEdits, boardMove, groupByColumn, moveColumnId, NO_COLUMN_EDITS } from "../../utils/board";
+import { boardMove, columnRules, groupByColumn, MAX_COLUMNS, moveColumnId } from "../../utils/board";
 import { projectLabels, taskStage } from "../../utils/task";
 import { EMPTY_TASK_FILTERS } from "../../utils/taskFilters";
-import ColumnMenu from "./ColumnMenu";
-import ColumnFieldDialog from "./ColumnFieldDialog";
+import { validateWipLimit } from "../../utils/validation";
 
 // Scrum without an active sprint: nothing to work on yet, the sprint is started from the backlog
 const NoActiveSprint = ({ onOpenBacklog }) => (
@@ -45,8 +50,10 @@ const NoActiveSprint = ({ onOpenBacklog }) => (
 );
 
 // The Board tab. Scrum (R15): the active sprint's tasks by column, with its progress and Complete sprint.
-// Kanban (R16): every task by column, with the work-in-progress limits. Columns are the backend's (read-only
-// until column editing exists); anyone with EDIT_TASKS drags cards across and within columns.
+// Kanban (R16): every task by column, with the work-in-progress limits (soft: a move past one still happens,
+// the column turns red and a warning shows). Anyone with EDIT_TASKS drags cards across and within columns.
+// People with CONFIGURE_BOARD (Project Manager, workspace admin) configure the columns: add, edit (name, category),
+// move, WIP limit and delete, each saved by the backend (board-docs.md), then the board reloads.
 // `writable` is false in an archived project or workspace, which makes everything read-only.
 // `taskVersion` goes up when a task is created outside the tab (the page's Create task window);
 // `onCreateTask` opens that window, for the Kanban board's button on top (its quick bar stays).
@@ -79,9 +86,7 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, o
   const [notice, setNotice] = useState(null); // { text, severity }
   const [dragging, setDragging] = useState(null); // { taskId, fromStatusId }
   const [overStatusId, setOverStatusId] = useState(null);
-  // UI-only column edits (the backend has no column endpoints yet); they are laid over the loaded columns
-  const [columnEdits, setColumnEdits] = useState(NO_COLUMN_EDITS);
-  const [columnDialog, setColumnDialog] = useState(null); // { type: "rename" | "wip", columnId }
+  const [columnDialog, setColumnDialog] = useState(null); // { type: "add" | "edit" | "wip" | "delete", columnId }
   const sensors = useSensors(
     // a short move before dragging starts, so clicks on a card still open it
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -112,12 +117,10 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, o
   // a Scrum board holds only the active sprint's tasks, a Kanban board all of them
   const inSprint = sprint && new Set(sprint.taskIds);
   const tasks = inSprint ? allTasks.filter((task) => inSprint.has(task.id)) : allTasks;
-  const edits = columnEdits.projectId === project.id ? columnEdits : NO_COLUMN_EDITS;
-  const shownColumns = applyColumnEdits(columns, edits);
   // `board` has every task (drop positions, counts); `shownBoard` only the ones the filters keep
-  const board = groupByColumn(shownColumns, tasks);
+  const board = groupByColumn(columns, tasks);
   const visible = match.matches ? tasks.filter((task) => match.matches.has(task.id)) : tasks;
-  const shownBoard = match.matches ? groupByColumn(shownColumns, visible) : board;
+  const shownBoard = match.matches ? groupByColumn(columns, visible) : board;
   const canMove = writable && can(project, PERMISSIONS.EDIT_TASKS);
   const canComplete = writable && can(project, PERMISSIONS.MANAGE_SPRINTS);
   // a change can change what matches too
@@ -125,36 +128,64 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, o
     reloadBoard();
     reloadMatches();
   };
-  // TODO: use a dedicated "manage board" permission once the backend has one
-  const canEditColumns = writable && can(project, PERMISSIONS.EDIT_TASKS);
-  const updateEdits = (change) => setColumnEdits({ ...edits, ...change, projectId: project.id });
-  // TODO(backend): each of these becomes an API call once column endpoints exist
-  const renameColumn = (id, name) => updateEdits({ names: { ...edits.names, [id]: name } });
-  const setWip = (id, limit) => updateEdits({ wip: { ...edits.wip, [id]: limit } });
-  const moveColumn = (id, step) => updateEdits({ order: moveColumnId(shownColumns, id, step) });
-  const removeColumn = (id) => updateEdits({ removed: [...edits.removed, id] });
-  const dialogColumn = columnDialog && board.find((column) => column.id === columnDialog.columnId);
-  const validateName = (id) => (value) => {
-    if (!value) return "Name is required.";
-    if (value.length > 100) return "Name must be at most 100 characters.";
-    if (shownColumns.some((c) => c.id !== id && c.name.toLowerCase() === value.toLowerCase())) return "Another column already has this name.";
-    return null;
+
+  // configuring the columns (R16): the backend checks every rule again, `columnRules` only hides what it would refuse
+  const canConfigure = writable && can(project, PERMISSIONS.CONFIGURE_BOARD);
+  const wipEnabled = Boolean(data.board.wipLimitsEnabled);
+  const rulesFor = (columnId) => columnRules(columns, columnId, { kanban: !scrum, wipEnabled });
+  const dialogColumn = columnDialog?.columnId != null ? board.find((column) => column.id === columnDialog.columnId) : null;
+  // every task in a column, not only the ones on screen (a Scrum board shows only the sprint's). From the loaded task
+  // list, which follows each drag at once; the board's `taskCount` is from the last load and goes stale after a move
+  const columnTaskCount = (columnId) => allTasks.filter((task) => task.statusId === columnId).length;
+  const closeColumnDialog = () => setColumnDialog(null);
+  const columnSaved = () => {
+    setColumnDialog(null);
+    reload();
   };
-  const validateWip = (value) => (/^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 999 ? null : "Enter a whole number from 1 to 999.");
+  // the menu's one-click changes (move, remove the limit): saved, then the board reloads; a refusal shows its reason
+  const changeColumns = async (action, fallback) => {
+    try {
+      await action();
+      reload();
+    } catch (err) {
+      setNotice({ severity: "error", text: errorMessage(err, fallback, COLUMN_ERROR_MESSAGES) });
+    }
+  };
+  const moveColumn = (id, step) =>
+    changeColumns(() => reorderBoardColumns(project.id, moveColumnId(columns, id, step)), "Couldn't move the column. Please try again.");
+  const clearWip = (id) =>
+    changeColumns(() => updateBoardColumn(project.id, id, { clearWipLimit: true }), "Couldn't remove the limit. Please try again.");
+  const columnDeleted = (target) => {
+    const count = dialogColumn ? columnTaskCount(dialogColumn.id) : 0;
+    const moved = target ? ` Its ${count === 1 ? "task" : `${count} tasks`} moved to ${target.name}.` : "";
+    setNotice({ severity: "success", text: `Column deleted.${moved}` });
+    columnSaved();
+  };
 
   const lookup = (taskId) => tasks.find((task) => task.id === taskId);
   const columnTasks = (statusId) => board.find((column) => column.id === statusId).tasks;
+
+  // a WIP limit never blocks a move: a saved task with a `wipWarning` moved into a column that is now over its limit
+  const warnOverWip = (saved) => {
+    const warning = saved?.wipWarning;
+    if (!warning) return;
+    const name = columns.find((column) => column.id === warning.columnId)?.name;
+    setNotice({
+      severity: "warning",
+      text: name ? `${name} is over its WIP limit (${warning.count} / ${warning.limit}). The task was still moved.` : warning.message,
+    });
+  };
 
   // move = { taskId, statusId, afterTaskId (null = first in the column) }
   const applyMove = async (move) => {
     const before = allTasks;
     // only the moved task gets a new object (and its new stage); the other cards keep theirs and skip re-rendering
-    const moved = boardMove(allTasks, shownColumns, move).map((task) =>
+    const moved = boardMove(allTasks, columns, move).map((task) =>
       task.id === move.taskId ? { ...task, stage: taskStage(task.statusId, columns) } : task,
     );
     setOptimistic({ source: data, tasks: moved });
     try {
-      await moveOnBoard(project.id, move.taskId, move);
+      warnOverWip(await moveOnBoard(project.id, move.taskId, move));
     } catch (err) {
       setOptimistic({ source: data, tasks: before });
       setNotice({ severity: "error", text: errorMessage(err, "Couldn't move the task. Please try again.", TASK_ERROR_MESSAGES) });
@@ -232,7 +263,7 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, o
         filters={filters}
         onChange={onFiltersChange}
         members={members}
-        columns={shownColumns}
+        columns={columns}
         labels={projectLabels(allTasks)}
         match={match}
         shown={visible.length}
@@ -271,6 +302,7 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, o
               key={column.id}
               column={column}
               total={board[index].tasks.length}
+              showWip={wipEnabled}
               highlight={Boolean(dragging) && overStatusId === column.id && dragging.fromStatusId !== column.id}
               emptyText={
                 match.matches && board[index].tasks.length > 0
@@ -280,20 +312,19 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, o
                     : "No tasks"
               }
               menu={
-                  canEditColumns && (
-                      <ColumnMenu
-                          column={column}
-                          kanban={!scrum}
-                          canMoveLeft={index > 0}
-                          canMoveRight={index < board.length - 1}
-                          onRename={() => setColumnDialog({ type: "rename", columnId: column.id })}
-                          onMoveLeft={() => moveColumn(column.id, -1)}
-                          onMoveRight={() => moveColumn(column.id, 1)}
-                          onEditWip={() => setColumnDialog({ type: "wip", columnId: column.id })}
-                          onClearWip={() => setWip(column.id, null)}
-                          onDelete={() => removeColumn(column.id)}
-                      />
-                  )
+                canConfigure && (
+                  <ColumnMenu
+                    // the unfiltered column: a filter can hide its tasks, not change what it holds
+                    column={board[index]}
+                    rules={rulesFor(column.id)}
+                    onEdit={() => setColumnDialog({ type: "edit", columnId: column.id })}
+                    onMoveLeft={() => moveColumn(column.id, -1)}
+                    onMoveRight={() => moveColumn(column.id, 1)}
+                    onEditWip={() => setColumnDialog({ type: "wip", columnId: column.id })}
+                    onClearWip={() => clearWip(column.id)}
+                    onDelete={() => setColumnDialog({ type: "delete", columnId: column.id })}
+                  />
+                )
               }
             >
               {column.tasks.map((task) => (
@@ -301,6 +332,9 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, o
               ))}
             </BoardColumn>
           ))}
+          {canConfigure && (
+            <AddColumnButton full={columns.length >= MAX_COLUMNS} onClick={() => setColumnDialog({ type: "add", columnId: null })} />
+          )}
         </Box>
 
         {/* the card that follows the pointer while dragging */}
@@ -316,7 +350,10 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, o
           labels={projectLabels(allTasks)}
           canEdit={writable && can(project, PERMISSIONS.EDIT_TASKS)}
           onClose={() => setOpenTaskId(null)}
-          onChanged={reload}
+          onChanged={(saved) => {
+            reload();
+            warnOverWip(saved);
+          }}
         />
       )}
 
@@ -331,27 +368,43 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, o
         />
       )}
 
-      {dialogColumn && columnDialog.type === "rename" && (
-          <ColumnFieldDialog
-              title="Rename column"
-              label="Column name"
-              initialValue={dialogColumn.name}
-              validate={validateName(dialogColumn.id)}
-              onSubmit={(name) => renameColumn(dialogColumn.id, name)}
-              onClose={() => setColumnDialog(null)}
-          />
+      {columnDialog?.type === "add" && (
+        <ColumnDialog projectId={project.id} columns={columns} onSaved={columnSaved} onClose={closeColumnDialog} />
+      )}
+      {dialogColumn && columnDialog.type === "edit" && (
+        <ColumnDialog
+          projectId={project.id}
+          column={dialogColumn}
+          columns={columns}
+          rules={rulesFor(dialogColumn.id)}
+          onSaved={columnSaved}
+          onClose={closeColumnDialog}
+        />
       )}
       {dialogColumn && columnDialog.type === "wip" && (
-          <ColumnFieldDialog
-              title="Work-in-progress limit"
-              label="Max tasks in this column"
-              type="number"
-              initialValue={dialogColumn.wipLimit ?? ""}
-              helperText="The column turns red when it holds more tasks than this."
-              validate={validateWip}
-              onSubmit={(limit) => setWip(dialogColumn.id, Number(limit))}
-              onClose={() => setColumnDialog(null)}
-          />
+        <ColumnFieldDialog
+          title={`WIP limit for ${dialogColumn.name}`}
+          label="Max tasks in this column"
+          type="number"
+          initialValue={dialogColumn.wipLimit ?? ""}
+          helperText="Moves past it still work; the column turns red while it holds more tasks than this."
+          validate={validateWipLimit}
+          onSubmit={async (limit) => {
+            await updateBoardColumn(project.id, dialogColumn.id, { wipLimit: Number(limit) });
+            reload();
+          }}
+          onClose={closeColumnDialog}
+        />
+      )}
+      {dialogColumn && columnDialog.type === "delete" && (
+        <DeleteColumnDialog
+          projectId={project.id}
+          column={dialogColumn}
+          columns={columns}
+          count={columnTaskCount(dialogColumn.id)}
+          onDeleted={columnDeleted}
+          onClose={closeColumnDialog}
+        />
       )}
       <Snackbar
         open={Boolean(notice)}
