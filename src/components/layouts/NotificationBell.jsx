@@ -1,143 +1,256 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { IconButton, Badge, Menu, MenuItem, Typography, Box, Button, Divider } from "@mui/material";
-import NotificationsIcon from "@mui/icons-material/Notifications";
+import {
+  Alert, Badge, Box, Button, CircularProgress, Divider, IconButton, List, ListItemButton, Popover, Typography,
+} from "@mui/material";
+import { NotificationsNoneOutlined } from "@mui/icons-material";
+import LoadState from "../general/LoadState";
+import { listNotifications, markAllRead, openNotification } from "../../api/notificationsApi";
+import { useWorkspaces } from "../../context/WorkspaceContext";
 import { useNotificationStream } from "../../hooks/useNotificationStream";
-import notificationsApi from "../../api/notificationsApi";
+import { useSubmit } from "../../hooks/useSubmit";
+import { errorCode, errorMessage, isAbort } from "../../utils/apiError";
+import { timeAgo } from "../../utils/format";
+import { mergeNotifications, notificationTargetPath, notificationWhere } from "../../utils/notification";
 
+const PAGE_SIZE = 10;
+// failedMore: the error is from "Load more" (retry that) rather than from loading page 0
+const EMPTY_FEED = { items: [], page: 0, totalPages: 0, loading: false, loadingMore: false, error: "", failedMore: false };
+
+// The top bar's bell (notifications-docs.md §12): the unread count stays live through the stream; the list loads
+// when it opens, newest first, with "Load more". One bell for every workspace, so each item says where it's from.
 const NotificationBell = () => {
-    const { unreadCount, latestNotification } = useNotificationStream();
-    const [anchorEl, setAnchorEl] = useState(null);
-    const [notifications, setNotifications] = useState([]);
-    const [prevNotification, setPrevNotification] = useState(null);
-    const navigate = useNavigate();
+  const { unreadCount, setUnreadCount, latest, connection } = useNotificationStream();
+  const { workspaces } = useWorkspaces();
+  const navigate = useNavigate();
+  const [anchor, setAnchor] = useState(null);
+  const [feed, setFeed] = useState(EMPTY_FEED);
+  const [reloadCount, setReloadCount] = useState(0);
+  const [opening, setOpening] = useState(null); // the id being opened
+  const [itemErrors, setItemErrors] = useState({}); // id -> text, e.g. for a deleted task
+  const [seen, setSeen] = useState(latest);
+  const markAll = useSubmit();
+  const open = Boolean(anchor);
 
-    const isOpen = Boolean(anchorEl);
+  // a pushed notification goes on top (adjusting state while rendering, so it lands in the same render)
+  if (latest !== seen) {
+    setSeen(latest);
+    if (latest) setFeed((prev) => ({ ...prev, items: mergeNotifications([latest], prev.items) }));
+  }
 
-    // Синхронизация нового уведомления из стрима прямо во время рендера (без useEffect)
-    if (latestNotification && latestNotification !== prevNotification) {
-        setPrevNotification(latestNotification);
-        setNotifications((prev) => [
-            latestNotification,
-            ...prev.filter((n) => n.id !== latestNotification.id),
-        ]);
+  // page 0 on open, and again after the stream reconnects while open (it doesn't replay what it missed)
+  useEffect(() => {
+    if (!open) return undefined;
+    const controller = new AbortController();
+    listNotifications({ page: 0, size: PAGE_SIZE }, controller.signal)
+      .then((data) =>
+        setFeed((prev) => ({
+          ...prev,
+          items: data.content,
+          page: data.page,
+          totalPages: data.totalPages,
+          loading: false,
+          error: "",
+        })),
+      )
+      .catch((err) => {
+        if (!isAbort(err)) {
+          setFeed((prev) => ({ ...prev, loading: false, error: errorMessage(err), failedMore: false }));
+        }
+      });
+    return () => controller.abort();
+  }, [open, connection, reloadCount]);
+
+  const handleOpen = (e) => {
+    setAnchor(e.currentTarget);
+    setItemErrors({});
+    markAll.clearError();
+    setFeed((prev) => ({ ...prev, loading: true, error: "" }));
+  };
+
+  const retry = () => {
+    setFeed((prev) => ({ ...prev, loading: true, error: "" }));
+    setReloadCount((n) => n + 1);
+  };
+
+  const loadMore = async () => {
+    setFeed((prev) => ({ ...prev, loadingMore: true, error: "" }));
+    try {
+      const data = await listNotifications({ page: feed.page + 1, size: PAGE_SIZE });
+      // the loaded items first: they carry what was marked read here
+      setFeed((prev) => ({
+        ...prev,
+        items: mergeNotifications(prev.items, data.content),
+        page: data.page,
+        totalPages: data.totalPages,
+        loadingMore: false,
+      }));
+    } catch (err) {
+      setFeed((prev) => ({ ...prev, loadingMore: false, error: errorMessage(err), failedMore: true }));
     }
+  };
 
-    useEffect(() => {
-        if (isOpen) {
-            const controller = new AbortController();
-            notificationsApi
-                .getNotifications({ page: 0, size: 20 }, controller.signal)
-                .then((data) => setNotifications(data.content))
-                .catch(() => {});
-            return () => controller.abort();
-        }
-    }, [isOpen]);
+  const markRead = (id) =>
+    setFeed((prev) => ({ ...prev, items: prev.items.map((n) => (n.id === id ? { ...n, read: true } : n)) }));
 
-    const handleOpenMenu = (event) => setAnchorEl(event.currentTarget);
-    const handleCloseMenu = () => setAnchorEl(null);
+  // "open" marks it read on the backend and says where to go; the stream then sends the new count
+  const handleClick = async (notification) => {
+    setOpening(notification.id);
+    setItemErrors((prev) => ({ ...prev, [notification.id]: "" }));
+    try {
+      const target = await openNotification(notification.id);
+      markRead(notification.id);
+      const path = notificationTargetPath(target, workspaces);
+      // NONE (an invitation or a security notice): nothing to open, it just turns read
+      if (path) {
+        setAnchor(null);
+        navigate(path);
+      }
+    } catch (err) {
+      // the task or project is gone or no longer visible; the backend still marked it read
+      const gone = errorCode(err) === "RESOURCE_NOT_FOUND";
+      if (gone) markRead(notification.id);
+      const text = gone ? "This item is no longer available." : errorMessage(err);
+      setItemErrors((prev) => ({ ...prev, [notification.id]: text }));
+    } finally {
+      setOpening(null);
+    }
+  };
 
-    const handleOpenNotification = async (notification) => {
-        try {
-            const target = await notificationsApi.openNotification(notification.id);
+  const handleMarkAll = async () => {
+    const { ok, result } = await markAll.run(() => markAllRead());
+    if (!ok) return;
+    setUnreadCount(result.count);
+    setFeed((prev) => ({ ...prev, items: prev.items.map((n) => ({ ...n, read: true })) }));
+  };
 
-            setNotifications((prev) =>
-                prev.map((n) => (n.id === notification.id ? { ...n, read: true, readAt: new Date().toISOString() } : n))
-            );
+  const hasMore = feed.page < feed.totalPages - 1;
 
-            handleCloseMenu();
+  return (
+    <>
+      <IconButton
+        aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : "Notifications"}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        color="inherit"
+        onClick={handleOpen}
+      >
+        <Badge badgeContent={unreadCount} max={99} color="error">
+          <NotificationsNoneOutlined />
+        </Badge>
+      </IconButton>
 
-            if (target.kind === "TASK" && target.projectId && target.taskId) {
-                navigate(`/projects/${target.projectId}/tasks/${target.taskKey}`);
-            } else if (target.kind === "PROJECT" && target.projectId) {
-                navigate(`/projects/${target.projectId}`);
-            }
-        } catch (err) {
-            handleCloseMenu();
-            if (err?.response?.status === 404) {
-                navigate("/404");
-            }
-        }
-    };
+      <Popover
+        open={open}
+        anchorEl={anchor}
+        onClose={() => setAnchor(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+        slotProps={{
+          paper: {
+            sx: {
+              mt: 1,
+              width: { xs: "calc(100vw - 32px)", sm: 380 },
+              maxHeight: 480,
+              display: "flex",
+              flexDirection: "column",
+            },
+          },
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 2, py: 1.5 }}>
+          <Typography component="h2" sx={{ fontWeight: 700 }}>
+            Notifications
+          </Typography>
+          <Button size="small" onClick={handleMarkAll} disabled={!unreadCount || markAll.submitting}>
+            Mark all as read
+          </Button>
+        </Box>
+        <Divider />
 
-    const handleMarkAllRead = async () => {
-        try {
-            await notificationsApi.markAllAsRead();
-            setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-        } catch (err) {
-            console.error("Failed to mark all as read", err);
-        }
-    };
+        {markAll.error && (
+          <Alert severity="error" onClose={markAll.clearError} sx={{ m: 1.5 }}>
+            {markAll.error}
+          </Alert>
+        )}
 
-    return (
-        <>
-            <IconButton color="inherit" onClick={handleOpenMenu}>
-                <Badge badgeContent={unreadCount > 99 ? "99+" : unreadCount} color="error">
-                    <NotificationsIcon />
-                </Badge>
-            </IconButton>
-
-            <Menu
-                anchorEl={anchorEl}
-                open={isOpen}
-                onClose={handleCloseMenu}
-                slotProps={{
-                    paper: {
-                        sx: { width: 360, maxHeight: 440 },
-                    },
-                }}
-                transformOrigin={{ horizontal: "right", vertical: "top" }}
-                anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-            >
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", px: 2, py: 1.5 }}>
-                    <Typography variant="subtitle1" fontWeight="bold">
-                        Notifications
+        <Box sx={{ overflowY: "auto" }}>
+          <LoadState
+            loading={feed.loading && feed.items.length === 0}
+            error={feed.items.length === 0 ? feed.error : ""}
+            onRetry={retry}
+            isEmpty={feed.items.length === 0}
+            emptyMessage="You're all caught up."
+            rows={3}
+          >
+            <List disablePadding>
+              {feed.items.map((n) => {
+                const where = notificationWhere(n);
+                return (
+                  <ListItemButton
+                    key={n.id}
+                    onClick={() => handleClick(n)}
+                    disabled={opening === n.id}
+                    divider
+                    sx={{
+                      display: "block",
+                      py: 1.25,
+                      bgcolor: n.read ? "transparent" : "navActive.background",
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ fontWeight: n.read ? 400 : 600 }}>
+                      {n.message}
                     </Typography>
-                    <Button size="small" onClick={handleMarkAllRead} sx={{ textTransform: "none" }}>
-                        Mark all as read
-                    </Button>
-                </Box>
-                <Divider />
+                    {n.excerpt && (
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontStyle: "italic" }}>
+                        “{n.excerpt}”
+                      </Typography>
+                    )}
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                      {[where, timeAgo(n.createdAt)].filter(Boolean).join(" · ")}
+                    </Typography>
+                    {itemErrors[n.id] && (
+                      <Typography variant="caption" color="error" sx={{ display: "block", mt: 0.5 }}>
+                        {itemErrors[n.id]}
+                      </Typography>
+                    )}
+                  </ListItemButton>
+                );
+              })}
+            </List>
 
-                {notifications.length === 0 ? (
-                    <MenuItem disabled sx={{ py: 3, justifyContent: "center" }}>
-                        <Typography variant="body2" color="text.secondary">
-                            No notifications
-                        </Typography>
-                    </MenuItem>
-                ) : (
-                    notifications.map((n) => (
-                        <MenuItem
-                            key={n.id}
-                            onClick={() => handleOpenNotification(n)}
-                            sx={{
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: "flex-start",
-                                backgroundColor: n.read ? "transparent" : "action.hover",
-                                borderBottom: 1,
-                                borderColor: "divider",
-                                whiteSpace: "normal",
-                                py: 1.5,
-                            }}
-                        >
-                            <Typography variant="body2" sx={{ fontWeight: n.read ? 400 : 600 }}>
-                                {n.message}
-                            </Typography>
-                            {n.excerpt && (
-                                <Typography variant="caption" color="text.secondary" sx={{ fontStyle: "italic", mt: 0.5 }}>
-                                    "{n.excerpt}"
-                                </Typography>
-                            )}
-                            <Typography variant="caption" color="text.disabled" sx={{ mt: 1 }}>
-                                {new Date(n.createdAt).toLocaleString()}
-                            </Typography>
-                        </MenuItem>
-                    ))
-                )}
-            </Menu>
-        </>
-    );
+            {/* a failed "Load more" or reload, with the list still showing */}
+            {feed.error && (
+              <Alert
+                severity="error"
+                sx={{ m: 1.5 }}
+                action={
+                  <Button color="inherit" size="small" onClick={feed.failedMore ? loadMore : retry}>
+                    Try again
+                  </Button>
+                }
+              >
+                {feed.error}
+              </Alert>
+            )}
+
+            {hasMore && !feed.error && (
+              <Box sx={{ display: "flex", justifyContent: "center", py: 1 }}>
+                <Button
+                  size="small"
+                  onClick={loadMore}
+                  disabled={feed.loadingMore}
+                  startIcon={feed.loadingMore ? <CircularProgress size={14} color="inherit" /> : null}
+                >
+                  Load more
+                </Button>
+              </Box>
+            )}
+          </LoadState>
+        </Box>
+      </Popover>
+    </>
+  );
 };
 
 export default NotificationBell;
