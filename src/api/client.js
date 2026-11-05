@@ -10,6 +10,15 @@ export const AUTH_EXPIRED_EVENT = "auth:session-expired";
 const AUTH_PATHS = ["/auth/login", "/auth/register", "/auth/refresh"];
 let refreshPromise = null;
 
+// refresh tokens are single use, so everything that refreshes (this interceptor, the notification stream)
+// shares one request: a second, parallel refresh would send the already rotated token and fail
+export const refreshSession = () => {
+  refreshPromise ??= api.post("/auth/refresh").finally(() => {
+    refreshPromise = null;
+  });
+  return refreshPromise;
+};
+
 // Add a response interceptor to handle 401 errors and refresh the token
 api.interceptors.response.use(
   (res) => res,
@@ -26,10 +35,7 @@ api.interceptors.response.use(
 
     try {
       // share one refresh between all requests that failed at the same time
-      refreshPromise ??= api.post("/auth/refresh").finally(() => {
-        refreshPromise = null;
-      });
-      await refreshPromise;
+      await refreshSession();
       return api(config); // retry the original request
     } catch (refreshErr) {
       // AuthProvider clears the user and ProtectedRoute redirects with state.from,

@@ -12,6 +12,7 @@ Short summaries of the backend API contracts, for whoever works on the frontend 
 | [tasks.md](tasks.md) | tasks and the board (real), sprints (**assumed**: not in the backend yet) | `tasks-docs.md`, `projects-docs.md` §3.8 |
 | [audit-log.md](audit-log.md) | the workspace audit log (admins only, read-only) | `audit-log-docs.md` |
 | [search.md](search.md) | universal search (top bar and `/search` page) | `search-docs.md` |
+| [notifications.md](notifications.md) | the bell, its live stream, preferences, watching a task | `notifications-docs.md` |
 
 Auth (`/auth/**`, cookies, refresh) is summarized in [CLAUDE.md](../CLAUDE.md); full details are in `sprintory_backend/docs/auth-endpoints.md`.
 
@@ -76,4 +77,5 @@ Where the frontend is behind these contracts. Fix them, then update this table.
 | Board columns (R16) are built against backend branch `features/board-columns-wip` (PR #18, not merged into the backend's `main` yet). A non-member workspace admin can't configure columns from the Board tab (it needs `VIEW_WORK` to load) | [tasks.md](tasks.md#configuring-columns-real-r16-backend-docsboard-docsmd) | [BoardTab](../src/components/board/BoardTab.jsx) |
 | Archive / restore / delete a project, project `status` / `createdAt`, and the Archived tab are built against **assumed** endpoints the backend doesn't have yet (R30) | [projects.md](projects.md#assumed-by-the-frontend-not-in-the-backend-yet) | the `ASSUMED` block in [projectsApi.js](../src/api/projectsApi.js) |
 | The "Recent activity" cards on the workspace and project overviews still show sample data; they could read the first entries of the audit log (admins only) | [audit-log.md](audit-log.md) | [RecentActivity](../src/components/workspace/RecentActivity.jsx), [RecentActivityCard](../src/components/projects/overview/RecentActivityCard.jsx) |
+| Notifications: no full notifications page (the bell has "Load more" only) and no workspace filter; no watch toggle in the task drawer. Comment, mention and sprint notifications appear once those features ship in the backend | [notifications.md](notifications.md) | [NotificationBell](../src/components/layouts/NotificationBell.jsx), [TaskDrawer](../src/components/tasks/TaskDrawer.jsx) |
 | No UI for removing a workspace member or leaving a workspace (changing the workspace role is done: the Members page) | [roles.md](roles.md#endpoints) | `workspacesApi.js`, [WorkspaceMembersPage](../src/pages/workspace/WorkspaceMembersPage.jsx) |

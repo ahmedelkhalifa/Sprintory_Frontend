@@ -1,8 +1,10 @@
 import { Stack, Typography } from "@mui/material";
 import PageLayout from "../../components/layouts/PageLayout";
 import AppearanceSettings from "../../components/settings/AppearanceSettings";
+import NotificationPreferences from "../../components/settings/NotificationPreferences";
 
-// /settings: the user's own preferences (for now only the color mode)
+// /settings: the user's own preferences (color mode and notifications).
+// Every notification email links here (the backend's app.notifications.preferences-path).
 const SettingsPage = () => (
   <PageLayout>
     <Typography component="h1" variant="h4" sx={{ fontWeight: 800, letterSpacing: "-0.04em" }}>
@@ -13,6 +15,7 @@ const SettingsPage = () => (
     </Typography>
     <Stack spacing={2.5}>
       <AppearanceSettings />
+      <NotificationPreferences />
     </Stack>
   </PageLayout>
 );

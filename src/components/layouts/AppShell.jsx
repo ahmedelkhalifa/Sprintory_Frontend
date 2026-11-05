@@ -2,15 +2,14 @@ import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { alpha } from "@mui/material/styles";
 import {
-  AppBar, Avatar, Badge, Box, ButtonBase, Divider, Drawer, IconButton,
+  AppBar, Avatar, Box, ButtonBase, Divider, Drawer, IconButton,
   List, ListItemButton, ListItemIcon, ListItemText,
   Menu, MenuItem, Toolbar, Typography,
 } from "@mui/material";
 import {
   HomeOutlined, FolderOpenOutlined, HistoryOutlined, ViewColumnOutlined,
   TimerOutlined, BarChartOutlined, GroupOutlined, SettingsOutlined,
-  NotificationsNoneOutlined, KeyboardArrowDown,
-  LogoutOutlined, Menu as MenuIcon,
+  KeyboardArrowDown, LogoutOutlined, Menu as MenuIcon,
 } from "@mui/icons-material";
 import Logo from "../general/Logo";
 import GlobalSearch from "../search/GlobalSearch";
@@ -18,6 +17,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useWorkspaces } from "../../context/WorkspaceContext";
 import { initials } from "../../utils/people";
 import { isWorkspaceAdmin, workspacePath } from "../../utils/workspace";
+import NotificationBell from "./NotificationBell";
 import WorkspaceSwitcher from "./WorkspaceSwitcher";
 
 const DRAWER_WIDTH = 256;
@@ -162,11 +162,7 @@ const AppShell = () => {
 
           <Box sx={{ flexGrow: 1 }} />
 
-          <IconButton aria-label="Notifications" color="inherit">
-            <Badge variant="dot" color="error">
-              <NotificationsNoneOutlined />
-            </Badge>
-          </IconButton>
+          <NotificationBell />
 
           <Divider
             orientation="vertical"

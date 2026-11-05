@@ -32,6 +32,8 @@ import TaskTitleField from "../../components/tasks/TaskTitleField";
 import TaskValueSelect from "../../components/tasks/TaskValueSelect";
 import SubtaskList from "../../components/tasks/subtasks/SubtaskList";
 import SubtaskView from "../../components/tasks/subtasks/SubtaskView";
+import TaskWatchToggle from "../../components/tasks/TaskWatchToggle";
+import { columnOptions } from "../../components/tasks/columnOptions";
 import { loadWork } from "../../components/tasks/loadWork";
 import { deleteTask, getTask, updateTask } from "../../api/tasksApi";
 import { useAsync } from "../../hooks/useAsync";
@@ -264,6 +266,8 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
               onChange={(statusId) => saveFields({ statusId })}
             />
             <Box sx={{ flexGrow: 1 }} />
+            {/* a personal setting, so also for viewers and archived projects */}
+            <TaskWatchToggle projectId={project.id} taskId={task.id} />
             {canEdit && (
               <>
                 <IconButton aria-label="More actions" onClick={(e) => setMenu(e.currentTarget)}>
