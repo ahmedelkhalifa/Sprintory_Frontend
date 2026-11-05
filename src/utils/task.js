@@ -80,11 +80,20 @@ export const movePermission = (fromSprintId, toSprintId) =>
 export const canMoveTask = (project, fromSprintId, toSprintId) =>
   can(project, movePermission(fromSprintId, toSprintId));
 
-// a task's stage from its column: the first column is "to do", the last "done", the rest "in progress"
-export const taskStage = (statusId, columns) => {
-  if (columns.length > 0 && statusId === columns[columns.length - 1].id) return "DONE";
-  if (columns.length > 0 && statusId === columns[0].id) return "TODO";
+// a column's category (TODO / IN_PROGRESS / DONE). A backend from before R16 sends none: then the first column
+// is "to do", the last "done" and the rest "in progress"
+export const columnCategory = (column, columns) => {
+  if (column.category) return column.category;
+  const index = columns.findIndex((c) => c.id === column.id);
+  if (index === columns.length - 1) return "DONE";
+  if (index === 0) return "TODO";
   return "IN_PROGRESS";
+};
+
+// a task's stage is its column's category
+export const taskStage = (statusId, columns) => {
+  const column = columns.find((c) => c.id === statusId);
+  return column ? columnCategory(column, columns) : "IN_PROGRESS";
 };
 
 // adds what the screens show but the task response only refers to: the assignee (from the member list) and the stage

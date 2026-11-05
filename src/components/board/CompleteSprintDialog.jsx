@@ -4,7 +4,7 @@ import FormField from "../forms/FormField";
 import { completeSprint } from "../../api/sprintsApi";
 import { useSubmit } from "../../hooks/useSubmit";
 import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
-import { sprintProgress } from "../../utils/board";
+import { doneColumnIds, sprintProgress } from "../../utils/board";
 
 const plural = (count, noun) => `${count} ${noun}${count === 1 ? "" : "s"}`;
 
@@ -19,13 +19,14 @@ const Count = ({ value, label, tone }) => (
 );
 
 // "Complete sprint" window: how much got done, and where the unfinished work goes (the backlog, a planned sprint,
-// or a new sprint). Done means the board's last column; done tasks stay with the completed sprint.
+// or a new sprint). Done means a column of category DONE; done tasks stay with the completed sprint.
 const CompleteSprintDialog = ({ sprint, tasks, columns, plannedSprints, onClose, onCompleted }) => {
   const [target, setTarget] = useState("backlog"); // "backlog" | "new" | a planned sprint's id
   const submit = useSubmit(TASK_ERROR_MESSAGES);
   const { doneCount, totalCount } = sprintProgress(tasks, columns);
   const unfinished = totalCount - doneCount;
-  const doneColumn = columns.at(-1)?.name ?? "Done";
+  const doneIds = doneColumnIds(columns);
+  const doneColumn = columns.filter((column) => doneIds.has(column.id)).map((column) => column.name).join(" or ") || "Done";
 
   const handleSubmit = async (e) => {
     e.preventDefault();

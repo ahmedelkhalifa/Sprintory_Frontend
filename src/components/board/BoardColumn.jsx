@@ -12,12 +12,15 @@ export const COLUMN_WIDTH = 280;
 // One board column: its name, how many tasks it holds (against its WIP limit, if it has one), then its cards,
 // which accept dropped tasks. `highlight` marks it as the place a dragged task will land.
 // While filters hide cards, `total` is the column's real task count, so the count and the WIP limit stay true.
-// `menu` is the column's actions button (rename, move, WIP limit, delete), shown in its header.
-const BoardColumn = ({ column, total, highlight, emptyText, menu, children }) => {
+// `showWip`: the board has WIP limits (Kanban); Scrum never shows them. Over the limit the "4 / 3" turns red,
+// the limit never blocks a move.
+// `menu` is the column's actions button (edit, move, WIP limit, delete), shown in its header.
+const BoardColumn = ({ column, total, highlight, emptyText, showWip = false, menu, children }) => {
   const { setNodeRef } = useDroppable({ id: columnListId(column.id), data: { column: true, statusId: column.id } });
   const count = total ?? column.tasks.length;
   const shown = column.tasks.length;
-  const over = overWip(column, count);
+  const limited = showWip && column.wipLimit != null;
+  const over = limited && overWip(column, count);
 
   return (
     <Paper
@@ -37,21 +40,34 @@ const BoardColumn = ({ column, total, highlight, emptyText, menu, children }) =>
         transition: "border-color 0.15s, box-shadow 0.15s",
       })}
     >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 2, py: 1.5, borderBottom: 1, borderColor: "divider" }}>
-            <Typography component="h3" noWrap sx={{ fontWeight: 700, fontSize: 14, flexGrow: 1, textTransform: "uppercase", letterSpacing: 0.3 }}>
-                {column.name}
-            </Typography>
-            {column.wipLimit != null ? (
-                <Tooltip title={over ? `Over the work-in-progress limit of ${column.wipLimit}` : "Tasks / work-in-progress limit"}>
-                    <Box component="span" sx={{ display: "inline-flex" }}>
-                        <ToneChip label={`${count} / ${column.wipLimit}`} tone={over ? "error.main" : "text.secondary"} />
-                    </Box>
-                </Tooltip>
-            ) : (
-                <ToneChip label={count} tone="text.secondary" />
-            )}
-            {menu}
-        </Box>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+          px: 2,
+          py: 1.5,
+          borderBottom: 1,
+          borderColor: "divider",
+          // over its limit, the whole header warns, not just the number
+          bgcolor: over ? (theme) => alpha(theme.palette.error.main, 0.08) : "transparent",
+          transition: "background-color 0.15s",
+        }}
+      >
+        <Typography component="h3" noWrap sx={{ fontWeight: 700, fontSize: 14, flexGrow: 1, textTransform: "uppercase", letterSpacing: 0.3 }}>
+          {column.name}
+        </Typography>
+        {limited ? (
+          <Tooltip title={over ? `Over the work-in-progress limit of ${column.wipLimit}` : "Tasks / work-in-progress limit"}>
+            <Box component="span" sx={{ display: "inline-flex" }}>
+              <ToneChip label={`${count} / ${column.wipLimit}`} tone={over ? "error.main" : "text.secondary"} />
+            </Box>
+          </Tooltip>
+        ) : (
+          <ToneChip label={count} tone="text.secondary" />
+        )}
+        {menu}
+      </Box>
 
       <SortableContext items={column.tasks.map((task) => rowId(task.id))} strategy={verticalListSortingStrategy}>
         <Box ref={setNodeRef} sx={{ display: "flex", flexDirection: "column", gap: 1, p: 1, minHeight: 120, flexGrow: 1 }}>

@@ -77,9 +77,9 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
       onClose();
       return;
     }
-    const { ok, error } = await save.run(() => updateTask(project.id, task.id, changes));
+    const { ok, error, result } = await save.run(() => updateTask(project.id, task.id, changes));
     if (ok) {
-      onChanged();
+      onChanged(result);
       onClose();
       return;
     }
@@ -200,7 +200,8 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
 
 // Side panel with one task's details, opened from a backlog row or a board card. "Open full page" goes to the
 // task's own page. `columns` are the board's (the status choices), `members` the project's (to name the assignee),
-// `labels` the project's labels, suggested in the label picker; `onChanged` runs after a save or delete.
+// `labels` the project's labels, suggested in the label picker; `onChanged` runs after a save (with the saved task,
+// which may carry a `wipWarning`) or a delete (with nothing).
 const TaskDrawer = ({ project, taskId, columns, members, labels, canEdit, onClose, onChanged }) => {
   const { workspace } = useWorkspaceAccess();
   const taskState = useAsync((signal) => getTask(project.id, taskId, signal), [project.id, taskId], {

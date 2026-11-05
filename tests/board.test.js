@@ -1,6 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { boardMove, daysLeft, doneColumnId, groupByColumn, overWip, sprintProgress } from "../src/utils/board.js";
+import {
+  boardMove,
+  columnRules,
+  daysLeft,
+  defaultAfterColumnId,
+  doneColumnIds,
+  groupByColumn,
+  moveColumnId,
+  overWip,
+  sprintProgress,
+} from "../src/utils/board.js";
+import { validateBoardColumn, validateWipLimit } from "../src/utils/validation.js";
 
 const COLUMNS = [
   { id: 1, name: "To Do", wipLimit: null },
@@ -12,9 +23,24 @@ const task = (id, statusId, estimate = null) => ({ id, statusId, statusName: COL
 const tasks = () => [task(10, 1, 3), task(11, 1), task(20, 2, 5), task(30, 3, 2)];
 const ids = (list) => list.map((t) => t.id);
 
-test("the last column is the done column", () => {
-  assert.equal(doneColumnId(COLUMNS), 3);
-  assert.equal(doneColumnId([]), null);
+// a Kanban board as the backend sends it (with categories)
+const KANBAN = [
+  { id: 1, name: "Backlog", category: "TODO", wipLimit: null },
+  { id: 2, name: "To Do", category: "TODO", wipLimit: null },
+  { id: 3, name: "In Progress", category: "IN_PROGRESS", wipLimit: 3 },
+  { id: 4, name: "Done", category: "DONE", wipLimit: null },
+];
+const kanban = { kanban: true, wipEnabled: true };
+const scrum = { kanban: false, wipEnabled: false };
+
+test("without categories, the last column is the done column", () => {
+  assert.deepEqual([...doneColumnIds(COLUMNS)], [3]);
+  assert.deepEqual([...doneColumnIds([])], []);
+});
+
+test("with categories, every DONE column is done, wherever it is", () => {
+  const columns = [...KANBAN, { id: 5, name: "Shipped", category: "DONE" }, { id: 6, name: "Ideas", category: "TODO" }];
+  assert.deepEqual([...doneColumnIds(columns)], [4, 5]);
 });
 
 test("groupByColumn keeps the columns' and the tasks' order", () => {
@@ -46,7 +72,7 @@ test("boardMove ignores unknown tasks or columns", () => {
   assert.equal(boardMove(before, COLUMNS, { taskId: 10, statusId: 99 }), before);
 });
 
-test("sprintProgress counts tasks and estimates in the last column as done", () => {
+test("sprintProgress counts tasks and estimates in the done column as done", () => {
   assert.deepEqual(sprintProgress(tasks(), COLUMNS), { doneCount: 1, totalCount: 4, doneEstimate: 2, totalEstimate: 10 });
 });
 
@@ -62,4 +88,73 @@ test("overWip only applies to columns with a limit", () => {
   assert.equal(overWip(COLUMNS[1], 3), true);
   assert.equal(overWip(COLUMNS[1], 2), false);
   assert.equal(overWip(COLUMNS[0], 50), false);
+});
+
+test("columnRules: the Kanban backlog stays first, stays to do, has no limit and can't be deleted", () => {
+  const rules = columnRules(KANBAN, 1, kanban);
+  assert.equal(rules.backlog, true);
+  assert.equal(rules.canMoveLeft, false);
+  assert.equal(rules.canMoveRight, false);
+  assert.equal(rules.canDelete, false);
+  assert.equal(rules.categoryLocked, true);
+  assert.equal(rules.canSetWip, false);
+  // and nothing moves in front of it
+  assert.equal(columnRules(KANBAN, 2, kanban).canMoveLeft, false);
+  assert.equal(columnRules(KANBAN, 3, kanban).canMoveLeft, true);
+});
+
+test("columnRules: the only done column stays and keeps its category; no limit on done", () => {
+  const rules = columnRules(KANBAN, 4, kanban);
+  assert.equal(rules.canDelete, false);
+  assert.match(rules.keepReason, /keep one "Done"/);
+  assert.equal(rules.categoryLocked, true);
+  assert.equal(rules.canSetWip, false);
+  // with a second done column, either one may go
+  const twoDone = [...KANBAN, { id: 5, name: "Shipped", category: "DONE" }];
+  assert.equal(columnRules(twoDone, 4, kanban).canDelete, true);
+  assert.equal(columnRules(twoDone, 4, kanban).categoryLocked, false);
+});
+
+test("columnRules: to do and in progress columns take a WIP limit, only on Kanban", () => {
+  assert.equal(columnRules(KANBAN, 2, kanban).canSetWip, true);
+  assert.equal(columnRules(KANBAN, 3, kanban).canSetWip, true);
+  assert.equal(columnRules(KANBAN, 3, kanban).canDelete, true);
+  assert.equal(columnRules(KANBAN, 3, scrum).canSetWip, false);
+});
+
+test("columnRules: a board keeps at least 2 columns; Scrum's first column moves like any other", () => {
+  const two = [
+    { id: 1, name: "To Do", category: "TODO" },
+    { id: 2, name: "Done", category: "DONE" },
+  ];
+  assert.match(columnRules(two, 1, scrum).keepReason, /at least 2/);
+  assert.equal(columnRules(KANBAN, 1, scrum).backlog, false);
+  assert.equal(columnRules(KANBAN, 1, scrum).canMoveRight, true);
+});
+
+test("defaultAfterColumnId puts a new column right before the first done column", () => {
+  assert.equal(defaultAfterColumnId(KANBAN), 3);
+  assert.equal(defaultAfterColumnId(COLUMNS), 2); // no categories: the last column is done
+  assert.equal(defaultAfterColumnId([]), null);
+});
+
+test("moveColumnId swaps a column with its neighbour and ignores moves off the board", () => {
+  assert.deepEqual(moveColumnId(KANBAN, 3, 1), [1, 2, 4, 3]);
+  assert.deepEqual(moveColumnId(KANBAN, 3, -1), [1, 3, 2, 4]);
+  assert.deepEqual(moveColumnId(KANBAN, 4, 1), [1, 2, 3, 4]);
+});
+
+test("validateBoardColumn: name required, at most 100 characters, unique ignoring case", () => {
+  assert.deepEqual(validateBoardColumn({ name: "In Review" }, KANBAN), {});
+  assert.deepEqual(validateBoardColumn({ name: "  " }, KANBAN), { name: "Column name is required" });
+  assert.deepEqual(validateBoardColumn({ name: "x".repeat(101) }, KANBAN), { name: "Use at most 100 characters" });
+  assert.deepEqual(validateBoardColumn({ name: " in progress " }, KANBAN), { name: "Another column already has this name" });
+  // renaming a column to its own name (another case) is fine
+  assert.deepEqual(validateBoardColumn({ name: "IN PROGRESS" }, KANBAN, 3), {});
+});
+
+test("validateWipLimit refuses 0, negatives, decimals and text", () => {
+  assert.equal(validateWipLimit("3"), "");
+  assert.equal(validateWipLimit(" 12 "), "");
+  for (const bad of ["0", "-1", "2.5", "abc", "", "1000"]) assert.notEqual(validateWipLimit(bad), "", bad);
 });

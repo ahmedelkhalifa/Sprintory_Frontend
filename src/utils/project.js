@@ -1,7 +1,7 @@
 import { PROJECT_ROLES, PROJECT_ROLES_BY_TEMPLATE, ROLE_MESSAGES } from "../constants/projects.js";
 import { parseWorkspaceId, workspacePath } from "./workspace.js";
 
-const ROLE_LABEL = {
+export const PROJECT_ROLE_LABEL = {
   PROJECT_MANAGER: "Project Manager",
   PRODUCT_OWNER: "Product Owner",
   SCRUM_MASTER: "Scrum Master",
@@ -11,7 +11,7 @@ const ROLE_LABEL = {
 
 // MEMBER is one API value with two names: "Developer" in Scrum projects, "Member" in Kanban
 export const projectRoleLabel = (role, template) =>
-  role === "MEMBER" && template === "SCRUM" ? "Developer" : (ROLE_LABEL[role] ?? role);
+  role === "MEMBER" && template === "SCRUM" ? "Developer" : (PROJECT_ROLE_LABEL[role] ?? role);
 
 // the roles a project of this template offers, in picker order; empty for an unknown template
 export const projectRoleOptions = (template) => PROJECT_ROLES_BY_TEMPLATE[template] ?? [];

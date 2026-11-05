@@ -34,7 +34,7 @@ Source: `sprintory_backend/docs/roles-docs.md`, as of 24 Oct 2026. Shared rules 
 | `ARCHIVE_PROJECT` | complete and archive | ✓ | | | | | ✓ |
 | `MANAGE_MEMBERS` | add people or a team, remove people | ✓ | | | | | ✓ |
 | `MANAGE_ROLES` | change members' project roles | ✓ | | | | | ✓ |
-| `CONFIGURE_BOARD` | board columns, WIP limits | ✓ | | | | | |
+| `CONFIGURE_BOARD` | board columns, WIP limits | ✓ | | | | | ✓ |
 | `MANAGE_BACKLOG` | order and prioritize the backlog | | ✓ | | | | |
 | `MANAGE_SPRINTS` | plan, start, close sprints | | | ✓ | | | |
 | `EDIT_TASKS` | create, edit, delete tasks | ✓ | ✓ | ✓ | ✓ | | |
