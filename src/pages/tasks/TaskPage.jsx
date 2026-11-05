@@ -27,6 +27,7 @@ import PageLayout from "../../components/layouts/PageLayout";
 import AssigneePicker from "../../components/tasks/AssigneePicker";
 import NoWorkAccess from "../../components/tasks/NoWorkAccess";
 import TaskValueSelect from "../../components/tasks/TaskValueSelect";
+import TaskWatchToggle from "../../components/tasks/TaskWatchToggle";
 import { columnOptions } from "../../components/tasks/columnOptions";
 import { loadWork } from "../../components/tasks/loadWork";
 import { deleteTask, getTask, updateTask } from "../../api/tasksApi";
@@ -329,6 +330,8 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
               {columnOptions(columns)}
             </TextField>
             <Box sx={{ flexGrow: 1 }} />
+            {/* a personal setting, so also for viewers and archived projects */}
+            <TaskWatchToggle projectId={project.id} taskId={task.id} />
             {canEdit && (
               <>
                 <IconButton aria-label="More actions" onClick={(e) => setMenu(e.currentTarget)}>
