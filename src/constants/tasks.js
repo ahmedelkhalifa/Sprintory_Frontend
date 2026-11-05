@@ -25,11 +25,12 @@ export const TASK_PRIORITIES = {
   LOWEST: { value: "LOWEST", label: "Lowest", Icon: KeyboardDoubleArrowDownIcon, tone: "text.disabled" },
 };
 
-// a task's status is a board column; its stage (first column / in between / last column) picks the chip color
+// a task's status is a board column; its stage is the column's category (R16), which picks the chip color.
+// Also the categories a column can have
 export const TASK_STAGES = {
-  TODO: { value: "TODO", tone: "text.secondary" },
-  IN_PROGRESS: { value: "IN_PROGRESS", tone: "info.main" },
-  DONE: { value: "DONE", tone: "success.main" },
+  TODO: { value: "TODO", label: "To do", tone: "text.secondary" },
+  IN_PROGRESS: { value: "IN_PROGRESS", label: "In progress", tone: "info.main" },
+  DONE: { value: "DONE", label: "Done", tone: "success.main" },
 };
 
 export const SPRINT_STATUS = {
@@ -47,4 +48,10 @@ export const TASK_ERROR_MESSAGES = {
   SPRINT_ALREADY_ACTIVE: "Another sprint is already active. Complete it before starting this one.",
   // the task page asks to confirm instead; elsewhere (board, drawer) this explains the refusal
   OPEN_SUBTASKS_CONFIRMATION_REQUIRED: "This task still has open subtasks. Open the task to move it to Done anyway.",
+};
+
+// the same for changes to the board's columns
+export const COLUMN_ERROR_MESSAGES = {
+  ...TASK_ERROR_MESSAGES,
+  RESOURCE_NOT_FOUND: "This project no longer exists, or you no longer have access to it.",
 };

@@ -94,6 +94,31 @@ export const validateSprint = (values, { requireDates = false } = {}) => {
   });
 };
 
+// board columns (backend board-docs §1): a name of 1–100 characters, unique on the board ignoring case.
+// `columns` are the board's, `columnId` the one being edited (null when adding)
+export const validateBoardColumn = (values, columns, columnId = null) => {
+  const name = (values.name ?? "").trim();
+  const taken = columns.some((column) => column.id !== columnId && column.name.trim().toLowerCase() === name.toLowerCase());
+  return onlyErrors({
+    name: !name
+      ? "Column name is required"
+      : name.length > 100
+        ? "Use at most 100 characters"
+        : taken
+          ? "Another column already has this name"
+          : "",
+  });
+};
+
+// a WIP limit: a whole number of 1 or more (no limit is "Remove WIP limit", not an empty field)
+export const WIP_LIMIT_MAX = 999;
+export const validateWipLimit = (value) => {
+  const text = String(value ?? "").trim();
+  return /^\d+$/.test(text) && Number(text) >= 1 && Number(text) <= WIP_LIMIT_MAX
+    ? ""
+    : `Enter a whole number from 1 to ${WIP_LIMIT_MAX}`;
+};
+
 // Returns { field: message } for every invalid field (empty object = valid)
 export const validateRegister = (values) =>
   onlyErrors({

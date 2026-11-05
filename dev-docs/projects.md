@@ -11,7 +11,8 @@ Source: `sprintory_backend/docs/projects-docs.md` (and `roles-docs.md` §3), as 
 - Each member has one or more project roles ([roles.md](roles.md)). People added to a project, one by one or through a team, get `MEMBER`.
 - Project Managers **and** workspace admins manage membership and settings. A project always keeps at least one Project Manager.
 - Private: anyone else gets `404`. Archived workspace: readable, every change gets `409 WORKSPACE_ARCHIVED`.
-- Not available yet: archiving a project (R30), deleting a single project, editing board columns (R16).
+- Not available yet: archiving a project (R30), deleting a single project. Board columns (R16) are in
+  [tasks.md](tasks.md#configuring-columns-real-r16-backend-docsboard-docsmd).
 
 ## Who can do what
 
@@ -97,7 +98,6 @@ A workspace admin who isn't a project member gets `roles: []`, but `permissions`
 | Story | Adds |
 | --- | --- |
 | R13–R15 | sprints; `activeSprintId` on the board gets a value |
-| R16 | adding, renaming, reordering board columns and WIP limits (`CONFIGURE_BOARD`) |
 | R30 | completing and archiving a project (`ARCHIVE_PROJECT`) |
 
 ### Assumed by the frontend (not in the backend yet)

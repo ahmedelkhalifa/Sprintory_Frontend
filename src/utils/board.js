@@ -1,7 +1,8 @@
-import { insertAfter, sumEstimates } from "./task.js";
+import { columnCategory, insertAfter, sumEstimates } from "./task.js";
 
-// "done" is the board's last column (ASSUMED, dev-docs/tasks.md): the backend's columns carry no done marker
-export const doneColumnId = (columns) => (columns.length > 0 ? columns[columns.length - 1].id : null);
+// the "done" columns: the ones of category DONE (a board can have several)
+export const doneColumnIds = (columns) =>
+  new Set(columns.filter((column) => columnCategory(column, columns) === "DONE").map((column) => column.id));
 
 // the columns in order, each with its tasks in the order given
 export const groupByColumn = (columns, tasks) =>
@@ -27,10 +28,10 @@ export const boardMove = (tasks, columns, { taskId, statusId, afterTaskId = null
   return [...rest.slice(0, lastEarlier + 1), moved, ...rest.slice(lastEarlier + 1)];
 };
 
-// how far a sprint is: tasks and estimate points, done (in the last column) and in total
+// how far a sprint is: tasks and estimate points, done (in a DONE column) and in total
 export const sprintProgress = (tasks, columns) => {
-  const doneId = doneColumnId(columns);
-  const done = tasks.filter((task) => task.statusId === doneId);
+  const doneIds = doneColumnIds(columns);
+  const done = tasks.filter((task) => doneIds.has(task.statusId));
   return {
     doneCount: done.length,
     totalCount: tasks.length,
@@ -50,28 +51,51 @@ export const daysLeft = (endDate, today = new Date()) => {
 
 // a column over its work-in-progress limit (Kanban); no limit is never over
 export const overWip = (column, count) => column.wipLimit != null && count > column.wipLimit;
-// ----- column editing (UI only: the backend has no endpoints for it yet) -----
 
-// the local edits laid over the loaded columns: names, WIP limits (null = no limit), custom order, removed columns
-export const NO_COLUMN_EDITS = { order: null, names: {}, wip: {}, removed: [] };
+// ----- configuring the columns (R16, backend docs/board-docs.md) -----
 
-export const applyColumnEdits = (columns, edits) => {
-  const shown = columns
-      .filter((column) => !edits.removed.includes(column.id))
-      .map((column) => ({
-        ...column,
-        name: edits.names[column.id] ?? column.name,
-        wipLimit: column.id in edits.wip ? edits.wip[column.id] : column.wipLimit,
-      }));
-  if (!edits.order) return shown;
-  const rank = (column) => {
-    const index = edits.order.indexOf(column.id);
-    return index === -1 ? edits.order.length : index;
+export const MIN_COLUMNS = 2;
+export const MAX_COLUMNS = 10;
+
+const CATEGORY_NAME = { TODO: "To do", DONE: "Done" };
+
+/**
+ * What the board's settings allow for one column; the backend refuses the rest with a message.
+ * `kanban`: the first column is the backlog, which stays first, stays "to do", has no WIP limit and can't be deleted.
+ * A board always keeps one "to do" and one "done" column, so the last of either keeps its category and stays.
+ * WIP limits (`wipEnabled`, Kanban only) never go on the backlog or a "done" column.
+ */
+export const columnRules = (columns, columnId, { kanban, wipEnabled }) => {
+  const index = columns.findIndex((column) => column.id === columnId);
+  const category = columnCategory(columns[index], columns);
+  const backlog = kanban && index === 0;
+  const onlyOfCategory =
+    category in CATEGORY_NAME && columns.filter((column) => columnCategory(column, columns) === category).length === 1;
+
+  let keepReason = null; // why it can't be deleted
+  if (backlog) keepReason = "The backlog always stays";
+  else if (columns.length <= MIN_COLUMNS) keepReason = `A board needs at least ${MIN_COLUMNS} columns`;
+  else if (onlyOfCategory) keepReason = `A board must keep one "${CATEGORY_NAME[category]}" column`;
+
+  return {
+    backlog,
+    // nothing goes in front of the Kanban backlog
+    canMoveLeft: !backlog && index > (kanban ? 1 : 0),
+    canMoveRight: !backlog && index < columns.length - 1,
+    canDelete: keepReason === null,
+    keepReason,
+    categoryLocked: backlog || onlyOfCategory,
+    canSetWip: wipEnabled && !backlog && category !== "DONE",
   };
-  return [...shown].sort((a, b) => rank(a) - rank(b));
 };
 
-// the column ids with `columnId` moved by `step` places (-1 = left, 1 = right)
+// where a new column goes unless the user picks: right before the first "done" column (so after In Progress)
+export const defaultAfterColumnId = (columns) => {
+  const firstDone = columns.findIndex((column) => columnCategory(column, columns) === "DONE");
+  return (columns[firstDone - 1] ?? columns.at(-1))?.id ?? null;
+};
+
+// the column ids with `columnId` moved by `step` places (-1 = left, 1 = right), for the reorder request
 export const moveColumnId = (columns, columnId, step) => {
   const ids = columns.map((column) => column.id);
   const from = ids.indexOf(columnId);

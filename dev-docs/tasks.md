@@ -79,13 +79,37 @@ set narrows the list, **one value per filter**. `q` matches the title or the key
 ## Board (real)
 
 `GET /projects/{id}/board` (`getBoard` in [projectsApi.js](../src/api/projectsApi.js)) →
-`{ template, backlogEnabled, sprintsEnabled, wipLimitsEnabled, activeSprintId, columns: [{ id, name, position, wipLimit }] }`.
-Scrum starts with To Do / In Progress / In Review / Done, Kanban with Backlog / To Do / In Progress / Done.
-**Columns can't be edited yet** (R16, `CONFIGURE_BOARD`), so the Board tab shows them read-only. `activeSprintId`
-stays null until the backend has sprints; the frontend reads the active sprint from the sprint mock instead.
+`{ template, backlogEnabled, sprintsEnabled, wipLimitsEnabled, activeSprintId, columns: [{ id, name, position, category,
+wipLimit, taskCount, wipExceeded }] }`. Scrum starts with To Do / In Progress / In Review / Done, Kanban with
+Backlog / To Do / In Progress / Done. `activeSprintId` stays null until the backend has sprints; the frontend reads
+the active sprint from the sprint mock instead.
 
-**Done = the board's last column (ASSUMED).** Columns carry no "done" marker, so the sprint progress bar and
-Complete sprint count tasks in the rightmost column as finished. Backend: keep that rule, or add a flag to columns.
+**Done = a column of category `DONE`** (`TODO` / `IN_PROGRESS` / `DONE`, independent of the name). The sprint
+progress bar, Complete sprint and the task stage chips go by category (`columnCategory` in
+[utils/task.js](../src/utils/task.js)); a board from before R16 without categories falls back to "last column = done".
+
+### Configuring columns (real, R16, backend `docs/board-docs.md`)
+
+All need `CONFIGURE_BOARD` (Project Manager, workspace admin) and answer the whole board; functions in projectsApi.js.
+
+| Method and path | Body | Notes |
+| --- | --- | --- |
+| `POST /projects/{id}/board/columns` | `{ name, category, afterColumnId? }` | `201`; no `afterColumnId` = at the end |
+| `PATCH /projects/{id}/board/columns/{columnId}` | `{ name?, category?, wipLimit? }` or `{ clearWipLimit: true }` | a limited column that becomes `DONE` sends `clearWipLimit` with it |
+| `PUT /projects/{id}/board/columns/order` | `{ columnIds }` | every column once; the Kanban backlog stays first |
+| `DELETE /projects/{id}/board/columns/{columnId}` | `{ targetColumnId }` if it holds tasks | `204`; soft delete, no restore; the tasks move to the target |
+
+- Rules (the backend answers `400 BAD_REQUEST` with a readable message): 2–10 columns; names unique ignoring case,
+  at most 100 characters; always one `TODO` and one `DONE` column; the Kanban backlog (first column) can't move,
+  be deleted, change category or get a limit; WIP limits only on Kanban, never on the backlog or a `DONE` column.
+  The frontend hides what these rules forbid (`columnRules` in [utils/board.js](../src/utils/board.js)).
+- UI: the column's "⋯" menu (Edit column, Move left / right, WIP limit, Delete column) and an Add column box after
+  the last column, only with `CONFIGURE_BOARD`. Every change reloads the board.
+- WIP limits are soft: `PUT /tasks/{id}/position` and a `PATCH` that changes `statusId` still move the task and
+  answer `wipWarning: { columnId, count, limit, message }` (else null); the board shows a warning and the column's
+  "4 / 3" turns red until it drops back. Scrum never shows WIP (`wipLimitsEnabled` false).
+- Not handled yet: a workspace admin who isn't a project member has `CONFIGURE_BOARD` but not `VIEW_WORK`, so the
+  Board tab (which loads the tasks) shows them "no access" instead of the columns.
 
 ## Sprints (assumed, mocked)
 
@@ -124,7 +148,7 @@ Errors are the usual ones (`VALIDATION_ERROR` with `fieldErrors` on `name`, `cap
 | create, edit, delete tasks; move cards on the board | `EDIT_TASKS` | PM, PO, SM, Developer |
 | order the backlog | `MANAGE_BACKLOG` | Product Owner |
 | plan, start, complete sprints; move tasks into or out of them | `MANAGE_SPRINTS` | Scrum Master |
-| edit columns and WIP limits (not built) | `CONFIGURE_BOARD` | Project Manager |
+| add, edit, move, delete columns; WIP limits | `CONFIGURE_BOARD` | Project Manager, workspace admin |
 
 ## The sprint mock
 

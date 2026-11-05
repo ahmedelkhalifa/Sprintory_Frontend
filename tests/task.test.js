@@ -134,10 +134,21 @@ test("ordering the backlog needs MANAGE_BACKLOG, anything with a sprint MANAGE_S
   assert.equal(canMoveTask(productOwner, null, 10), false);
 });
 
-test("taskStage: first column to do, last done, the rest in progress", () => {
+test("taskStage: without categories, first column to do, last done, the rest in progress", () => {
   assert.equal(taskStage(11, COLUMNS), "TODO");
   assert.equal(taskStage(12, COLUMNS), "IN_PROGRESS");
   assert.equal(taskStage(13, COLUMNS), "DONE");
+});
+
+test("taskStage follows the column's category, wherever the column is", () => {
+  // e.g. a PM moved "Done" before an extra "Archive" column of category TODO
+  const columns = [
+    { id: 11, name: "To Do", category: "TODO" },
+    { id: 13, name: "Done", category: "DONE" },
+    { id: 14, name: "Archive", category: "TODO" },
+  ];
+  assert.equal(taskStage(13, columns), "DONE");
+  assert.equal(taskStage(14, columns), "TODO");
 });
 
 test("describeTasks names the assignee from the members and adds the stage", () => {

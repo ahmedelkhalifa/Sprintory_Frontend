@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { errorMessage, isAbort } from "../utils/apiError";
+import { errorCode, errorMessage, isAbort } from "../utils/apiError";
 import { EMPTY_PAGE } from "../utils/page";
 
 const SEARCH_DELAY_MS = 300;
@@ -9,13 +9,14 @@ const SEARCH_DELAY_MS = 300;
  * const list = usePagedList((params, signal) => listProjectMembers(projectId, params, signal), [projectId]);
  * `params` is { page, size, q? } and the result a PageResponse. The list reloads when `deps`, the page or
  * the search change, aborting the previous request. Typing waits SEARCH_DELAY_MS and goes back to page 0.
+ * `errorCode` is the failed request's code, for pages that show something other than the error text.
  */
 export const usePagedList = (fetchPage, deps, { enabled = true, fallback, messages, size = EMPTY_PAGE.size } = {}) => {
   const [search, setSearchText] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   const [reloadCount, setReloadCount] = useState(0);
-  const [result, setResult] = useState({ key: null, data: EMPTY_PAGE, error: "" });
+  const [result, setResult] = useState({ key: null, data: EMPTY_PAGE, error: "", errorCode: null });
 
   // always call the latest `fetchPage` and texts, without re-running the effect on every render
   const latest = useRef({ fetchPage, fallback, messages });
@@ -51,12 +52,12 @@ export const usePagedList = (fetchPage, deps, { enabled = true, fallback, messag
           setPage(data.totalPages - 1);
           return;
         }
-        setResult({ key, data, error: "" });
+        setResult({ key, data, error: "", errorCode: null });
       })
       .catch((err) => {
         if (isAbort(err) || controller.signal.aborted) return;
         const error = errorMessage(err, latest.current.fallback, latest.current.messages);
-        setResult({ key, data: EMPTY_PAGE, error });
+        setResult({ key, data: EMPTY_PAGE, error, errorCode: errorCode(err) });
       });
 
     return () => controller.abort();
@@ -78,6 +79,7 @@ export const usePagedList = (fetchPage, deps, { enabled = true, fallback, messag
     setSearch,
     loading,
     error: loading ? "" : result.error,
+    errorCode: loading ? null : result.errorCode,
     reload,
   };
 };
