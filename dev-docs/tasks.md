@@ -34,6 +34,29 @@ changing `EDIT_TASKS`; a workspace admin who isn't a member gets `403` on everyt
 
 Board order and backlog order are stored separately: moving a card on the board never changes the backlog.
 
+### Subtasks and history on the task page (PMP-134; backend PMP-132, tasks-docs §10)
+
+Subtasks are built against backend branch `features/task-restore-subtasks` (**not merged yet**). One level under a
+top-level task, same project: own key, title, assignee, status and a time estimate **in minutes**, no story points.
+
+| Call | Endpoint | Notes |
+| --- | --- | --- |
+| list | `GET /{parentId}/subtasks` | oldest first; the main task list never includes subtasks (no cards, no WIP counts) |
+| create | `POST /{parentId}/subtasks { title, assigneeId?, statusId?, estimateMinutes? }` | `201`; no status = the first column |
+| edit | `PATCH /{parentId}/subtasks/{subtaskId}` | `title`, `statusId`, `assigneeId`, `estimateMinutes`, `clearAssignee`, `clearEstimateMinutes` (`subtaskChanges`); never the task PATCH, whose `estimate` is story points |
+| delete | `DELETE /{subtaskId}` | soft; deleting a parent takes its subtasks with it |
+| history | `GET /{taskId}/history` | `[{ fromColumnName, toColumnName, actorId, changedAt, … }]`, **status moves only** (backend PR #18, merged); field changes and comments come with PMP-133 |
+
+- TaskResponse adds `parentTaskId`, `estimateMinutes`, `subtaskTotal`, `subtaskDone` (done = a Done-category column).
+- A parent moved into a Done column with open subtasks gets `409 OPEN_SUBTASKS_CONFIRMATION_REQUIRED`; the same request
+  with `confirmOpenSubtasks: true` goes through (`PATCH /{taskId}` and `PUT /{taskId}/position`).
+- UI ([TaskPage](../src/pages/tasks/TaskPage.jsx), [components/tasks/subtasks/](../src/components/tasks/subtasks/)):
+  a parent's page has a Subtasks section ("3 / 5 done", status and assignee changed on the row, Add subtask) and an
+  Activity area (History tab; Comments tab waits for the comments story). A subtask's title opens its own page
+  (`SubtaskView`: title, status, assignee, time; "Subtask of …" back to the parent). The Done confirmation is on the
+  task page only; board drags and the drawer still show the refusal's text until they ask too. Board cards show
+  "3/5" for parents.
+
 ### Filters (real) — the Board and Backlog filter bar
 
 Backend §3.2: `GET …/tasks?q=&type=&priority=&statusId=&assigneeId=&label=&order=`, all optional, every one that is

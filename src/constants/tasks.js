@@ -46,6 +46,8 @@ export const TASK_ERROR_MESSAGES = {
   WORKSPACE_ARCHIVED: "This workspace is archived. Restore it to make changes.",
   PROJECT_ARCHIVED: "This project is archived. Restore it to make changes.",
   SPRINT_ALREADY_ACTIVE: "Another sprint is already active. Complete it before starting this one.",
+  // the task page asks to confirm instead; elsewhere (board, drawer) this explains the refusal
+  OPEN_SUBTASKS_CONFIRMATION_REQUIRED: "This task still has open subtasks. Open the task to move it to Done anyway.",
 };
 
 // the same for changes to the board's columns

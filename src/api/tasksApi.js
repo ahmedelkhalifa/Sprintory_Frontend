@@ -29,12 +29,37 @@ export const getTask = (projectId, taskId, signal) =>
   api.get(`${tasksPath(projectId)}/${taskId}`, { signal }).then((res) => res.data);
 
 // only the fields that change; null means "unchanged", so emptied fields go as clearAssignee / clearEstimate /
-// clearDescription (see taskChanges in utils/task.js)
+// clearDescription (see taskChanges in utils/task.js). Not for subtasks (updateSubtask): `estimate` is story points.
+// Moving a parent into a Done column while it has open subtasks answers 409 OPEN_SUBTASKS_CONFIRMATION_REQUIRED;
+// the same changes plus `confirmOpenSubtasks: true` go through
 export const updateTask = (projectId, taskId, changes) =>
   api.patch(`${tasksPath(projectId)}/${taskId}`, changes).then((res) => res.data);
 
-// a soft delete: the task disappears everywhere, its key is never reused
+// a soft delete: the task disappears everywhere, its key is never reused. A parent takes its subtasks with it;
+// a subtask is deleted on its own the same way
 export const deleteTask = (projectId, taskId) => api.delete(`${tasksPath(projectId)}/${taskId}`);
+
+// Subtasks (backend tasks-docs §10, PMP-132): one level under a top-level task, with their own key, title, assignee,
+// status and an optional time estimate in minutes (no story points). The main task list never includes them; a
+// parent answers `subtaskDone` / `subtaskTotal`, a subtask `parentTaskId` and `estimateMinutes`.
+
+// the parent's subtasks, oldest first
+export const listSubtasks = (projectId, parentId, signal) =>
+  api.get(`${tasksPath(projectId)}/${parentId}/subtasks`, { signal }).then((res) => res.data);
+
+// body: { title, assigneeId?, statusId?, estimateMinutes? }; no status = the board's first column
+export const createSubtask = (projectId, parentId, body) =>
+  api.post(`${tasksPath(projectId)}/${parentId}/subtasks`, body).then((res) => res.data);
+
+// only the fields that change: { title, statusId, assigneeId, estimateMinutes } or clearAssignee /
+// clearEstimateMinutes (see subtaskChanges in utils/task.js)
+export const updateSubtask = (projectId, parentId, subtaskId, changes) =>
+  api.patch(`${tasksPath(projectId)}/${parentId}/subtasks/${subtaskId}`, changes).then((res) => res.data);
+
+// the task's status moves, oldest first: [{ id, fromColumnId, fromColumnName, toColumnId, toColumnName, actorId,
+// changedAt }]. Names are kept as they were then. Other field changes and comments aren't in it yet (PMP-133)
+export const getTaskHistory = (projectId, taskId, signal) =>
+  api.get(`${tasksPath(projectId)}/${taskId}/history`, { signal }).then((res) => res.data);
 
 // one drag on the board: into column `statusId`, right after `afterTaskId` in that column (null = first)
 export const moveOnBoard = (projectId, taskId, { statusId, afterTaskId = null }) =>

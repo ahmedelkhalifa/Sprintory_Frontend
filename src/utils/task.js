@@ -156,6 +156,64 @@ export const taskChanges = (task, values) => {
   return changes;
 };
 
+// ----- subtasks (backend tasks-docs §10): title, status, assignee and a time estimate in minutes, nothing else -----
+
+// a subtask's values in the form's shape, the one subtaskChanges and validateSubtask take
+export const subtaskValues = (subtask) => ({
+  title: subtask.title,
+  statusId: subtask.statusId,
+  assigneeId: subtask.assigneeId ?? null,
+  estimateMinutes: subtask.estimateMinutes ?? "",
+});
+
+// The PATCH body for a subtask: only what changed. An emptied assignee or time goes as `clearAssignee` /
+// `clearEstimateMinutes`, because null there means "unchanged"
+export const subtaskChanges = (subtask, values) => {
+  const changes = {};
+  const title = values.title.trim();
+  if (title !== subtask.title) changes.title = title;
+  if (values.statusId !== subtask.statusId) changes.statusId = values.statusId;
+
+  if (values.assigneeId !== (subtask.assigneeId ?? null)) {
+    if (values.assigneeId === null) changes.clearAssignee = true;
+    else changes.assigneeId = values.assigneeId;
+  }
+
+  const blank = values.estimateMinutes === "" || values.estimateMinutes == null;
+  const minutes = blank ? null : Number(values.estimateMinutes);
+  if (minutes !== (subtask.estimateMinutes ?? null)) {
+    if (minutes === null) changes.clearEstimateMinutes = true;
+    else changes.estimateMinutes = minutes;
+  }
+  return changes;
+};
+
+// a time estimate in minutes the way people read it: 90 → "1h 30m", 45 → "45m", 120 → "2h"; "" for none
+export const formatMinutes = (minutes) => {
+  if (minutes == null || minutes === "") return "";
+  const total = Math.round(Number(minutes));
+  const hours = Math.floor(total / 60);
+  const rest = total % 60;
+  if (!hours) return `${rest}m`;
+  return rest ? `${hours}h ${rest}m` : `${hours}h`;
+};
+
+// a parent's "3 / 5 done" from its response (the backend counts subtasks in Done-category columns)
+export const subtaskProgress = (task) => {
+  const total = task.subtaskTotal ?? 0;
+  const done = Math.min(task.subtaskDone ?? 0, total);
+  return { done, total, percent: total ? Math.round((done / total) * 100) : 0 };
+};
+
+// the task's status history, oldest first, each with the member who made the move (null when they aren't in the
+// loaded members, e.g. someone who left the project)
+export const describeHistory = (events, members = []) => {
+  const people = new Map(members.map((member) => [member.userId, member]));
+  return [...events]
+    .sort((a, b) => new Date(a.changedAt) - new Date(b.changedAt) || a.id - b.id)
+    .map((event) => ({ ...event, actor: people.get(event.actorId) ?? null }));
+};
+
 // every label used in these tasks, for the label picker's suggestions
 export const projectLabels = (tasks) =>
   [...new Set(tasks.flatMap((task) => task.labels ?? []))].sort((a, b) =>
