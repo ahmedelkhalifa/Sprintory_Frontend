@@ -33,7 +33,6 @@ import TaskValueSelect from "../../components/tasks/TaskValueSelect";
 import SubtaskList from "../../components/tasks/subtasks/SubtaskList";
 import SubtaskView from "../../components/tasks/subtasks/SubtaskView";
 import TaskWatchToggle from "../../components/tasks/TaskWatchToggle";
-import { columnOptions } from "../../components/tasks/columnOptions";
 import { loadWork } from "../../components/tasks/loadWork";
 import { deleteTask, getTask, updateTask } from "../../api/tasksApi";
 import { useAsync } from "../../hooks/useAsync";
