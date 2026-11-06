@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   boardMove,
+  columnContentsLabel,
   columnRules,
   daysLeft,
   defaultAfterColumnId,
@@ -167,4 +168,11 @@ test("wipWarningText names the column over its limit, or falls back to the backe
     "In Progress is over its WIP limit (3 / 2). The task was still moved.",
   );
   assert.equal(wipWarningText({ columnId: 99, count: 3, limit: 2, message: "Column is over its limit." }, COLUMNS), "Column is over its limit.");
+});
+
+test("columnContentsLabel names the tasks and subtasks a column holds", () => {
+  assert.equal(columnContentsLabel({ tasks: 0, subtasks: 0 }), "");
+  assert.equal(columnContentsLabel({ tasks: 1 }), "1 task");
+  assert.equal(columnContentsLabel({ subtasks: 2 }), "2 subtasks");
+  assert.equal(columnContentsLabel({ tasks: 3, subtasks: 1 }), "3 tasks and 1 subtask");
 });

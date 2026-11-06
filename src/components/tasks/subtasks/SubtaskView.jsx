@@ -1,127 +1,61 @@
 import { useState } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Alert,
-  Box,
-  Breadcrumbs,
-  IconButton,
-  Link,
-  Menu,
-  MenuItem,
-  Typography,
-} from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Link, Typography } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import SubdirectoryArrowRightRoundedIcon from "@mui/icons-material/SubdirectoryArrowRightRounded";
 import FormField from "../../forms/FormField";
-import ConfirmDialog from "../../general/ConfirmDialog";
 import AssigneePicker from "../AssigneePicker";
 import DetailRow from "../DetailRow";
 import TaskActivity from "../TaskActivity";
+import TaskBreadcrumbs from "../TaskBreadcrumbs";
+import TaskDates from "../TaskDates";
+import TaskDeleteAction from "../TaskDeleteAction";
 import TaskStatusSelect from "../TaskStatusSelect";
 import TaskTitleField from "../TaskTitleField";
-import { deleteTask, updateSubtask } from "../../../api/tasksApi";
-import { useSubmit } from "../../../hooks/useSubmit";
-import { TASK_ERROR_MESSAGES, TASK_TYPES } from "../../../constants/tasks";
-import { projectPath } from "../../../utils/project";
-import { formatMinutes, subtaskChanges, subtaskValues, taskPath } from "../../../utils/task";
+import { updateSubtask } from "../../../api/tasksApi";
+import { useFieldSave } from "../../../hooks/useFieldSave";
+import { findAssignee, formatMinutes, subtaskChanges, subtaskValues, taskPath } from "../../../utils/task";
 import { validateSubtask } from "../../../utils/validation";
 
 // A subtask's own page, opened from its parent's list (like a Jira child issue): only what a subtask has, i.e. its
-// title, status, assignee and time estimate in minutes, each saved on its own with the subtask endpoint (the task
-// PATCH would read `estimate` as story points). No description, type, priority, labels or subtasks (one level only).
-// `parent` is its parent task, for the way back; deleting the subtask goes there too.
+// title, status, assignee and time estimate in minutes, each saved on its own (useFieldSave) with the subtask
+// endpoint (the task PATCH would read `estimate` as story points). No description, type, priority, labels or
+// subtasks (one level only). `parent` is its parent task, for the way back; deleting the subtask goes there too.
 const SubtaskView = ({ workspace, project, initialTask, parent, columns, members, canEdit }) => {
   const navigate = useNavigate();
   const [task, setTask] = useState(initialTask);
-  const [errors, setErrors] = useState({});
   const [minutes, setMinutes] = useState(null); // the typed time, until it's saved
   const [people, setPeople] = useState(members);
-  const [menu, setMenu] = useState(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const save = useSubmit(TASK_ERROR_MESSAGES);
-  const remove = useSubmit(TASK_ERROR_MESSAGES);
-  const locked = !canEdit || save.submitting;
+  const fields = useFieldSave(task, {
+    toValues: subtaskValues,
+    validate: validateSubtask,
+    toChanges: subtaskChanges,
+    send: (changes) => updateSubtask(project.id, parent.id, task.id, changes),
+    onSaved: setTask,
+  });
+  const locked = !canEdit || fields.submitting;
   const parentPath = taskPath(workspace, project, parent.id);
-  const parentType = TASK_TYPES[parent.type];
-
-  const clearError = (field) => {
-    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
-  };
-
-  // `patch` = the edited field(s); { ok } when the subtask now has them, `invalid` when a field error is showing
-  const saveFields = async (patch) => {
-    const fields = Object.keys(patch);
-    const values = { ...subtaskValues(task), ...patch };
-    const found = validateSubtask(values);
-    setErrors((prev) => ({ ...prev, ...Object.fromEntries(fields.map((field) => [field, found[field] ?? ""])) }));
-    if (fields.some((field) => found[field])) return { ok: false, invalid: true };
-
-    const changes = subtaskChanges(task, values);
-    if (Object.keys(changes).length === 0) return { ok: true };
-    const { ok, result, error } = await save.run(() => updateSubtask(project.id, parent.id, task.id, changes));
-    if (ok) {
-      setTask(result);
-      return { ok: true };
-    }
-    const data = error.response?.data;
-    if (data?.code === "VALIDATION_ERROR" && data.fieldErrors) {
-      setErrors((prev) => ({ ...prev, ...data.fieldErrors }));
-      save.clearError();
-      return { ok: false, invalid: true };
-    }
-    return { ok: false };
-  };
+  const { errors } = fields;
 
   const saveMinutes = async () => {
     if (minutes === null) return;
-    const { ok, invalid } = await saveFields({ estimateMinutes: minutes.trim() });
+    const { ok, invalid } = await fields.save({ estimateMinutes: minutes.trim() });
     // keep an invalid value to fix; after a refusal show the subtask's time again
     if (ok || !invalid) setMinutes(null);
   };
 
   const saveAssignee = (member) => {
     if (member && !people.some((person) => person.userId === member.userId)) setPeople((prev) => [...prev, member]);
-    saveFields({ assigneeId: member?.userId ?? null });
+    fields.save({ assigneeId: member?.userId ?? null });
   };
-
-  const handleDelete = async () => {
-    const { ok } = await remove.run(() => deleteTask(project.id, task.id));
-    if (ok) navigate(parentPath, { replace: true });
-  };
-
-  const assignee =
-    task.assigneeId == null ? null : (people.find((m) => m.userId === task.assigneeId) ?? { userId: task.assigneeId });
 
   return (
     <Box>
-      <Breadcrumbs sx={{ mb: 1.5 }}>
-        <Link component={RouterLink} to={projectPath(workspace, project)} underline="hover" color="inherit">
-          {project.name}
-        </Link>
-        <Link
-          component={RouterLink}
-          to={parentPath}
-          underline="hover"
-          color="inherit"
-          sx={{ display: "flex", alignItems: "center", gap: 0.75 }}
-        >
-          {parentType && <parentType.Icon fontSize="small" sx={{ color: parentType.tone }} />}
-          {parent.key}
-        </Link>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, color: "text.primary" }}>
-          <AccountTreeOutlinedIcon fontSize="small" sx={{ color: "info.main" }} />
-          <Typography>{task.key}</Typography>
-        </Box>
-      </Breadcrumbs>
+      <TaskBreadcrumbs workspace={workspace} project={project} parent={parent} task={task} sx={{ mb: 1.5 }} />
 
-      {save.error && (
-        <Alert severity="error" onClose={save.clearError} sx={{ mb: 2 }}>
-          {save.error}
+      {fields.error && (
+        <Alert severity="error" onClose={fields.clearError} sx={{ mb: 2 }}>
+          {fields.error}
         </Alert>
       )}
 
@@ -154,8 +88,8 @@ const SubtaskView = ({ workspace, project, initialTask, parent, columns, members
             title={task.title}
             canEdit={canEdit}
             error={errors.title}
-            onEdit={() => clearError("title")}
-            onSave={(title) => saveFields({ title })}
+            onEdit={() => fields.clearFieldError("title")}
+            onSave={(title) => fields.save({ title })}
           />
           <TaskActivity project={project} task={task} members={people} />
         </Box>
@@ -168,26 +102,15 @@ const SubtaskView = ({ workspace, project, initialTask, parent, columns, members
               columns={columns}
               canEdit={canEdit}
               disabled={locked}
-              onChange={(statusId) => saveFields({ statusId })}
+              onChange={(statusId) => fields.save({ statusId })}
             />
             <Box sx={{ flexGrow: 1 }} />
             {canEdit && (
-              <>
-                <IconButton aria-label="More actions" onClick={(e) => setMenu(e.currentTarget)}>
-                  <MoreHorizIcon />
-                </IconButton>
-                <Menu anchorEl={menu} open={Boolean(menu)} onClose={() => setMenu(null)}>
-                  <MenuItem
-                    sx={{ color: "error.main" }}
-                    onClick={() => {
-                      setMenu(null);
-                      setConfirmDelete(true);
-                    }}
-                  >
-                    Delete subtask
-                  </MenuItem>
-                </Menu>
-              </>
+              <TaskDeleteAction
+                projectId={project.id}
+                task={task}
+                onDeleted={() => navigate(parentPath, { replace: true })}
+              />
             )}
           </Box>
 
@@ -206,7 +129,7 @@ const SubtaskView = ({ workspace, project, initialTask, parent, columns, members
                   id="subtask-assignee"
                   label={null}
                   projectId={project.id}
-                  value={assignee}
+                  value={findAssignee(task.assigneeId, people)}
                   onChange={saveAssignee}
                   disabled={locked}
                 />
@@ -222,7 +145,7 @@ const SubtaskView = ({ workspace, project, initialTask, parent, columns, members
                   helperText={errors.estimateMinutes || formatMinutes(minutes ?? task.estimateMinutes)}
                   onChange={(e) => {
                     setMinutes(e.target.value);
-                    clearError("estimateMinutes");
+                    fields.clearFieldError("estimateMinutes");
                   }}
                   onBlur={saveMinutes}
                   onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
@@ -232,32 +155,9 @@ const SubtaskView = ({ workspace, project, initialTask, parent, columns, members
             </AccordionDetails>
           </Accordion>
 
-          <Box sx={{ mt: 2, px: 0.5 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-              Created {new Date(task.createdAt).toLocaleString()}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-              Updated {new Date(task.updatedAt).toLocaleString()}
-            </Typography>
-          </Box>
+          <TaskDates task={task} />
         </Box>
       </Box>
-
-      {confirmDelete && (
-        <ConfirmDialog
-          title="Delete this subtask?"
-          message={`${task.key} "${task.title}" will be deleted. This can't be undone.`}
-          confirmLabel="Delete subtask"
-          destructive
-          loading={remove.submitting}
-          error={remove.error}
-          onConfirm={handleDelete}
-          onClose={() => {
-            setConfirmDelete(false);
-            remove.clearError();
-          }}
-        />
-      )}
     </Box>
   );
 };

@@ -103,6 +103,13 @@ export const defaultAfterColumnId = (columns) => {
   return (columns[firstDone - 1] ?? columns.at(-1))?.id ?? null;
 };
 
+const plural = (count, noun) => `${count} ${noun}${count === 1 ? "" : "s"}`;
+
+// what a column holds, in words: "3 tasks and 2 subtasks", "1 task", "2 subtasks"; "" when it's empty. Subtasks
+// don't count for WIP, but deleting the column moves them too (board-docs.md §8, `subtaskCount`)
+export const columnContentsLabel = ({ tasks = 0, subtasks = 0 }) =>
+  [tasks > 0 && plural(tasks, "task"), subtasks > 0 && plural(subtasks, "subtask")].filter(Boolean).join(" and ");
+
 // the column ids with `columnId` moved by `step` places (-1 = left, 1 = right), for the reorder request
 export const moveColumnId = (columns, columnId, step) => {
   const ids = columns.map((column) => column.id);

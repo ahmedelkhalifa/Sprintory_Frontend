@@ -209,12 +209,17 @@ export const subtaskProgress = (task) => {
 // a confirmation (OpenSubtasksDialog) and goes again with `confirmOpenSubtasks: true`
 export const needsSubtaskConfirmation = (err) => err?.response?.data?.code === "OPEN_SUBTASKS_CONFIRMATION_REQUIRED";
 
-// the delete confirmation's text; deleting a parent deletes its subtasks too (backend tasks-docs.md)
+// the delete confirmation's text; deleting a parent deletes its subtasks too (backend tasks-docs.md).
+// No "can't be undone": the snackbar after it offers Undo (restoreTask)
 export const deleteTaskMessage = (task) => {
   const subtasks = task.subtaskTotal ?? 0;
   const also = subtasks > 0 ? ` Its ${subtasks === 1 ? "subtask" : `${subtasks} subtasks`} will be deleted too.` : "";
-  return `${task.key} "${task.title}" will be deleted.${also} This can't be undone.`;
+  return `${task.key} "${task.title}" will be deleted.${also}`;
 };
+
+// a task response only has assigneeId: the loaded people name them, or at least give the id (null = unassigned)
+export const findAssignee = (assigneeId, people = []) =>
+  assigneeId == null ? null : (people.find((person) => person.userId === assigneeId) ?? { userId: assigneeId });
 
 // two loads of the same feed (page 0 again after a save, plus pages from "Load more") as one list, oldest first,
 // each entry once. The feed is append-only, so an entry never changes between loads

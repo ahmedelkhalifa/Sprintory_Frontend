@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Accordion,
   AccordionDetails,
@@ -7,20 +7,13 @@ import {
   Alert,
   Autocomplete,
   Box,
-  Breadcrumbs,
   Button,
-  IconButton,
-  Link,
-  Menu,
-  MenuItem,
   Paper,
   TextField,
   Typography,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import FormField from "../../components/forms/FormField";
-import ConfirmDialog from "../../components/general/ConfirmDialog";
 import LoadState from "../../components/general/LoadState";
 import PageLayout from "../../components/layouts/PageLayout";
 import AssigneePicker from "../../components/tasks/AssigneePicker";
@@ -28,6 +21,9 @@ import DetailRow from "../../components/tasks/DetailRow";
 import NoWorkAccess from "../../components/tasks/NoWorkAccess";
 import OpenSubtasksDialog from "../../components/tasks/OpenSubtasksDialog";
 import TaskActivity from "../../components/tasks/TaskActivity";
+import TaskBreadcrumbs from "../../components/tasks/TaskBreadcrumbs";
+import TaskDates from "../../components/tasks/TaskDates";
+import TaskDeleteAction from "../../components/tasks/TaskDeleteAction";
 import TaskStatusSelect from "../../components/tasks/TaskStatusSelect";
 import TaskTitleField from "../../components/tasks/TaskTitleField";
 import TaskValueSelect from "../../components/tasks/TaskValueSelect";
@@ -35,16 +31,16 @@ import SubtaskList from "../../components/tasks/subtasks/SubtaskList";
 import SubtaskView from "../../components/tasks/subtasks/SubtaskView";
 import TaskWatchToggle from "../../components/tasks/TaskWatchToggle";
 import { loadWork } from "../../components/tasks/loadWork";
-import { deleteTask, getTask, updateTask } from "../../api/tasksApi";
+import { getTask, updateTask } from "../../api/tasksApi";
 import { useAsync } from "../../hooks/useAsync";
+import { useFieldSave } from "../../hooks/useFieldSave";
 import { useProjectAccess, useWorkspaceAccess } from "../../hooks/useResourceAccess";
-import { useSubmit } from "../../hooks/useSubmit";
 import { PERMISSIONS } from "../../constants/projects";
 import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_TYPES } from "../../constants/tasks";
 import { can, isProjectArchived, projectPath } from "../../utils/project";
 import { wipWarningText } from "../../utils/board";
 import {
-  deleteTaskMessage,
+  findAssignee,
   formatEstimate,
   needsSubtaskConfirmation,
   projectLabels,
@@ -114,71 +110,49 @@ const DescriptionField = ({ description, canEdit, saving, onSave }) => {
   );
 };
 
-// The loaded task and its fields. Every change is saved at once, like in Jira: one field at a time, checked with
-// validateTask and sent as taskChanges (only what changed, clear flags for emptied fields). Under the description
+// The loaded task and its fields. Every change is saved at once, like in Jira: one field at a time (useFieldSave
+// with validateTask and taskChanges: only what changed, clear flags for emptied fields). Under the description
 // come its subtasks (SubtaskList) and the activity (TaskActivity).
 // `canEdit` = EDIT_TASKS and neither the workspace nor the project archived.
 const TaskView = ({ workspace, project, initialTask, columns, members, labels, canEdit }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [task, setTask] = useState(initialTask);
-  const [errors, setErrors] = useState({});
   const [estimate, setEstimate] = useState(null); // the typed estimate, until it's saved
   const [people, setPeople] = useState(members); // to name the assignee, plus anyone picked beyond the first page
-  const [menu, setMenu] = useState(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   // a move to Done the backend refused because subtasks are open: the same changes, waiting for a confirmation
   const [confirmDone, setConfirmDone] = useState(null);
   const [wipNotice, setWipNotice] = useState(null); // a status change put the task over a column's WIP limit
-  const save = useSubmit(TASK_ERROR_MESSAGES);
-  const remove = useSubmit(TASK_ERROR_MESSAGES);
   // only the latest subtask refresh may land (see refreshTask)
   const refreshCount = useRef(0);
+
+  const fields = useFieldSave(task, {
+    toValues: taskValues,
+    validate: validateTask,
+    toChanges: taskChanges,
+    send: (changes) => updateTask(project.id, task.id, changes),
+    onSaved: (result) => {
+      setTask(result);
+      setWipNotice(wipWarningText(result.wipWarning, columns));
+    },
+  });
   // one save at a time: each change is computed from the task the last save returned
-  const locked = !canEdit || save.submitting;
+  const locked = !canEdit || fields.submitting;
 
-  const saved = (result) => {
-    setTask(result);
-    setWipNotice(wipWarningText(result.wipWarning, columns));
-  };
-
-  const clearError = (field) => {
-    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
-  };
-
-  // `patch` = the edited field(s). { ok } when the task now has them; `invalid` when a field error is showing
+  // `patch` = the edited field(s), see useFieldSave
   const saveFields = async (patch) => {
-    const fields = Object.keys(patch);
-    const values = { ...taskValues(task), ...patch };
-    const found = validateTask(values);
-    setErrors((prev) => ({ ...prev, ...Object.fromEntries(fields.map((field) => [field, found[field] ?? ""])) }));
-    if (fields.some((field) => found[field])) return { ok: false, invalid: true };
-
-    const changes = taskChanges(task, values);
-    if (Object.keys(changes).length === 0) return { ok: true };
-    const { ok, result, error } = await save.run(() => updateTask(project.id, task.id, changes));
-    if (ok) {
-      saved(result);
-      return { ok: true };
-    }
-    const data = error.response?.data;
-    if (data?.code === "VALIDATION_ERROR" && data.fieldErrors) {
-      setErrors((prev) => ({ ...prev, ...data.fieldErrors }));
-      save.clearError();
-      return { ok: false, invalid: true };
-    }
+    const saved = await fields.save(patch);
     // into Done with open subtasks: allowed, but only once the user confirms (backend tasks-docs §10.3)
-    if (needsSubtaskConfirmation(error)) {
-      save.clearError();
-      setConfirmDone(changes);
+    if (needsSubtaskConfirmation(saved.error)) {
+      fields.clearError();
+      setConfirmDone(saved.changes);
     }
-    return { ok: false };
+    return saved;
   };
 
   const moveToDoneAnyway = async () => {
-    const { ok, result } = await save.run(() => updateTask(project.id, task.id, { ...confirmDone, confirmOpenSubtasks: true }));
+    await fields.send({ ...confirmDone, confirmOpenSubtasks: true });
     setConfirmDone(null);
-    if (ok) saved(result);
   };
 
   // a subtask was added, changed or deleted: the parent's "3 / 5 done" comes from the backend, so ask again.
@@ -206,35 +180,22 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
     saveFields({ assigneeId: member?.userId ?? null });
   };
 
-  const handleDelete = async () => {
-    const { ok } = await remove.run(() => deleteTask(project.id, task.id));
-    if (!ok) return;
-    // back to the board / backlog it was opened from; a link opened directly ("default") has no page before it
+  // back to the board / backlog it was opened from; a link opened directly ("default") has no page before it
+  const leave = () => {
     if (location.key !== "default") navigate(-1);
     else navigate(projectPath(workspace, project), { replace: true });
   };
 
-  // the response only has assigneeId: the member list gives the name, or at least the id
-  const assignee =
-    task.assigneeId == null ? null : (people.find((m) => m.userId === task.assigneeId) ?? { userId: task.assigneeId });
-  const type = TASK_TYPES[task.type];
+  const { errors } = fields;
   const doneColumn = confirmDone && columns.find((column) => column.id === confirmDone.statusId);
 
   return (
     <Box>
-      <Breadcrumbs sx={{ mb: 2 }}>
-        <Link component={RouterLink} to={projectPath(workspace, project)} underline="hover" color="inherit">
-          {project.name}
-        </Link>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, color: "text.primary" }}>
-          {type && <type.Icon fontSize="small" sx={{ color: type.tone }} />}
-          <Typography>{task.key}</Typography>
-        </Box>
-      </Breadcrumbs>
+      <TaskBreadcrumbs workspace={workspace} project={project} task={task} />
 
-      {save.error && (
-        <Alert severity="error" onClose={save.clearError} sx={{ mb: 2 }}>
-          {save.error}
+      {fields.error && (
+        <Alert severity="error" onClose={fields.clearError} sx={{ mb: 2 }}>
+          {fields.error}
         </Alert>
       )}
       {wipNotice && (
@@ -257,7 +218,7 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
             title={task.title}
             canEdit={canEdit}
             error={errors.title}
-            onEdit={() => clearError("title")}
+            onEdit={() => fields.clearFieldError("title")}
             onSave={(title) => saveFields({ title })}
           />
 
@@ -265,7 +226,7 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
           <DescriptionField
             description={task.description}
             canEdit={canEdit}
-            saving={save.submitting}
+            saving={fields.submitting}
             onSave={(description) => saveFields({ description })}
           />
 
@@ -295,24 +256,7 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
             <Box sx={{ flexGrow: 1 }} />
             {/* a personal setting, so also for viewers and archived projects */}
             <TaskWatchToggle projectId={project.id} taskId={task.id} />
-            {canEdit && (
-              <>
-                <IconButton aria-label="More actions" onClick={(e) => setMenu(e.currentTarget)}>
-                  <MoreHorizIcon />
-                </IconButton>
-                <Menu anchorEl={menu} open={Boolean(menu)} onClose={() => setMenu(null)}>
-                  <MenuItem
-                    sx={{ color: "error.main" }}
-                    onClick={() => {
-                      setMenu(null);
-                      setConfirmDelete(true);
-                    }}
-                  >
-                    Delete task
-                  </MenuItem>
-                </Menu>
-              </>
-            )}
+            {canEdit && <TaskDeleteAction projectId={project.id} task={task} onDeleted={leave} />}
           </Box>
 
           <Accordion
@@ -330,7 +274,7 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
                   id="task-assignee"
                   label={null}
                   projectId={project.id}
-                  value={assignee}
+                  value={findAssignee(task.assigneeId, people)}
                   onChange={saveAssignee}
                   disabled={locked}
                 />
@@ -386,7 +330,7 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
                   helperText={errors.estimate}
                   onChange={(e) => {
                     setEstimate(e.target.value);
-                    clearError("estimate");
+                    fields.clearFieldError("estimate");
                   }}
                   onBlur={saveEstimate}
                   onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
@@ -396,38 +340,15 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
             </AccordionDetails>
           </Accordion>
 
-          <Box sx={{ mt: 2, px: 0.5 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-              Created {new Date(task.createdAt).toLocaleString()}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-              Updated {new Date(task.updatedAt).toLocaleString()}
-            </Typography>
-          </Box>
+          <TaskDates task={task} />
         </Box>
       </Box>
-
-      {confirmDelete && (
-        <ConfirmDialog
-          title="Delete this task?"
-          message={deleteTaskMessage(task)}
-          confirmLabel="Delete task"
-          destructive
-          loading={remove.submitting}
-          error={remove.error}
-          onConfirm={handleDelete}
-          onClose={() => {
-            setConfirmDelete(false);
-            remove.clearError();
-          }}
-        />
-      )}
 
       {confirmDone && (
         <OpenSubtasksDialog
           task={task}
           columnName={doneColumn?.name}
-          loading={save.submitting}
+          loading={fields.submitting}
           onConfirm={moveToDoneAnyway}
           onClose={() => setConfirmDone(null)}
         />

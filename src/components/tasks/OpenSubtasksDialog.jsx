@@ -14,6 +14,7 @@ const OpenSubtasksDialog = ({ task, columnName, loading, onConfirm, onClose }) =
       title="Move to Done with open subtasks?"
       message={`${count}Move ${task.key} to ${columnName ?? "Done"} anyway? The subtasks keep their status.`}
       confirmLabel="Move anyway"
+      tone="warning"
       loading={loading}
       onConfirm={onConfirm}
       onClose={onClose}

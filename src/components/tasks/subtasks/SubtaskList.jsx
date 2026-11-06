@@ -5,6 +5,7 @@ import SubtaskRow from "./SubtaskRow";
 import AddSubtask from "./AddSubtask";
 import { listSubtasks } from "../../../api/tasksApi";
 import { useAsync } from "../../../hooks/useAsync";
+import { useTasksChanged } from "../../../hooks/useTasksChanged";
 import { TASK_ERROR_MESSAGES } from "../../../constants/tasks";
 import { subtaskProgress } from "../../../utils/task";
 
@@ -25,6 +26,8 @@ const SubtaskList = ({ workspace, project, parent, columns, members, canEdit, on
     state.reload();
     onChanged();
   };
+  // a deleted subtask came back (Undo)
+  useTasksChanged(project.id, changed);
 
   return (
     <Box sx={{ mt: 4 }}>

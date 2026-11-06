@@ -17,18 +17,18 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import FormField from "../forms/FormField";
-import ConfirmDialog from "../general/ConfirmDialog";
 import AssigneePicker from "./AssigneePicker";
 import OpenSubtasksDialog from "./OpenSubtasksDialog";
+import TaskDeleteAction from "./TaskDeleteAction";
 import TaskValueSelect from "./TaskValueSelect";
 import TaskWatchToggle from "./TaskWatchToggle";
 import { columnOptions } from "./columnOptions";
-import { deleteTask, getTask, updateTask } from "../../api/tasksApi";
+import { getTask, updateTask } from "../../api/tasksApi";
 import { useAsync } from "../../hooks/useAsync";
 import { useSubmit } from "../../hooks/useSubmit";
 import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_TYPES } from "../../constants/tasks";
-import { deleteTaskMessage, needsSubtaskConfirmation, taskChanges, taskPath } from "../../utils/task";
+import { findAssignee, needsSubtaskConfirmation, taskChanges, taskPath, taskValues } from "../../utils/task";
 import { TASK_TITLE_MAX, validateTask } from "../../utils/validation";
 
 // a label above a field that isn't a FormField (the pickers)
@@ -41,28 +41,16 @@ const Field = ({ id, label, children }) => (
   </Box>
 );
 
-// the response only has assigneeId: the member list gives the name, or at least the id
-const fromTask = (task, members) => ({
-  title: task.title,
-  description: task.description ?? "",
-  type: task.type,
-  priority: task.priority,
-  statusId: task.statusId,
-  estimate: task.estimate ?? "",
-  labels: task.labels ?? [],
-  assignee:
-    task.assigneeId == null ? null : (members.find((m) => m.userId === task.assigneeId) ?? { userId: task.assigneeId }),
-});
+// the form's values: the page's ones (taskValues), with the assignee as a person for the picker
+const fromTask = (task, members) => ({ ...taskValues(task), assignee: findAssignee(task.assigneeId, members) });
 
 // The editable fields of one task. Read-only (disabled) without EDIT_TASKS or in an archived project.
 const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, onChanged }) => {
   const [values, setValues] = useState(() => fromTask(task, members));
   const [errors, setErrors] = useState({});
-  const [confirmDelete, setConfirmDelete] = useState(false);
   // a move to Done the backend refused because subtasks are open: the same changes, waiting for a confirmation
   const [confirmDone, setConfirmDone] = useState(null);
   const save = useSubmit(TASK_ERROR_MESSAGES);
-  const remove = useSubmit(TASK_ERROR_MESSAGES);
 
   const send = async (changes) => {
     const { ok, error, result } = await save.run(() => updateTask(project.id, task.id, changes));
@@ -105,14 +93,6 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
     const changes = confirmDone;
     setConfirmDone(null);
     send({ ...changes, confirmOpenSubtasks: true });
-  };
-
-  const handleDelete = async () => {
-    const { ok } = await remove.run(() => deleteTask(project.id, task.id));
-    if (ok) {
-      onChanged();
-      onClose();
-    }
   };
 
   const field = (name) => ({
@@ -182,9 +162,16 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
         <>
           <Divider />
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 3, py: 2 }}>
-            <Button color="error" onClick={() => setConfirmDelete(true)} disabled={save.submitting}>
-              Delete
-            </Button>
+            <TaskDeleteAction
+              projectId={project.id}
+              task={task}
+              trigger="button"
+              disabled={save.submitting}
+              onDeleted={() => {
+                onChanged();
+                onClose();
+              }}
+            />
             <Box sx={{ flexGrow: 1 }} />
             <Button onClick={onClose} color="inherit" disabled={save.submitting}>
               Cancel
@@ -194,22 +181,6 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
             </Button>
           </Box>
         </>
-      )}
-
-      {confirmDelete && (
-        <ConfirmDialog
-          title="Delete this task?"
-          message={deleteTaskMessage(task)}
-          confirmLabel="Delete task"
-          destructive
-          loading={remove.submitting}
-          error={remove.error}
-          onConfirm={handleDelete}
-          onClose={() => {
-            setConfirmDelete(false);
-            remove.clearError();
-          }}
-        />
       )}
 
       {confirmDone && (

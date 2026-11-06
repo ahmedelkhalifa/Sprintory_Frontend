@@ -28,34 +28,60 @@ changing `EDIT_TASKS`; a workspace admin who isn't a member gets `403` on everyt
 | list | `GET ?order=backlog\|board&page=&size=` | `size` at most 100; `listAllTasks` reads every page |
 | create | `POST { title, type?, priority?, assigneeId?, estimate?, labels?, description? }` | title required, ≤ 255; last in its column and in the backlog |
 | get / delete | `GET /{taskId}`, `DELETE /{taskId}` | delete is soft (key never reused) |
+| restore | `POST /{taskId}/restore` → TaskResponse | `EDIT_TASKS`; same key, into the first column if its own was deleted; a parent gets back the subtasks its delete took; a subtask whose parent is still deleted → `404`. No list of deleted tasks, so the UI only offers it as Undo right after a delete |
 | edit | `PATCH /{taskId}` | only what changes; null = unchanged, so emptying uses `clearAssignee` / `clearEstimate` / `clearDescription` (`taskChanges` in [utils/task.js](../src/utils/task.js) builds it). Changing `statusId` puts the task last in that column |
-| board move | `PUT /{taskId}/position { statusId, afterTaskId }` | `afterTaskId` = the card above it in that column, null = first. `EDIT_TASKS`, within and across columns |
+| board move | `PUT /{taskId}/position { statusId, afterTaskId, confirmOpenSubtasks? }` | `afterTaskId` = the card above it in that column, null = first. `EDIT_TASKS`, within and across columns |
 | backlog rank | `PUT /{taskId}/backlog-rank { afterTaskId }` | `MANAGE_BACKLOG` (Product Owner only), Scrum only |
 
 Board order and backlog order are stored separately: moving a card on the board never changes the backlog.
 
-### Subtasks and history on the task page (PMP-134; backend PMP-132, tasks-docs §10)
+### Subtasks, restore and history on the task page (PMP-134; backend PMP-131/132/133, tasks-docs §10)
 
-Subtasks are built against backend branch `features/task-restore-subtasks` (**not merged yet**). One level under a
-top-level task, same project: own key, title, assignee, status and a time estimate **in minutes**, no story points.
+Subtasks and restore are in the backend's `main` (`features/task-restore-subtasks`). One level under a top-level
+task, same project: own key, title, assignee, status and a time estimate **in minutes**, no story points.
 
 | Call | Endpoint | Notes |
 | --- | --- | --- |
 | list | `GET /{parentId}/subtasks` | oldest first; the main task list never includes subtasks (no cards, no WIP counts) |
 | create | `POST /{parentId}/subtasks { title, assigneeId?, statusId?, estimateMinutes? }` | `201`; no status = the first column |
 | edit | `PATCH /{parentId}/subtasks/{subtaskId}` | `title`, `statusId`, `assigneeId`, `estimateMinutes`, `clearAssignee`, `clearEstimateMinutes` (`subtaskChanges`); never the task PATCH, whose `estimate` is story points |
-| delete | `DELETE /{subtaskId}` | soft; deleting a parent takes its subtasks with it |
-| history | `GET /{taskId}/history` | `[{ fromColumnName, toColumnName, actorId, changedAt, … }]`, **status moves only** (backend PR #18, merged); field changes and comments come with PMP-133 |
+| delete | `DELETE /{subtaskId}` | soft; deleting a parent takes its subtasks with it; `POST /{subtaskId}/restore` undoes it |
 
 - TaskResponse adds `parentTaskId`, `estimateMinutes`, `subtaskTotal`, `subtaskDone` (done = a Done-category column).
 - A parent moved into a Done column with open subtasks gets `409 OPEN_SUBTASKS_CONFIRMATION_REQUIRED`; the same request
-  with `confirmOpenSubtasks: true` goes through (`PATCH /{taskId}` and `PUT /{taskId}/position`).
+  with `confirmOpenSubtasks: true` goes through (`PATCH /{taskId}` and `PUT /{taskId}/position`). The task page, the
+  drawer and board drags all ask first ([OpenSubtasksDialog](../src/components/tasks/OpenSubtasksDialog.jsx)); on the
+  board the card stays where it was dropped while the window is open, Cancel puts it back.
 - UI ([TaskPage](../src/pages/tasks/TaskPage.jsx), [components/tasks/subtasks/](../src/components/tasks/subtasks/)):
   a parent's page has a Subtasks section ("3 / 5 done", status and assignee changed on the row, Add subtask) and an
-  Activity area (History tab; Comments tab waits for the comments story). A subtask's title opens its own page
-  (`SubtaskView`: title, status, assignee, time; "Subtask of …" back to the parent). The Done confirmation is on the
-  task page only; board drags and the drawer still show the refusal's text until they ask too. Board cards show
-  "3/5" for parents.
+  Activity area (History tab; Comments tab waits for the comments branch). A subtask's title opens its own page
+  (`SubtaskView`: title, status, assignee, time; "Subtask of …" back to the parent). Both pages save one field at a
+  time with `useFieldSave`. Board cards show "3/5" for parents.
+- Delete and Undo: [TaskDeleteAction](../src/components/tasks/TaskDeleteAction.jsx) (page, subtask page and rows,
+  drawer) confirms (a parent's window says its subtasks go too), deletes, then
+  [UndoDeleteProvider](../src/context/UndoDeleteProvider.jsx) shows "MOB-42 was deleted · Undo" for 8 s, above the
+  pages so it survives leaving the task page. Undo calls restore, which fires `TASKS_CHANGED` on `window`;
+  `useTasksChanged` makes the project page's Board / Backlog and a parent's subtask list reload.
+
+### History (real, backend PMP-133, `docs/task-history-docs.md`)
+
+`GET /{taskId}/history?page=&size=` (`getTaskHistory`): a **PageResponse**, oldest first, `size` default 20, at most
+100, `sort` ignored. (Until 4 Nov it was a plain array of status moves; the old shape crashed the task page.)
+
+```jsonc
+{ "id": 501, "type": "FIELD_CHANGED", "field": "PRIORITY", "oldValue": "LOW", "newValue": "HIGH", "refId": null,
+  "actor": { "id": 31, "name": "Damir Gabaidullin" }, "occurredAt": "2026-11-05T09:12:44Z" }
+```
+
+- `type`: `CREATED`, `FIELD_CHANGED`, `COMMENT_DELETED`, `SUBTASK_ADDED` / `SUBTASK_REMOVED` (on the parent, value =
+  "KEY title"), `RESTORED`. `field`: `TITLE`, `TYPE`, `PRIORITY`, `STATUS` (column names), `ASSIGNEE` (names),
+  `ESTIMATE`, `ESTIMATE_MINUTES`, `LABELS`, `DESCRIPTION` (no values). Values and `actor.name` are snapshots from
+  the time; enums come as stored. A subtask has its own feed.
+- `historyLine` in [utils/task.js](../src/utils/task.js) turns an entry into words (null = "None", unknown types
+  → "updated the task"); [TaskHistory](../src/components/tasks/TaskHistory.jsx) shows 20 at a time with Load more
+  and reloads page 0 after each save (`mergeHistory` keeps each entry once).
+- **Asked of the backend (6 Nov):** newest first. When it ships, page 0 goes on top and Load more becomes
+  "Show older".
 
 ### Filters (real) — the Board and Backlog filter bar
 
@@ -80,7 +106,8 @@ set narrows the list, **one value per filter**. `q` matches the title or the key
 
 `GET /projects/{id}/board` (`getBoard` in [projectsApi.js](../src/api/projectsApi.js)) →
 `{ template, backlogEnabled, sprintsEnabled, wipLimitsEnabled, activeSprintId, columns: [{ id, name, position, category,
-wipLimit, taskCount, wipExceeded }] }`. Scrum starts with To Do / In Progress / In Review / Done, Kanban with
+wipLimit, taskCount, wipExceeded, subtaskCount }] }` (`taskCount` = top-level tasks, the WIP count; `subtaskCount`
+separately). `VIEW_WORK` **or** `CONFIGURE_BOARD`, so a workspace admin outside the project can read it. Scrum starts with To Do / In Progress / In Review / Done, Kanban with
 Backlog / To Do / In Progress / Done. `activeSprintId` stays null until the backend has sprints; the frontend reads
 the active sprint from the sprint mock instead.
 
@@ -97,19 +124,24 @@ All need `CONFIGURE_BOARD` (Project Manager, workspace admin) and answer the who
 | `POST /projects/{id}/board/columns` | `{ name, category, afterColumnId? }` | `201`; no `afterColumnId` = at the end |
 | `PATCH /projects/{id}/board/columns/{columnId}` | `{ name?, category?, wipLimit? }` or `{ clearWipLimit: true }` | a limited column that becomes `DONE` sends `clearWipLimit` with it |
 | `PUT /projects/{id}/board/columns/order` | `{ columnIds }` | every column once; the Kanban backlog stays first |
-| `DELETE /projects/{id}/board/columns/{columnId}` | `{ targetColumnId }` if it holds tasks | `204`; soft delete, no restore; the tasks move to the target |
+| `DELETE /projects/{id}/board/columns/{columnId}` | `{ targetColumnId }` if it holds tasks or subtasks (`taskCount + subtaskCount > 0`) | `204`; soft delete, no restore; they move to the target |
 
 - Rules (the backend answers `400 BAD_REQUEST` with a readable message): 2–10 columns; names unique ignoring case,
   at most 100 characters; always one `TODO` and one `DONE` column; the Kanban backlog (first column) can't move,
   be deleted, change category or get a limit; WIP limits only on Kanban, never on the backlog or a `DONE` column.
   The frontend hides what these rules forbid (`columnRules` in [utils/board.js](../src/utils/board.js)).
-- UI: the column's "⋯" menu (Edit column, Move left / right, WIP limit, Delete column) and an Add column box after
-  the last column, only with `CONFIGURE_BOARD`. Every change reloads the board.
+- UI, only with `CONFIGURE_BOARD`, both through [useColumnConfig](../src/components/board/useColumnConfig.jsx):
+  - the Board tab: each column's "⋯" menu (Edit column, Move left / right, WIP limit, Delete column) and an Add
+    column box after the last column;
+  - the Settings tab's **Board columns** section ([BoardColumnsSection](../src/components/board/BoardColumnsSection.jsx)):
+    the same menus on a list, loaded with `GET /board` only. It is the way in for a Scrum project without an active
+    sprint (the Board tab's "No active sprint" links to it) and for a workspace admin outside the project (no
+    `VIEW_WORK`, so the Board tab shows "no access").
+  - Every change reloads the board, also after a refused one.
 - WIP limits are soft: `PUT /tasks/{id}/position` and a `PATCH` that changes `statusId` still move the task and
-  answer `wipWarning: { columnId, count, limit, message }` (else null); the board shows a warning and the column's
-  "4 / 3" turns red until it drops back. Scrum never shows WIP (`wipLimitsEnabled` false).
-- Not handled yet: a workspace admin who isn't a project member has `CONFIGURE_BOARD` but not `VIEW_WORK`, so the
-  Board tab (which loads the tasks) shows them "no access" instead of the columns.
+  answer `wipWarning: { columnId, count, limit, message }` (else null); the board, the drawer and the task page show
+  a warning (`wipWarningText`) and the column's "4 / 3" turns red until it drops back. Scrum never shows WIP
+  (`wipLimitsEnabled` false).
 
 ## Sprints (assumed, mocked)
 
@@ -144,8 +176,8 @@ Errors are the usual ones (`VALIDATION_ERROR` with `fieldErrors` on `name`, `cap
 
 | Action | Permission | Roles |
 | --- | --- | --- |
-| see tasks, board, sprints | `VIEW_WORK` | every project role, not a non-member workspace admin |
-| create, edit, delete tasks; move cards on the board | `EDIT_TASKS` | PM, PO, SM, Developer |
+| see tasks, board, sprints | `VIEW_WORK` | every project role, not a non-member workspace admin (who can still read the board's columns) |
+| create, edit, delete, restore tasks; move cards on the board | `EDIT_TASKS` | PM, PO, SM, Developer |
 | order the backlog | `MANAGE_BACKLOG` | Product Owner |
 | plan, start, complete sprints; move tasks into or out of them | `MANAGE_SPRINTS` | Scrum Master |
 | add, edit, move, delete columns; WIP limits | `CONFIGURE_BOARD` | Project Manager, workspace admin |

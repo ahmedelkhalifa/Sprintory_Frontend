@@ -24,6 +24,7 @@ import {
   ProjectSettingsPage,
 } from "./pages/projects/ProjectTabPages";
 import ProjectsRedirect from "./pages/projects/ProjectsRedirect";
+import HomeRedirect from "./pages/home/HomeRedirect";
 import TaskPage from "./pages/tasks/TaskPage";
 import SearchPage from "./pages/search/SearchPage";
 import SettingsPage from "./pages/settings/SettingsPage";
@@ -55,7 +56,7 @@ const App = () => {
                 </WorkspaceProvider>
               }
             >
-              <Route path="/" element={<div>Home</div>} />
+              <Route path="/" element={<HomeRedirect />} />
               <Route path="/projects" element={<ProjectsRedirect />} />
               <Route path="/workspaces" element={<WorkspacesPage />} />
               {/* results can span workspaces, so it sits outside the workspace guard */}

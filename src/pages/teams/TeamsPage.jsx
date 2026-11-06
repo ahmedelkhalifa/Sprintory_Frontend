@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-  Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
-  DialogTitle, Drawer, IconButton, InputAdornment, Paper, Snackbar, Stack, TextField, Typography,
-  useMediaQuery,
+  Alert, Box, Button, CircularProgress, Drawer, IconButton, InputAdornment, Paper, Snackbar, Stack, TextField,
+  Typography, useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { AddRounded, CloseRounded, SearchRounded } from "@mui/icons-material";
+import { AddRounded, CloseRounded, PersonRemoveOutlined, SearchRounded } from "@mui/icons-material";
+import ConfirmDialog from "../../components/general/ConfirmDialog";
 import {
   addTeamMembers, createTeam, deleteTeam, getTeam, listTeamMembers, listTeams, removeTeamMember, renameTeam,
 } from "../../api/teamsApi";
@@ -428,33 +428,31 @@ const TeamsPage = () => {
         />
       )}
 
-      <Dialog open={Boolean(deleteTarget)} onClose={busy ? undefined : () => setDeleteTarget(null)} fullWidth maxWidth="xs">
-        <DialogTitle>Delete team?</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2">
-            Delete “{deleteTarget?.name}”? This cannot be undone. Workspace members and their project access will
-            remain unchanged.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button disabled={busy} onClick={() => setDeleteTarget(null)}>Cancel</Button>
-          <Button disabled={busy} color="error" variant="contained" onClick={confirmDelete}>Delete</Button>
-        </DialogActions>
-      </Dialog>
+      {/* a refusal shows in the snackbar below (runAction) */}
+      {deleteTarget && (
+        <ConfirmDialog
+          title={`Delete “${deleteTarget.name}”?`}
+          message="This cannot be undone. Workspace members and their project access will remain unchanged."
+          confirmLabel="Delete team"
+          tone="danger"
+          loading={busy}
+          onConfirm={confirmDelete}
+          onClose={() => setDeleteTarget(null)}
+        />
+      )}
 
-      <Dialog open={Boolean(removeTarget)} onClose={busy ? undefined : () => setRemoveTarget(null)} fullWidth maxWidth="xs">
-        <DialogTitle>Remove team member?</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2">
-            Remove {removeTarget && memberLabel(removeTarget)} from this team? Their workspace and project access will
-            stay unchanged.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button disabled={busy} onClick={() => setRemoveTarget(null)}>Cancel</Button>
-          <Button disabled={busy} color="error" onClick={confirmRemove}>Remove</Button>
-        </DialogActions>
-      </Dialog>
+      {removeTarget && (
+        <ConfirmDialog
+          title={`Remove ${memberLabel(removeTarget)}?`}
+          message="They leave this team. Their workspace and project access will stay unchanged."
+          confirmLabel="Remove"
+          tone="danger"
+          Icon={PersonRemoveOutlined}
+          loading={busy}
+          onConfirm={confirmRemove}
+          onClose={() => setRemoveTarget(null)}
+        />
+      )}
 
       <Snackbar
         open={Boolean(notice || actionError)}

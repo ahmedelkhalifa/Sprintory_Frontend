@@ -3,8 +3,8 @@ import { CircularProgress } from "@mui/material";
 import { useWorkspaces } from "../../context/WorkspaceContext";
 import { projectsPath } from "../../utils/project";
 
-// /projects: projects live under a workspace, so open the current one's list
-// (the login form lands here by default), or let the user pick a workspace first
+// /projects: projects live under a workspace, so open the current one's list, or let the user pick a workspace
+// first
 const ProjectsRedirect = () => {
   const { loading, current } = useWorkspaces();
   if (loading) return <CircularProgress />;

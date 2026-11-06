@@ -36,8 +36,21 @@ export const updateTask = (projectId, taskId, changes) =>
   api.patch(`${tasksPath(projectId)}/${taskId}`, changes).then((res) => res.data);
 
 // a soft delete: the task disappears everywhere, its key is never reused. A parent takes its subtasks with it;
-// a subtask is deleted on its own the same way
+// a subtask is deleted on its own the same way. restoreTask undoes it
 export const deleteTask = (projectId, taskId) => api.delete(`${tasksPath(projectId)}/${taskId}`);
+
+// fired on window after a restore, with { detail: { projectId } }: a task came back that the open lists don't have
+// (the restore can happen after the page that deleted it is gone). useTasksChanged listens for it
+export const TASKS_CHANGED = "tasks:changed";
+
+// brings a deleted task or subtask back (EDIT_TASKS), with the same key; a parent also gets back the subtasks its
+// delete took with it. Into the first column if its own was deleted meanwhile. A subtask whose parent is still
+// deleted answers 404. There is no list of deleted tasks, so the app only offers it right after a delete (Undo)
+export const restoreTask = (projectId, taskId) =>
+  api.post(`${tasksPath(projectId)}/${taskId}/restore`).then((res) => {
+    window.dispatchEvent(new CustomEvent(TASKS_CHANGED, { detail: { projectId } }));
+    return res.data;
+  });
 
 // Subtasks (backend tasks-docs §10, PMP-132): one level under a top-level task, with their own key, title, assignee,
 // status and an optional time estimate in minutes (no story points). The main task list never includes them; a

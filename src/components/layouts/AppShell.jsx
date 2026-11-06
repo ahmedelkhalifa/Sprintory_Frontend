@@ -15,6 +15,7 @@ import Logo from "../general/Logo";
 import GlobalSearch from "../search/GlobalSearch";
 import { useAuth } from "../../context/AuthContext";
 import { useWorkspaces } from "../../context/WorkspaceContext";
+import UndoDeleteProvider from "../../context/UndoDeleteProvider";
 import { initials } from "../../utils/people";
 import { isWorkspaceAdmin, workspacePath } from "../../utils/workspace";
 import NotificationBell from "./NotificationBell";
@@ -24,7 +25,8 @@ const DRAWER_WIDTH = 256;
 const HEADER_HEIGHT = 72;
 
 const NAV_ITEMS = [
-  { label: "Home", to: "/", icon: <HomeOutlined /> },
+  // the current workspace's overview, see linkTo below
+  { label: "Home", home: true, icon: <HomeOutlined /> },
   // workspace pages live under /workspaces/:id, see linkTo below
   { label: "Projects", workspacePath: "projects", icon: <FolderOpenOutlined /> },
   { label: "Board", to: "/board", icon: <ViewColumnOutlined /> },
@@ -83,19 +85,22 @@ const AppShell = () => {
   };
 
   // exact match or a sub-page, so "/projects-x" doesn't highlight "/projects"
-  const isSelected = (to) =>
-    to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`);
+  const isSelected = (to) => pathname === to || pathname.startsWith(`${to}/`);
 
   // the admin-only entries need a current workspace whose role says admin
   const navItems = NAV_ITEMS.filter((item) => !item.adminOnly || isWorkspaceAdmin(current));
 
-  // without a current workspace, workspace pages send the user to pick one first
+  // without a current workspace, Home and the workspace pages send the user to pick one first
   const linkTo = (item) => {
-    if (!item.workspacePath) return item.to;
-    return current ? `${workspacePath(current)}/${item.workspacePath}` : "/workspaces";
+    if (!item.home && !item.workspacePath) return item.to;
+    if (!current) return "/workspaces";
+    return item.home ? workspacePath(current) : `${workspacePath(current)}/${item.workspacePath}`;
   };
-  const isItemSelected = (item) =>
-    item.workspacePath ? Boolean(current) && isSelected(linkTo(item)) : isSelected(item.to);
+  const isItemSelected = (item) => {
+    // Home is the overview itself only: every workspace page sits under it, and has its own entry or none
+    if (item.home) return pathname === linkTo(item);
+    return item.workspacePath ? Boolean(current) && isSelected(linkTo(item)) : isSelected(item.to);
+  };
 
   // the permanent drawer sits under the top bar; the mobile one opens over it, so it shows the logo itself
   const drawerContent = (header) => (
@@ -124,6 +129,8 @@ const AppShell = () => {
             key={item.label}
             component={NavLink}
             to={linkTo(item)}
+            // NavLink's own "active" would also match every page under the overview
+            end={Boolean(item.home)}
             selected={isItemSelected(item)}
             onClick={() => setMobileOpen(false)}
             sx={itemSx}
@@ -247,7 +254,10 @@ const AppShell = () => {
         {/* keeps the page out from under the fixed top bar */}
         <Box sx={{ height: HEADER_HEIGHT, flexShrink: 0 }} />
         <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-          <Outlet />
+          {/* above the pages, so a task's Undo survives leaving the page it was deleted on */}
+          <UndoDeleteProvider>
+            <Outlet />
+          </UndoDeleteProvider>
         </Box>
       </Box>
     </Box>

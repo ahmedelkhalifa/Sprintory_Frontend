@@ -1,22 +1,24 @@
 import { useState } from "react";
-import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, MenuItem, Stack } from "@mui/material";
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, MenuItem, Stack } from "@mui/material";
 import FormField from "../forms/FormField";
+import ToneDialogTitle from "../general/ToneDialogTitle";
 import { deleteBoardColumn } from "../../api/projectsApi";
 import { useSubmit } from "../../hooks/useSubmit";
 import { COLUMN_ERROR_MESSAGES } from "../../constants/tasks";
-
-const plural = (count, noun) => `${count} ${noun}${count === 1 ? "" : "s"}`;
+import { columnContentsLabel } from "../../utils/board";
 
 // "Delete column" window. The backend only hides the column (soft delete) and there is no restore, so for the app
-// it's gone. A column that holds tasks (`count`, on the whole board) needs a new place for them: every task moves
-// to the picked column (the default is its left neighbour) and the move goes in the task's history.
-// `onDeleted(target)` gets the column the tasks went to (null when there were none).
-const DeleteColumnDialog = ({ projectId, column, columns, count, onDeleted, onClose }) => {
+// it's gone. A column that holds anything (`contents` = { tasks, subtasks } on the whole board; subtasks too, though
+// they don't count for WIP) needs a new place for it: everything moves to the picked column (the default is its left
+// neighbour) and the move goes in each task's history.
+// `onDeleted(target)` gets the column they went to (null when it was empty).
+const DeleteColumnDialog = ({ projectId, column, columns, contents, onDeleted, onClose }) => {
   const others = columns.filter((c) => c.id !== column.id);
   const index = columns.findIndex((c) => c.id === column.id);
   const [targetId, setTargetId] = useState((columns[index - 1] ?? others[0])?.id ?? "");
   const submit = useSubmit(COLUMN_ERROR_MESSAGES);
-  const hasTasks = count > 0;
+  const what = columnContentsLabel(contents);
+  const hasTasks = what !== "";
 
   const handleDelete = async () => {
     const { ok } = await submit.run(() => deleteBoardColumn(projectId, column.id, hasTasks ? targetId : null));
@@ -25,7 +27,7 @@ const DeleteColumnDialog = ({ projectId, column, columns, count, onDeleted, onCl
 
   return (
     <Dialog open onClose={submit.submitting ? undefined : onClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ fontWeight: 700 }}>Delete “{column.name}”?</DialogTitle>
+      <ToneDialogTitle tone="danger">Delete “{column.name}”?</ToneDialogTitle>
       <DialogContent>
         <Stack spacing={2}>
           <DialogContentText>
@@ -34,7 +36,7 @@ const DeleteColumnDialog = ({ projectId, column, columns, count, onDeleted, onCl
           {hasTasks && (
             <FormField
               id="delete-column-target"
-              label={`Move its ${plural(count, "task")} to`}
+              label={`Move its ${what} to`}
               select
               value={targetId}
               onChange={(event) => {

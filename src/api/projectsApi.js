@@ -22,9 +22,11 @@ export const getProject = (projectId, signal) =>
 export const listProjectMembers = (projectId, params, signal) =>
   api.get(`/projects/${projectId}/members`, { params, signal }).then((res) => res.data);
 
-// needs VIEW_WORK or CONFIGURE_BOARD; { template, backlogEnabled, sprintsEnabled, wipLimitsEnabled, activeSprintId,
-// columns: [{ id, name, position, category, wipLimit, taskCount, wipExceeded }] } with the columns in order.
-// category is TODO / IN_PROGRESS / DONE; taskCount counts every task in the column (no filters)
+// needs VIEW_WORK or CONFIGURE_BOARD (a workspace admin outside the project can read it too); { template,
+// backlogEnabled, sprintsEnabled, wipLimitsEnabled, activeSprintId, columns: [{ id, name, position, category,
+// wipLimit, taskCount, wipExceeded, subtaskCount }] } with the columns in order. category is TODO / IN_PROGRESS /
+// DONE; taskCount counts every top-level task in the column (no filters), the one WIP limits use; subtaskCount the
+// subtasks in it, which a column delete moves too
 export const getBoard = (projectId, signal) =>
   api.get(`/projects/${projectId}/board`, { signal }).then((res) => res.data);
 

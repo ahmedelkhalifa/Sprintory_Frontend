@@ -74,7 +74,7 @@ In the frontend: [notificationsApi.js](../src/api/notificationsApi.js) (`listNot
 
 ## Watching
 
-[TaskWatchToggle](../src/components/tasks/TaskWatchToggle.jsx) on the task page. Watchers get comment and status-change notifications. You watch tasks you create, are assigned to or comment on automatically; unwatching lasts until the next such trigger. Anyone with `VIEW_WORK` can watch, also in an archived workspace. The task response has no flag, so the toggle loads it with `GET …/watch` (and hides itself if that fails).
+[TaskWatchToggle](../src/components/tasks/TaskWatchToggle.jsx) on the task page and in the task drawer's header (Backlog and Board), for everyone who can see the task, whatever their role. Not on a subtask's page yet. Watchers get comment and status-change notifications. You watch tasks you create, are assigned to or comment on automatically; unwatching lasts until the next such trigger. Anyone with `VIEW_WORK` can watch, also in an archived workspace. The task response has no flag, so the toggle loads it with `GET …/watch` (and hides itself if that fails).
 
 ## Email links
 

@@ -5,6 +5,7 @@ import {
   canMoveTask,
   deleteTaskMessage,
   describeTasks,
+  findAssignee,
   findTask,
   formatEstimate,
   formatMinutes,
@@ -319,12 +320,19 @@ test("mergeHistory keeps each entry once, oldest first", () => {
 });
 
 test("deleteTaskMessage warns that a parent's subtasks go with it", () => {
-  assert.equal(deleteTaskMessage(task(1)), 'WR-1 "Task 1" will be deleted. This can\'t be undone.');
+  assert.equal(deleteTaskMessage(task(1)), 'WR-1 "Task 1" will be deleted.');
   assert.equal(
     deleteTaskMessage(task(1, { subtaskTotal: 1 })),
-    'WR-1 "Task 1" will be deleted. Its subtask will be deleted too. This can\'t be undone.',
+    'WR-1 "Task 1" will be deleted. Its subtask will be deleted too.',
   );
   assert.match(deleteTaskMessage(task(1, { subtaskTotal: 3 })), /Its 3 subtasks will be deleted too/);
+});
+
+test("findAssignee names the assignee from the loaded people, else keeps the id", () => {
+  const people = [{ userId: 7, firstName: "Ada" }];
+  assert.equal(findAssignee(null, people), null);
+  assert.equal(findAssignee(7, people).firstName, "Ada");
+  assert.deepEqual(findAssignee(9, people), { userId: 9 });
 });
 
 test("needsSubtaskConfirmation spots only the open-subtasks refusal", () => {

@@ -1,3 +1,4 @@
+import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
 import ConfirmDialog from "../general/ConfirmDialog";
 import { archiveProject, deleteProject, restoreProject } from "../../api/projectsApi";
 import { useSubmit } from "../../hooks/useSubmit";
@@ -9,6 +10,9 @@ const ACTIONS = {
     title: (name) => `Archive "${name}"?`,
     message: "It moves to the Archived tab and becomes read-only. You can restore it at any time.",
     confirmLabel: "Archive",
+    // nothing is lost, but the project stops being editable
+    tone: "warning",
+    Icon: ArchiveOutlinedIcon,
     run: archiveProject,
   },
   restore: {
@@ -21,7 +25,7 @@ const ACTIONS = {
     title: (name) => `Delete "${name}"?`,
     message: "The project and its member list are deleted for everyone. This cannot be undone.",
     confirmLabel: "Delete project",
-    destructive: true,
+    tone: "danger",
     run: deleteProject,
   },
 };
@@ -29,7 +33,7 @@ const ACTIONS = {
 // Confirmation for archive / restore / delete of one project
 const ProjectStatusDialog = ({ action, project, onClose, onDone }) => {
   const submit = useSubmit(PROJECT_ERROR_MESSAGES);
-  const { title, message, confirmLabel, destructive, run } = ACTIONS[action];
+  const { title, message, confirmLabel, tone, Icon, run } = ACTIONS[action];
 
   const handleConfirm = async () => {
     const { ok } = await submit.run(() => run(project.id));
@@ -41,7 +45,8 @@ const ProjectStatusDialog = ({ action, project, onClose, onDone }) => {
       title={title(project.name)}
       message={message}
       confirmLabel={confirmLabel}
-      destructive={destructive}
+      tone={tone}
+      Icon={Icon}
       loading={submit.submitting}
       error={submit.error}
       onConfirm={handleConfirm}
