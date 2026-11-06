@@ -52,6 +52,14 @@ export const daysLeft = (endDate, today = new Date()) => {
 // a column over its work-in-progress limit (Kanban); no limit is never over
 export const overWip = (column, count) => column.wipLimit != null && count > column.wipLimit;
 
+// the warning for a saved task's `wipWarning` ({ columnId, count, limit, message }): a WIP limit never blocks a
+// move, so the task moved into a column that is now over its limit. null when there is no warning
+export const wipWarningText = (warning, columns) => {
+  if (!warning) return null;
+  const name = columns.find((column) => column.id === warning.columnId)?.name;
+  return name ? `${name} is over its WIP limit (${warning.count} / ${warning.limit}). The task was still moved.` : warning.message;
+};
+
 // ----- configuring the columns (R16, backend docs/board-docs.md) -----
 
 export const MIN_COLUMNS = 2;

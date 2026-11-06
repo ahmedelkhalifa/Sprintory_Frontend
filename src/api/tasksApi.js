@@ -56,14 +56,24 @@ export const createSubtask = (projectId, parentId, body) =>
 export const updateSubtask = (projectId, parentId, subtaskId, changes) =>
   api.patch(`${tasksPath(projectId)}/${parentId}/subtasks/${subtaskId}`, changes).then((res) => res.data);
 
-// the task's status moves, oldest first: [{ id, fromColumnId, fromColumnName, toColumnId, toColumnName, actorId,
-// changedAt }]. Names are kept as they were then. Other field changes and comments aren't in it yet (PMP-133)
-export const getTaskHistory = (projectId, taskId, signal) =>
-  api.get(`${tasksPath(projectId)}/${taskId}/history`, { signal }).then((res) => res.data);
+// the task's activity feed (backend task-history-docs.md), oldest first, as a PageResponse of
+// { id, type, field, oldValue, newValue, refId, actor: { id, name }, occurredAt }. Values and the name are display
+// snapshots from when it happened (a status move carries the column names). A subtask has its own feed; the
+// parent's only says a subtask was added or removed. historyLine in utils/task.js turns an entry into words
+export const getTaskHistory = (projectId, taskId, { page = 0, size = 20 } = {}, signal) =>
+  api.get(`${tasksPath(projectId)}/${taskId}/history`, { params: { page, size }, signal }).then((res) => res.data);
 
-// one drag on the board: into column `statusId`, right after `afterTaskId` in that column (null = first)
-export const moveOnBoard = (projectId, taskId, { statusId, afterTaskId = null }) =>
-  api.put(`${tasksPath(projectId)}/${taskId}/position`, { statusId, afterTaskId }).then((res) => res.data);
+// one drag on the board: into column `statusId`, right after `afterTaskId` in that column (null = first).
+// Like updateTask, a parent with open subtasks going into a Done column answers 409
+// OPEN_SUBTASKS_CONFIRMATION_REQUIRED; the same move with `confirmOpenSubtasks: true` goes through
+export const moveOnBoard = (projectId, taskId, { statusId, afterTaskId = null, confirmOpenSubtasks = false }) =>
+  api
+    .put(`${tasksPath(projectId)}/${taskId}/position`, {
+      statusId,
+      afterTaskId,
+      ...(confirmOpenSubtasks && { confirmOpenSubtasks: true }),
+    })
+    .then((res) => res.data);
 
 // needs MANAGE_BACKLOG (the Product Owner); right after `afterTaskId` in the backlog (null = first). Scrum only
 export const rankInBacklog = (projectId, taskId, afterTaskId = null) =>

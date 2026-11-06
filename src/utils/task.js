@@ -205,13 +205,85 @@ export const subtaskProgress = (task) => {
   return { done, total, percent: total ? Math.round((done / total) * 100) : 0 };
 };
 
-// the task's status history, oldest first, each with the member who made the move (null when they aren't in the
-// loaded members, e.g. someone who left the project)
-export const describeHistory = (events, members = []) => {
-  const people = new Map(members.map((member) => [member.userId, member]));
-  return [...events]
-    .sort((a, b) => new Date(a.changedAt) - new Date(b.changedAt) || a.id - b.id)
-    .map((event) => ({ ...event, actor: people.get(event.actorId) ?? null }));
+// is this the backend's "the parent still has open subtasks" refusal (tasks-docs.md §10.3)? Then the move needs
+// a confirmation (OpenSubtasksDialog) and goes again with `confirmOpenSubtasks: true`
+export const needsSubtaskConfirmation = (err) => err?.response?.data?.code === "OPEN_SUBTASKS_CONFIRMATION_REQUIRED";
+
+// the delete confirmation's text; deleting a parent deletes its subtasks too (backend tasks-docs.md)
+export const deleteTaskMessage = (task) => {
+  const subtasks = task.subtaskTotal ?? 0;
+  const also = subtasks > 0 ? ` Its ${subtasks === 1 ? "subtask" : `${subtasks} subtasks`} will be deleted too.` : "";
+  return `${task.key} "${task.title}" will be deleted.${also} This can't be undone.`;
+};
+
+// two loads of the same feed (page 0 again after a save, plus pages from "Load more") as one list, oldest first,
+// each entry once. The feed is append-only, so an entry never changes between loads
+export const mergeHistory = (...lists) => {
+  const byId = new Map();
+  for (const entry of lists.flat()) byId.set(entry.id, entry);
+  return [...byId.values()].sort((a, b) => new Date(a.occurredAt) - new Date(b.occurredAt) || a.id - b.id);
+};
+
+// what a changed field is called in a history line
+const HISTORY_FIELDS = {
+  TITLE: "title",
+  TYPE: "type",
+  PRIORITY: "priority",
+  STATUS: "status",
+  ESTIMATE: "story points",
+  ESTIMATE_MINUTES: "time estimate",
+  LABELS: "labels",
+};
+
+// enum values come as stored ("HIGHEST"); every type and priority label is the value in sentence case
+const enumLabel = (value) => value.charAt(0) + value.slice(1).toLowerCase();
+
+const historyValue = (field, value) => {
+  if (value == null || value === "") return "None";
+  if (field === "TYPE" || field === "PRIORITY") return enumLabel(value);
+  if (field === "ESTIMATE_MINUTES") return formatMinutes(value);
+  return value;
+};
+
+/**
+ * One entry of a task's activity feed (backend task-history-docs.md §3–4) as the words after the person's name:
+ * { text } and, for a change from one value to another, `from` / `to` plus `kind` ("status": column chips,
+ * "values": plain text). `subtask` says whether the feed is a subtask's ("created the subtask").
+ */
+export const historyLine = (entry, { subtask = false } = {}) => {
+  const { type, field, oldValue, newValue } = entry;
+  switch (type) {
+    case "CREATED":
+      return { text: `created the ${subtask ? "subtask" : "task"}` };
+    case "RESTORED":
+      return { text: `restored the ${subtask ? "subtask" : "task"}` };
+    case "COMMENT_DELETED":
+      return { text: "deleted a comment" };
+    // the value is the subtask's key and title, e.g. "MOB-57 Write tests"
+    case "SUBTASK_ADDED":
+      return { text: `added subtask ${newValue ?? ""}`.trim() };
+    case "SUBTASK_REMOVED":
+      return { text: `removed subtask ${oldValue ?? ""}`.trim() };
+    case "FIELD_CHANGED":
+      break;
+    default:
+      return { text: "updated the task" }; // a type added after this was written
+  }
+
+  if (field === "DESCRIPTION") return { text: "changed the description" };
+  if (field === "ASSIGNEE") {
+    if (oldValue == null && newValue != null) return { text: `assigned it to ${newValue}` };
+    if (newValue == null && oldValue != null) return { text: `unassigned ${oldValue}` };
+    return { text: "changed the assignee", from: historyValue(field, oldValue), to: historyValue(field, newValue), kind: "values" };
+  }
+  const name = HISTORY_FIELDS[field];
+  if (!name) return { text: "updated the task" };
+  return {
+    text: `changed the ${name}`,
+    from: historyValue(field, oldValue),
+    to: historyValue(field, newValue),
+    kind: field === "STATUS" ? "status" : "values",
+  };
 };
 
 // every label used in these tasks, for the label picker's suggestions

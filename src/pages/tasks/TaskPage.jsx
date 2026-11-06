@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link as RouterLink, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Accordion,
@@ -26,6 +26,7 @@ import PageLayout from "../../components/layouts/PageLayout";
 import AssigneePicker from "../../components/tasks/AssigneePicker";
 import DetailRow from "../../components/tasks/DetailRow";
 import NoWorkAccess from "../../components/tasks/NoWorkAccess";
+import OpenSubtasksDialog from "../../components/tasks/OpenSubtasksDialog";
 import TaskActivity from "../../components/tasks/TaskActivity";
 import TaskStatusSelect from "../../components/tasks/TaskStatusSelect";
 import TaskTitleField from "../../components/tasks/TaskTitleField";
@@ -41,7 +42,15 @@ import { useSubmit } from "../../hooks/useSubmit";
 import { PERMISSIONS } from "../../constants/projects";
 import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_TYPES } from "../../constants/tasks";
 import { can, isProjectArchived, projectPath } from "../../utils/project";
-import { formatEstimate, projectLabels, subtaskProgress, taskChanges, taskValues } from "../../utils/task";
+import { wipWarningText } from "../../utils/board";
+import {
+  deleteTaskMessage,
+  formatEstimate,
+  needsSubtaskConfirmation,
+  projectLabels,
+  taskChanges,
+  taskValues,
+} from "../../utils/task";
 import { validateTask } from "../../utils/validation";
 import { isWorkspaceArchived } from "../../utils/workspace";
 
@@ -120,10 +129,18 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
   const [confirmDelete, setConfirmDelete] = useState(false);
   // a move to Done the backend refused because subtasks are open: the same changes, waiting for a confirmation
   const [confirmDone, setConfirmDone] = useState(null);
+  const [wipNotice, setWipNotice] = useState(null); // a status change put the task over a column's WIP limit
   const save = useSubmit(TASK_ERROR_MESSAGES);
   const remove = useSubmit(TASK_ERROR_MESSAGES);
+  // only the latest subtask refresh may land (see refreshTask)
+  const refreshCount = useRef(0);
   // one save at a time: each change is computed from the task the last save returned
   const locked = !canEdit || save.submitting;
+
+  const saved = (result) => {
+    setTask(result);
+    setWipNotice(wipWarningText(result.wipWarning, columns));
+  };
 
   const clearError = (field) => {
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -141,7 +158,7 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
     if (Object.keys(changes).length === 0) return { ok: true };
     const { ok, result, error } = await save.run(() => updateTask(project.id, task.id, changes));
     if (ok) {
-      setTask(result);
+      saved(result);
       return { ok: true };
     }
     const data = error.response?.data;
@@ -151,7 +168,7 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
       return { ok: false, invalid: true };
     }
     // into Done with open subtasks: allowed, but only once the user confirms (backend tasks-docs §10.3)
-    if (data?.code === "OPEN_SUBTASKS_CONFIRMATION_REQUIRED") {
+    if (needsSubtaskConfirmation(error)) {
       save.clearError();
       setConfirmDone(changes);
     }
@@ -161,14 +178,21 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
   const moveToDoneAnyway = async () => {
     const { ok, result } = await save.run(() => updateTask(project.id, task.id, { ...confirmDone, confirmOpenSubtasks: true }));
     setConfirmDone(null);
-    if (ok) setTask(result);
+    if (ok) saved(result);
   };
 
-  // a subtask was added, changed or deleted: the parent's "3 / 5 done" comes from the backend, so ask again
-  const refreshTask = () =>
+  // a subtask was added, changed or deleted: the parent's "3 / 5 done" comes from the backend, so ask again.
+  // Only the counts are taken: a field saved meanwhile must not be overwritten by an older copy of the task,
+  // and of several refreshes only the last one counts
+  const refreshTask = () => {
+    const request = ++refreshCount.current;
     getTask(project.id, task.id)
-      .then(setTask)
+      .then((fresh) => {
+        if (request !== refreshCount.current) return;
+        setTask((prev) => ({ ...prev, subtaskDone: fresh.subtaskDone, subtaskTotal: fresh.subtaskTotal }));
+      })
       .catch(() => {}); // the counts stay as they were; the list itself already shows the change
+  };
 
   const saveEstimate = async () => {
     if (estimate === null) return;
@@ -194,7 +218,6 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
   const assignee =
     task.assigneeId == null ? null : (people.find((m) => m.userId === task.assigneeId) ?? { userId: task.assigneeId });
   const type = TASK_TYPES[task.type];
-  const progress = subtaskProgress(task);
   const doneColumn = confirmDone && columns.find((column) => column.id === confirmDone.statusId);
 
   return (
@@ -212,6 +235,11 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
       {save.error && (
         <Alert severity="error" onClose={save.clearError} sx={{ mb: 2 }}>
           {save.error}
+        </Alert>
+      )}
+      {wipNotice && (
+        <Alert severity="warning" onClose={() => setWipNotice(null)} sx={{ mb: 2 }}>
+          {wipNotice}
         </Alert>
       )}
 
@@ -382,7 +410,7 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
       {confirmDelete && (
         <ConfirmDialog
           title="Delete this task?"
-          message={`${task.key} "${task.title}" will be deleted. This can't be undone.`}
+          message={deleteTaskMessage(task)}
           confirmLabel="Delete task"
           destructive
           loading={remove.submitting}
@@ -396,12 +424,9 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
       )}
 
       {confirmDone && (
-        <ConfirmDialog
-          title="Move to Done with open subtasks?"
-          message={`${
-            progress.total > 0 ? `${progress.total - progress.done} of ${progress.total} subtasks aren't done yet. ` : ""
-          }Move ${task.key} to ${doneColumn?.name ?? "Done"} anyway? The subtasks keep their status.`}
-          confirmLabel="Move anyway"
+        <OpenSubtasksDialog
+          task={task}
+          columnName={doneColumn?.name}
           loading={save.submitting}
           onConfirm={moveToDoneAnyway}
           onClose={() => setConfirmDone(null)}

@@ -19,14 +19,16 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import FormField from "../forms/FormField";
 import ConfirmDialog from "../general/ConfirmDialog";
 import AssigneePicker from "./AssigneePicker";
+import OpenSubtasksDialog from "./OpenSubtasksDialog";
 import TaskValueSelect from "./TaskValueSelect";
+import TaskWatchToggle from "./TaskWatchToggle";
 import { columnOptions } from "./columnOptions";
 import { deleteTask, getTask, updateTask } from "../../api/tasksApi";
 import { useAsync } from "../../hooks/useAsync";
 import { useSubmit } from "../../hooks/useSubmit";
 import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_TYPES } from "../../constants/tasks";
-import { taskChanges, taskPath } from "../../utils/task";
+import { deleteTaskMessage, needsSubtaskConfirmation, taskChanges, taskPath } from "../../utils/task";
 import { TASK_TITLE_MAX, validateTask } from "../../utils/validation";
 
 // a label above a field that isn't a FormField (the pickers)
@@ -57,8 +59,27 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
   const [values, setValues] = useState(() => fromTask(task, members));
   const [errors, setErrors] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // a move to Done the backend refused because subtasks are open: the same changes, waiting for a confirmation
+  const [confirmDone, setConfirmDone] = useState(null);
   const save = useSubmit(TASK_ERROR_MESSAGES);
   const remove = useSubmit(TASK_ERROR_MESSAGES);
+
+  const send = async (changes) => {
+    const { ok, error, result } = await save.run(() => updateTask(project.id, task.id, changes));
+    if (ok) {
+      onChanged(result);
+      onClose();
+      return;
+    }
+    const data = error.response?.data;
+    if (data?.code === "VALIDATION_ERROR" && data.fieldErrors) {
+      setErrors(data.fieldErrors);
+      save.clearError();
+    } else if (needsSubtaskConfirmation(error)) {
+      save.clearError();
+      setConfirmDone(changes);
+    }
+  };
 
   const set = (field, value) => {
     setValues((prev) => ({ ...prev, [field]: value }));
@@ -77,17 +98,13 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
       onClose();
       return;
     }
-    const { ok, error, result } = await save.run(() => updateTask(project.id, task.id, changes));
-    if (ok) {
-      onChanged(result);
-      onClose();
-      return;
-    }
-    const data = error.response?.data;
-    if (data?.code === "VALIDATION_ERROR" && data.fieldErrors) {
-      setErrors(data.fieldErrors);
-      save.clearError();
-    }
+    send(changes);
+  };
+
+  const moveToDoneAnyway = () => {
+    const changes = confirmDone;
+    setConfirmDone(null);
+    send({ ...changes, confirmOpenSubtasks: true });
   };
 
   const handleDelete = async () => {
@@ -182,7 +199,7 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
       {confirmDelete && (
         <ConfirmDialog
           title="Delete this task?"
-          message={`${task.key} "${task.title}" will be deleted. This can't be undone.`}
+          message={deleteTaskMessage(task)}
           confirmLabel="Delete task"
           destructive
           loading={remove.submitting}
@@ -192,6 +209,15 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
             setConfirmDelete(false);
             remove.clearError();
           }}
+        />
+      )}
+
+      {confirmDone && (
+        <OpenSubtasksDialog
+          task={task}
+          columnName={columns.find((column) => column.id === confirmDone.statusId)?.name}
+          onConfirm={moveToDoneAnyway}
+          onClose={() => setConfirmDone(null)}
         />
       )}
     </Box>
@@ -218,18 +244,27 @@ const TaskDrawer = ({ project, taskId, columns, members, labels, canEdit, onClos
       onClose={onClose}
       slotProps={{ paper: { sx: { width: { xs: "100%", sm: 560 }, display: "flex", flexDirection: "column" } } }}
     >
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 3, py: 2, borderBottom: 1, borderColor: "divider" }}>
+      <Box
+        sx={{ display: "flex", alignItems: "center", gap: 1, px: { xs: 2, sm: 3 }, py: 2, borderBottom: 1, borderColor: "divider" }}
+      >
         {type && <type.Icon fontSize="small" sx={{ color: type.tone }} />}
-        <Typography sx={{ fontWeight: 600, flexGrow: 1 }} noWrap>
+        <Typography sx={{ fontWeight: 600, flexGrow: 1, minWidth: 0 }} noWrap>
           {task ? task.key : "Task"}
         </Typography>
+        {/* a personal setting, so also for viewers and archived projects */}
+        <TaskWatchToggle projectId={project.id} taskId={taskId} />
+        {/* only the icon on phones, so the header fits next to Watch */}
         <Button
           component={RouterLink}
           to={taskPath(workspace, project, taskId)}
           size="small"
+          aria-label="Open full page"
           endIcon={<OpenInNewIcon fontSize="small" />}
+          sx={{ minWidth: 0, flexShrink: 0, "& .MuiButton-endIcon": { ml: { xs: 0, sm: 1 } } }}
         >
-          Open full page
+          <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+            Open full page
+          </Box>
         </Button>
         <IconButton onClick={onClose} aria-label="Close" size="small">
           <CloseIcon fontSize="small" />

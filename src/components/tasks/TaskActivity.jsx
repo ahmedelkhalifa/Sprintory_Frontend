@@ -4,8 +4,8 @@ import TaskHistory from "./TaskHistory";
 
 const tabSx = { minHeight: 40, textTransform: "none", fontWeight: 600, px: 1.5, minWidth: 0 };
 
-// A task page's Activity, like Jira's: Comments and History tabs. History is the status moves (TaskHistory);
-// comments come with their own story, so that tab only says so for now and History opens first.
+// A task page's Activity, like Jira's: Comments and History tabs. History is the task's activity feed
+// (TaskHistory); comments come with their own story, so that tab only says so for now and History opens first.
 const TaskActivity = ({ project, task, members }) => {
   const [tab, setTab] = useState("history");
 
@@ -21,7 +21,13 @@ const TaskActivity = ({ project, task, members }) => {
         <Tab value="history" label="History" sx={tabSx} />
       </Tabs>
       {tab === "history" ? (
-        <TaskHistory project={project} taskId={task.id} members={members} version={task.updatedAt} />
+        <TaskHistory
+          project={project}
+          taskId={task.id}
+          members={members}
+          version={task.updatedAt}
+          subtask={task.parentTaskId != null}
+        />
       ) : (
         <Typography variant="body2" color="text.secondary">
           Comments are coming soon.

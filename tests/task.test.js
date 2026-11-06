@@ -3,15 +3,18 @@ import assert from "node:assert/strict";
 import {
   backlogView,
   canMoveTask,
-  describeHistory,
+  deleteTaskMessage,
   describeTasks,
   findTask,
   formatEstimate,
   formatMinutes,
+  historyLine,
   insertAfter,
   labelTone,
+  mergeHistory,
   movePermission,
   moveInBacklog,
+  needsSubtaskConfirmation,
   projectLabels,
   subtaskChanges,
   subtaskProgress,
@@ -259,14 +262,73 @@ test("validateSubtask: title required, time in whole minutes of 1 or more, or em
   for (const bad of ["0", "-5", "1.5", "abc"]) assert.ok(validateSubtask({ title: "Tests", estimateMinutes: bad }).estimateMinutes, bad);
 });
 
-test("describeHistory puts the moves oldest first and names who made them", () => {
-  const members = [{ userId: 7, firstName: "Ada", lastName: "Lovelace" }];
-  const events = [
-    { id: 2, actorId: 7, fromColumnName: "In Progress", toColumnName: "Done", changedAt: "2026-11-02T10:00:00Z" },
-    { id: 1, actorId: 9, fromColumnName: "To Do", toColumnName: "In Progress", changedAt: "2026-11-01T10:00:00Z" },
-  ];
-  const [first, second] = describeHistory(events, members);
-  assert.deepEqual([first.id, second.id], [1, 2]);
-  assert.equal(first.actor, null); // not in the loaded members
-  assert.equal(second.actor.firstName, "Ada");
+const entry = (type, field = null, oldValue = null, newValue = null) => ({ id: 1, type, field, oldValue, newValue });
+
+test("historyLine: created, restored, comments and subtasks", () => {
+  assert.deepEqual(historyLine(entry("CREATED")), { text: "created the task" });
+  assert.deepEqual(historyLine(entry("CREATED"), { subtask: true }), { text: "created the subtask" });
+  assert.deepEqual(historyLine(entry("RESTORED")), { text: "restored the task" });
+  assert.deepEqual(historyLine(entry("COMMENT_DELETED")), { text: "deleted a comment" });
+  assert.deepEqual(historyLine(entry("SUBTASK_ADDED", null, null, "MOB-57 Write tests")), {
+    text: "added subtask MOB-57 Write tests",
+  });
+  assert.deepEqual(historyLine(entry("SUBTASK_REMOVED", null, "MOB-57 Write tests", null)), {
+    text: "removed subtask MOB-57 Write tests",
+  });
+});
+
+test("historyLine: field changes show both values, empty ones as None", () => {
+  assert.deepEqual(historyLine(entry("FIELD_CHANGED", "STATUS", "To Do", "In Progress")), {
+    text: "changed the status",
+    from: "To Do",
+    to: "In Progress",
+    kind: "status",
+  });
+  const priority = historyLine(entry("FIELD_CHANGED", "PRIORITY", "LOW", "HIGHEST"));
+  assert.deepEqual([priority.text, priority.from, priority.to, priority.kind], ["changed the priority", "Low", "Highest", "values"]);
+  const type = historyLine(entry("FIELD_CHANGED", "TYPE", "TASK", "BUG"));
+  assert.deepEqual([type.from, type.to], ["Task", "Bug"]);
+  const estimate = historyLine(entry("FIELD_CHANGED", "ESTIMATE", null, "5"));
+  assert.deepEqual([estimate.text, estimate.from, estimate.to], ["changed the story points", "None", "5"]);
+  const minutes = historyLine(entry("FIELD_CHANGED", "ESTIMATE_MINUTES", "60", "90"));
+  assert.deepEqual([minutes.text, minutes.from, minutes.to], ["changed the time estimate", "1h", "1h 30m"]);
+  const labels = historyLine(entry("FIELD_CHANGED", "LABELS", "backend", null));
+  assert.deepEqual([labels.from, labels.to], ["backend", "None"]);
+  assert.deepEqual(historyLine(entry("FIELD_CHANGED", "DESCRIPTION")), { text: "changed the description" });
+});
+
+test("historyLine: assignee wording depends on what changed", () => {
+  assert.deepEqual(historyLine(entry("FIELD_CHANGED", "ASSIGNEE", null, "Damir G")), { text: "assigned it to Damir G" });
+  assert.deepEqual(historyLine(entry("FIELD_CHANGED", "ASSIGNEE", "Damir G", null)), { text: "unassigned Damir G" });
+  const changed = historyLine(entry("FIELD_CHANGED", "ASSIGNEE", "Ada L", "Damir G"));
+  assert.deepEqual([changed.text, changed.from, changed.to], ["changed the assignee", "Ada L", "Damir G"]);
+});
+
+test("historyLine: types and fields added later still get a line", () => {
+  assert.deepEqual(historyLine(entry("SPRINT_SCOPE_CHANGED")), { text: "updated the task" });
+  assert.deepEqual(historyLine(entry("FIELD_CHANGED", "DUE_DATE", "a", "b")), { text: "updated the task" });
+});
+
+test("mergeHistory keeps each entry once, oldest first", () => {
+  const at = (id, day) => ({ id, occurredAt: `2026-11-0${day}T10:00:00Z` });
+  const merged = mergeHistory([at(1, 1), at(2, 2)], [at(2, 2), at(3, 2), at(4, 3)]);
+  assert.deepEqual(
+    merged.map((e) => e.id),
+    [1, 2, 3, 4],
+  );
+});
+
+test("deleteTaskMessage warns that a parent's subtasks go with it", () => {
+  assert.equal(deleteTaskMessage(task(1)), 'WR-1 "Task 1" will be deleted. This can\'t be undone.');
+  assert.equal(
+    deleteTaskMessage(task(1, { subtaskTotal: 1 })),
+    'WR-1 "Task 1" will be deleted. Its subtask will be deleted too. This can\'t be undone.',
+  );
+  assert.match(deleteTaskMessage(task(1, { subtaskTotal: 3 })), /Its 3 subtasks will be deleted too/);
+});
+
+test("needsSubtaskConfirmation spots only the open-subtasks refusal", () => {
+  assert.equal(needsSubtaskConfirmation({ response: { data: { code: "OPEN_SUBTASKS_CONFIRMATION_REQUIRED" } } }), true);
+  assert.equal(needsSubtaskConfirmation({ response: { data: { code: "CONFLICT" } } }), false);
+  assert.equal(needsSubtaskConfirmation(new Error("network")), false);
 });

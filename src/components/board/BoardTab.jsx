@@ -7,6 +7,7 @@ import AddIcon from "@mui/icons-material/Add";
 import LoadState from "../general/LoadState";
 import QuickAddTask from "../tasks/QuickAddTask";
 import TaskDrawer from "../tasks/TaskDrawer";
+import OpenSubtasksDialog from "../tasks/OpenSubtasksDialog";
 import NoWorkAccess from "../tasks/NoWorkAccess";
 import TaskFilterBar from "../tasks/filters/TaskFilterBar";
 import { collisionDetection, isBelow } from "../tasks/dnd";
@@ -28,8 +29,8 @@ import { PERMISSIONS } from "../../constants/projects";
 import { COLUMN_ERROR_MESSAGES, TASK_ERROR_MESSAGES } from "../../constants/tasks";
 import { errorMessage } from "../../utils/apiError";
 import { can } from "../../utils/project";
-import { boardMove, columnRules, groupByColumn, MAX_COLUMNS, moveColumnId } from "../../utils/board";
-import { projectLabels, taskStage } from "../../utils/task";
+import { boardMove, columnRules, groupByColumn, MAX_COLUMNS, moveColumnId, wipWarningText } from "../../utils/board";
+import { needsSubtaskConfirmation, projectLabels, taskStage } from "../../utils/task";
 import { EMPTY_TASK_FILTERS } from "../../utils/taskFilters";
 import { validateWipLimit } from "../../utils/validation";
 
@@ -87,6 +88,7 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, o
   const [dragging, setDragging] = useState(null); // { taskId, fromStatusId }
   const [overStatusId, setOverStatusId] = useState(null);
   const [columnDialog, setColumnDialog] = useState(null); // { type: "add" | "edit" | "wip" | "delete", columnId }
+  const [confirmMove, setConfirmMove] = useState(null); // { move, before }: a move into Done waiting for a yes
   const sensors = useSensors(
     // a short move before dragging starts, so clicks on a card still open it
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -167,30 +169,47 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, o
 
   // a WIP limit never blocks a move: a saved task with a `wipWarning` moved into a column that is now over its limit
   const warnOverWip = (saved) => {
-    const warning = saved?.wipWarning;
-    if (!warning) return;
-    const name = columns.find((column) => column.id === warning.columnId)?.name;
-    setNotice({
-      severity: "warning",
-      text: name ? `${name} is over its WIP limit (${warning.count} / ${warning.limit}). The task was still moved.` : warning.message,
-    });
+    const text = wipWarningText(saved?.wipWarning, columns);
+    if (text) setNotice({ severity: "warning", text });
+  };
+
+  // sends a move that already shows; `before` is the task list to go back to if it's refused. A parent going into
+  // Done with open subtasks stays where it was dropped while the user confirms (confirmMove)
+  const sendMove = async (move, before) => {
+    try {
+      warnOverWip(await moveOnBoard(project.id, move.taskId, move));
+    } catch (err) {
+      if (!move.confirmOpenSubtasks && needsSubtaskConfirmation(err)) {
+        setConfirmMove({ move, before });
+        return;
+      }
+      setOptimistic({ source: data, tasks: before });
+      setNotice({ severity: "error", text: errorMessage(err, "Couldn't move the task. Please try again.", TASK_ERROR_MESSAGES) });
+    }
   };
 
   // move = { taskId, statusId, afterTaskId (null = first in the column) }
-  const applyMove = async (move) => {
+  const applyMove = (move) => {
     const before = allTasks;
     // only the moved task gets a new object (and its new stage); the other cards keep theirs and skip re-rendering
     const moved = boardMove(allTasks, columns, move).map((task) =>
       task.id === move.taskId ? { ...task, stage: taskStage(task.statusId, columns) } : task,
     );
     setOptimistic({ source: data, tasks: moved });
-    try {
-      warnOverWip(await moveOnBoard(project.id, move.taskId, move));
-    } catch (err) {
-      setOptimistic({ source: data, tasks: before });
-      setNotice({ severity: "error", text: errorMessage(err, "Couldn't move the task. Please try again.", TASK_ERROR_MESSAGES) });
-    }
+    sendMove(move, before);
   };
+
+  const moveAnyway = () => {
+    const { move, before } = confirmMove;
+    setConfirmMove(null);
+    sendMove({ ...move, confirmOpenSubtasks: true }, before);
+  };
+
+  const cancelMove = () => {
+    setOptimistic({ source: data, tasks: confirmMove.before });
+    setConfirmMove(null);
+  };
+  const confirmTask = confirmMove && allTasks.find((task) => task.id === confirmMove.move.taskId);
 
   // what a drop landed on: { statusId, overTaskId } (overTaskId null = the column itself), or null
   const dropTarget = (over) => {
@@ -354,6 +373,15 @@ const BoardTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, o
             reload();
             warnOverWip(saved);
           }}
+        />
+      )}
+
+      {confirmTask && (
+        <OpenSubtasksDialog
+          task={confirmTask}
+          columnName={columns.find((column) => column.id === confirmMove.move.statusId)?.name}
+          onConfirm={moveAnyway}
+          onClose={cancelMove}
         />
       )}
 

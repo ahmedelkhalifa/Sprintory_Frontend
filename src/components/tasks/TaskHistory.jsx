@@ -1,15 +1,16 @@
-import { useEffect, useRef } from "react";
-import { Avatar, Box, Typography } from "@mui/material";
+import { useEffect, useRef, useState } from "react";
+import { Alert, Box, Button, Typography } from "@mui/material";
 import ArrowRightAltRoundedIcon from "@mui/icons-material/ArrowRightAltRounded";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutlineOutlined";
 import LoadState from "../general/LoadState";
 import UserAvatar from "../general/UserAvatar";
 import { getTaskHistory } from "../../api/tasksApi";
 import { useAsync } from "../../hooks/useAsync";
 import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
+import { errorMessage } from "../../utils/apiError";
 import { formatDate, timeAgo } from "../../utils/format";
-import { memberLabel } from "../../utils/people";
-import { describeHistory } from "../../utils/task";
+import { historyLine, mergeHistory } from "../../utils/task";
+
+const PAGE_SIZE = 20;
 
 // a column name as it was at the time of the move
 const ColumnName = ({ children }) => (
@@ -30,16 +31,66 @@ const ColumnName = ({ children }) => (
   </Box>
 );
 
-// The task's history (R10), oldest first: who moved it from which column to which, and when. Only status moves for
-// now; other field changes, subtasks and comments come with the activity feed (PMP-133). `members` name the people;
-// `version` changes when the page saves the task, so a new move shows up.
-const TaskHistory = ({ project, taskId, members, version }) => {
-  const state = useAsync((signal) => getTaskHistory(project.id, taskId, signal), [project.id, taskId], {
-    fallback: "Couldn't load the history. Please try again.",
-    messages: TASK_ERROR_MESSAGES,
-  });
-  // a reload, not a dependency: the list stays on screen while the new move loads in
-  const { reload } = state;
+// a value before / after a change, e.g. a priority or a title
+const Value = ({ children }) => (
+  <Typography component="span" variant="body2" sx={{ wordBreak: "break-word" }}>
+    {children}
+  </Typography>
+);
+
+const Entry = ({ entry, members, subtask }) => {
+  const line = historyLine(entry, { subtask });
+  // the actor's name is a snapshot from the time; a loaded member only adds the photo
+  const member = members.find((m) => m.userId === entry.actor?.id);
+  const name = entry.actor?.name || "Someone";
+  const avatarUser = member ?? { userId: entry.actor?.id, firstName: name };
+  const Shown = line.kind === "status" ? ColumnName : Value;
+
+  return (
+    <Box component="li" sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
+      <UserAvatar user={avatarUser} size={30} />
+      <Box sx={{ minWidth: 0 }}>
+        <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
+          <Box component="span" sx={{ fontWeight: 600 }}>
+            {name}
+          </Box>{" "}
+          {line.text}{" "}
+          <Typography
+            component="span"
+            variant="caption"
+            color="text.secondary"
+            title={`${formatDate(entry.occurredAt)} ${new Date(entry.occurredAt).toLocaleTimeString()}`}
+          >
+            · {timeAgo(entry.occurredAt)}
+          </Typography>
+        </Typography>
+        {line.kind && (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.75, flexWrap: "wrap" }}>
+            <Shown>{line.from}</Shown>
+            <ArrowRightAltRoundedIcon fontSize="small" sx={{ color: "text.secondary" }} aria-label="to" />
+            <Shown>{line.to}</Shown>
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+};
+
+// The task's history (R10, backend task-history-docs.md): created, every field change, subtasks added / removed,
+// deleted comments and restores, oldest first, PAGE_SIZE at a time with "Load more" at the bottom. `members` add
+// photos to the names; `version` changes when the page saves the task, so the new entries show up. `subtask` says
+// whether this is a subtask's own feed.
+const TaskHistory = ({ project, taskId, members, version, subtask = false }) => {
+  const first = useAsync(
+    (signal) => getTaskHistory(project.id, taskId, { page: 0, size: PAGE_SIZE }, signal),
+    [project.id, taskId],
+    { fallback: "Couldn't load the history. Please try again.", messages: TASK_ERROR_MESSAGES },
+  );
+  // the pages loaded with "Load more"; kept through a reload of page 0, since the feed is append-only
+  const [more, setMore] = useState({ items: [], total: 0, loading: false, error: "" });
+
+  // a reload, not a dependency: the list stays on screen while the new entries load in
+  const { reload } = first;
   const seenVersion = useRef(version);
   useEffect(() => {
     if (version === seenVersion.current) return;
@@ -47,49 +98,58 @@ const TaskHistory = ({ project, taskId, members, version }) => {
     reload();
   }, [version, reload]);
 
-  if (!state.data) return <LoadState loading={!state.error} error={state.error} onRetry={reload} rows={2} />;
-  if (state.data.length === 0) {
+  if (!first.data) return <LoadState loading={!first.error} error={first.error} onRetry={reload} rows={2} />;
+
+  const entries = mergeHistory(first.data.content, more.items);
+  const total = Math.max(first.data.totalElements, more.total);
+  const hasMore = entries.length < total;
+
+  const loadMore = async () => {
+    setMore((prev) => ({ ...prev, loading: true, error: "" }));
+    try {
+      // the page the next unseen entry is on; entries already shown are dropped by mergeHistory
+      const page = Math.floor(entries.length / PAGE_SIZE);
+      const data = await getTaskHistory(project.id, taskId, { page, size: PAGE_SIZE });
+      setMore((prev) => ({ items: [...prev.items, ...data.content], total: data.totalElements, loading: false, error: "" }));
+    } catch (err) {
+      const error = errorMessage(err, "Couldn't load more history. Please try again.", TASK_ERROR_MESSAGES);
+      setMore((prev) => ({ ...prev, loading: false, error }));
+    }
+  };
+
+  if (entries.length === 0) {
     return (
       <Typography variant="body2" color="text.secondary">
-        No status changes yet.
+        No activity yet.
       </Typography>
     );
   }
 
   return (
-    <Box component="ol" sx={{ listStyle: "none", m: 0, p: 0, display: "flex", flexDirection: "column", gap: 2 }}>
-      {describeHistory(state.data, members).map((entry) => (
-        <Box component="li" key={entry.id} sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
-          {entry.actor ? (
-            <UserAvatar user={entry.actor} size={30} />
-          ) : (
-            <Avatar sx={{ width: 30, height: 30, bgcolor: "action.selected", color: "text.secondary" }}>
-              <PersonOutlineIcon sx={{ fontSize: 18 }} />
-            </Avatar>
-          )}
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="body2">
-              <Box component="span" sx={{ fontWeight: 600 }}>
-                {entry.actor ? memberLabel(entry.actor) : "Someone"}
-              </Box>{" "}
-              changed the status{" "}
-              <Typography
-                component="span"
-                variant="caption"
-                color="text.secondary"
-                title={`${formatDate(entry.changedAt)} ${new Date(entry.changedAt).toLocaleTimeString()}`}
-              >
-                · {timeAgo(entry.changedAt)}
-              </Typography>
-            </Typography>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.75, flexWrap: "wrap" }}>
-              <ColumnName>{entry.fromColumnName}</ColumnName>
-              <ArrowRightAltRoundedIcon fontSize="small" sx={{ color: "text.secondary" }} aria-label="to" />
-              <ColumnName>{entry.toColumnName}</ColumnName>
-            </Box>
-          </Box>
-        </Box>
-      ))}
+    <Box>
+      <Box component="ol" sx={{ listStyle: "none", m: 0, p: 0, display: "flex", flexDirection: "column", gap: 2 }}>
+        {entries.map((entry) => (
+          <Entry key={entry.id} entry={entry} members={members} subtask={subtask} />
+        ))}
+      </Box>
+      {more.error && (
+        <Alert
+          severity="error"
+          sx={{ mt: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={loadMore}>
+              Try again
+            </Button>
+          }
+        >
+          {more.error}
+        </Alert>
+      )}
+      {hasMore && !more.error && (
+        <Button size="small" onClick={loadMore} loading={more.loading} sx={{ mt: 2 }}>
+          Load more
+        </Button>
+      )}
     </Box>
   );
 };
