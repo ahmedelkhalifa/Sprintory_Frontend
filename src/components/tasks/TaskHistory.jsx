@@ -6,8 +6,63 @@ import { getTaskHistory } from "../../api/historyApi";
 import { formatDate, timeAgo } from "../../utils/format";
 import { memberLabel } from "../../utils/people";
 
-const formatHistoryLine = (item) => {
-    const actorName = item.actor ? memberLabel(item.actor) : "Someone";
+const getActorUser = (entry, members = []) => {
+    if (!entry) return null;
+
+    // 1. Ищем по ID в списке участников проекта (там лежат реальные avatarUrl / инициалы / цвета)
+    const actorId =
+        entry.actorId ||
+        entry.authorId ||
+        entry.userId ||
+        entry.createdById ||
+        (typeof entry.actor === "number" ? entry.actor : null) ||
+        (typeof entry.actor === "object" ? entry.actor?.id || entry.actor?.userId : null);
+
+    if (actorId && Array.isArray(members)) {
+        const found = members.find((m) => m.userId === actorId || m.id === actorId);
+        if (found) return found;
+    }
+
+    // 2. Если по ID не нашли, берем объект от бэкенда
+    const userObj = entry.actor || entry.author || entry.user || entry.createdBy;
+    if (userObj && typeof userObj === "object") {
+        const name = userObj.name || userObj.fullName || userObj.username || userObj.displayName;
+        return { ...userObj, name };
+    }
+
+    // 3. Если от бэка пришла только строка с именем, ищем по имени в members
+    const rawName =
+        entry.actorName ||
+        entry.authorName ||
+        entry.userName ||
+        entry.createdByName ||
+        (typeof entry.actor === "string" ? entry.actor : null);
+
+    if (rawName && Array.isArray(members)) {
+        const foundByName = members.find(
+            (m) => m.name === rawName || m.fullName === rawName || m.username === rawName
+        );
+        if (foundByName) return foundByName;
+    }
+
+    if (rawName) {
+        return { name: rawName };
+    }
+
+    return null;
+};
+
+const formatHistoryLine = (item, actorUser) => {
+    let actorName = "Someone";
+    if (actorUser) {
+        const label = memberLabel(actorUser);
+        if (label && label !== "User undefined" && !label.includes("undefined")) {
+            actorName = label;
+        } else if (actorUser.name) {
+            actorName = actorUser.name;
+        }
+    }
+
     const actor = <strong>{actorName}</strong>;
 
     if (item.type === "CREATED") return <>{actor} created the task</>;
@@ -44,7 +99,7 @@ const formatHistoryLine = (item) => {
     return <>{actor} changed the task</>;
 };
 
-const TaskHistory = ({ project, taskId }) => {
+const TaskHistory = ({ project, taskId, members }) => {
     const [history, setHistory] = useState([]);
     const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(false);
@@ -57,9 +112,12 @@ const TaskHistory = ({ project, taskId }) => {
 
         getTaskHistory(project.id, taskId, 0, 20, controller.signal)
             .then((data) => {
-                setHistory(data.content);
-                setHasMore(data.page + 1 < data.totalPages);
-                setPage(0);
+                const items = Array.isArray(data) ? data : (data?.content || []);
+                const totalPages = data?.totalPages ?? 1;
+                const currentPage = data?.page ?? 0;
+                setHistory(items);
+                setHasMore(currentPage + 1 < totalPages);
+                setPage(currentPage);
                 setError(null);
             })
             .catch((err) => {
@@ -81,11 +139,13 @@ const TaskHistory = ({ project, taskId }) => {
         setLoadingMore(true);
         try {
             const data = await getTaskHistory(project.id, taskId, nextPage, 20);
-            setHistory((prev) => [...prev, ...data.content]);
-            setHasMore(data.page + 1 < data.totalPages);
+            const items = Array.isArray(data) ? data : (data?.content || []);
+            const totalPages = data?.totalPages ?? 1;
+            setHistory((prev) => [...prev, ...items]);
+            setHasMore(nextPage + 1 < totalPages);
             setPage(nextPage);
         } catch {
-            // Игнорируем или обрабатываем ошибку дозагрузки
+            // Игнорируем ошибку дозагрузки
         } finally {
             setLoadingMore(false);
         }
@@ -107,7 +167,7 @@ const TaskHistory = ({ project, taskId }) => {
         );
     }
 
-    if (history.length === 0) {
+    if (!history || history.length === 0) {
         return (
             <Typography variant="body2" color="text.secondary">
                 No history records yet.
@@ -118,31 +178,36 @@ const TaskHistory = ({ project, taskId }) => {
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Box component="ol" sx={{ listStyle: "none", m: 0, p: 0, display: "flex", flexDirection: "column", gap: 2 }}>
-                {history.map((entry) => (
-                    <Box component="li" key={entry.id} sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
-                        {entry.actor ? (
-                            <UserAvatar user={entry.actor} size={30} />
-                        ) : (
-                            <Avatar sx={{ width: 30, height: 30, bgcolor: "action.selected", color: "text.secondary" }}>
-                                <PersonOutlineIcon sx={{ fontSize: 18 }} />
-                            </Avatar>
-                        )}
-                        <Box sx={{ minWidth: 0 }}>
-                            <Typography variant="body2">
-                                {formatHistoryLine(entry)}
-                                {" "}
-                                <Typography
-                                    component="span"
-                                    variant="caption"
-                                    color="text.secondary"
-                                    title={`${formatDate(entry.occurredAt)} ${new Date(entry.occurredAt).toLocaleTimeString()}`}
-                                >
-                                    · {timeAgo(entry.occurredAt)}
+                {history.map((entry) => {
+                    const actorUser = getActorUser(entry, members);
+                    return (
+                        <Box component="li" key={entry.id} sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
+                            {actorUser ? (
+                                <UserAvatar user={actorUser} size={30} />
+                            ) : (
+                                <Avatar sx={{ width: 30, height: 30, bgcolor: "action.selected", color: "text.secondary" }}>
+                                    <PersonOutlineIcon sx={{ fontSize: 18 }} />
+                                </Avatar>
+                            )}
+                            <Box sx={{ minWidth: 0 }}>
+                                <Typography variant="body2">
+                                    {formatHistoryLine(entry, actorUser)}
+                                    {" "}
+                                    {entry.occurredAt && (
+                                        <Typography
+                                            component="span"
+                                            variant="caption"
+                                            color="text.secondary"
+                                            title={`${formatDate(entry.occurredAt)} ${new Date(entry.occurredAt).toLocaleTimeString()}`}
+                                        >
+                                            · {timeAgo(entry.occurredAt)}
+                                        </Typography>
+                                    )}
                                 </Typography>
-                            </Typography>
+                            </Box>
                         </Box>
-                    </Box>
-                ))}
+                    );
+                })}
             </Box>
 
             {hasMore && (
