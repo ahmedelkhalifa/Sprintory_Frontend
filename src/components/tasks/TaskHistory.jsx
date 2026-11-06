@@ -1,97 +1,162 @@
-import { useEffect, useRef } from "react";
-import { Avatar, Box, Typography } from "@mui/material";
-import ArrowRightAltRoundedIcon from "@mui/icons-material/ArrowRightAltRounded";
+import { useEffect, useState } from "react";
+import { Avatar, Box, Button, CircularProgress, Typography } from "@mui/material";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlineOutlined";
-import LoadState from "../general/LoadState";
 import UserAvatar from "../general/UserAvatar";
-import { getTaskHistory } from "../../api/tasksApi";
-import { useAsync } from "../../hooks/useAsync";
-import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
+import { getTaskHistory } from "../../api/historyApi";
 import { formatDate, timeAgo } from "../../utils/format";
 import { memberLabel } from "../../utils/people";
-import { describeHistory } from "../../utils/task";
 
-// a column name as it was at the time of the move
-const ColumnName = ({ children }) => (
-  <Box
-    component="span"
-    sx={{
-      px: 0.75,
-      py: 0.25,
-      borderRadius: 1,
-      bgcolor: "action.selected",
-      fontSize: 12,
-      fontWeight: 600,
-      textTransform: "uppercase",
-      letterSpacing: 0.3,
-    }}
-  >
-    {children}
-  </Box>
-);
+const formatHistoryLine = (item) => {
+    const actorName = item.actor ? memberLabel(item.actor) : "Someone";
+    const actor = <strong>{actorName}</strong>;
 
-// The task's history (R10), oldest first: who moved it from which column to which, and when. Only status moves for
-// now; other field changes, subtasks and comments come with the activity feed (PMP-133). `members` name the people;
-// `version` changes when the page saves the task, so a new move shows up.
-const TaskHistory = ({ project, taskId, members, version }) => {
-  const state = useAsync((signal) => getTaskHistory(project.id, taskId, signal), [project.id, taskId], {
-    fallback: "Couldn't load the history. Please try again.",
-    messages: TASK_ERROR_MESSAGES,
-  });
-  // a reload, not a dependency: the list stays on screen while the new move loads in
-  const { reload } = state;
-  const seenVersion = useRef(version);
-  useEffect(() => {
-    if (version === seenVersion.current) return;
-    seenVersion.current = version;
-    reload();
-  }, [version, reload]);
+    if (item.type === "CREATED") return <>{actor} created the task</>;
+    if (item.type === "COMMENT_DELETED") return <>{actor} deleted a comment</>;
+    if (item.type === "RESTORED") return <>{actor} restored the task</>;
+    if (item.type === "SUBTASK_ADDED") return <>{actor} added subtask {item.newValue}</>;
+    if (item.type === "SUBTASK_REMOVED") return <>{actor} removed subtask {item.oldValue}</>;
 
-  if (!state.data) return <LoadState loading={!state.error} error={state.error} onRetry={reload} rows={2} />;
-  if (state.data.length === 0) {
-    return (
-      <Typography variant="body2" color="text.secondary">
-        No status changes yet.
-      </Typography>
-    );
-  }
+    if (item.type === "FIELD_CHANGED") {
+        switch (item.field) {
+            case "TITLE":
+                return <>{actor} changed the title: <em>{item.oldValue}</em> → <em>{item.newValue}</em></>;
+            case "TYPE":
+                return <>{actor} changed the type: {item.oldValue} → {item.newValue}</>;
+            case "PRIORITY":
+                return <>{actor} changed the priority: {item.oldValue} → {item.newValue}</>;
+            case "STATUS":
+                return <>{actor} moved it: {item.oldValue} → {item.newValue}</>;
+            case "ASSIGNEE":
+                if (!item.oldValue) return <>{actor} assigned it to {item.newValue}</>;
+                if (!item.newValue) return <>{actor} unassigned {item.oldValue}</>;
+                return <>{actor} changed the assignee: {item.oldValue} → {item.newValue}</>;
+            case "ESTIMATE":
+                return <>{actor} changed the estimate: {item.oldValue || "None"} → {item.newValue || "None"}</>;
+            case "LABELS":
+                return <>{actor} changed the labels: {item.oldValue || "None"} → {item.newValue || "None"}</>;
+            case "DESCRIPTION":
+                return <>{actor} changed the description</>;
+            default:
+                return <>{actor} changed the task</>;
+        }
+    }
 
-  return (
-    <Box component="ol" sx={{ listStyle: "none", m: 0, p: 0, display: "flex", flexDirection: "column", gap: 2 }}>
-      {describeHistory(state.data, members).map((entry) => (
-        <Box component="li" key={entry.id} sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
-          {entry.actor ? (
-            <UserAvatar user={entry.actor} size={30} />
-          ) : (
-            <Avatar sx={{ width: 30, height: 30, bgcolor: "action.selected", color: "text.secondary" }}>
-              <PersonOutlineIcon sx={{ fontSize: 18 }} />
-            </Avatar>
-          )}
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="body2">
-              <Box component="span" sx={{ fontWeight: 600 }}>
-                {entry.actor ? memberLabel(entry.actor) : "Someone"}
-              </Box>{" "}
-              changed the status{" "}
-              <Typography
-                component="span"
-                variant="caption"
-                color="text.secondary"
-                title={`${formatDate(entry.changedAt)} ${new Date(entry.changedAt).toLocaleTimeString()}`}
-              >
-                · {timeAgo(entry.changedAt)}
-              </Typography>
-            </Typography>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.75, flexWrap: "wrap" }}>
-              <ColumnName>{entry.fromColumnName}</ColumnName>
-              <ArrowRightAltRoundedIcon fontSize="small" sx={{ color: "text.secondary" }} aria-label="to" />
-              <ColumnName>{entry.toColumnName}</ColumnName>
+    return <>{actor} changed the task</>;
+};
+
+const TaskHistory = ({ project, taskId }) => {
+    const [history, setHistory] = useState([]);
+    const [page, setPage] = useState(0);
+    const [hasMore, setHasMore] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const controller = new AbortController();
+
+        getTaskHistory(project.id, taskId, 0, 20, controller.signal)
+            .then((data) => {
+                setHistory(data.content);
+                setHasMore(data.page + 1 < data.totalPages);
+                setPage(0);
+                setError(null);
+            })
+            .catch((err) => {
+                if (err?.name !== "CanceledError" && err?.name !== "AbortError") {
+                    setError("Couldn't load history. Please try again.");
+                }
+            })
+            .finally(() => {
+                if (!controller.signal.aborted) {
+                    setLoading(false);
+                }
+            });
+
+        return () => controller.abort();
+    }, [project.id, taskId]);
+
+    const handleLoadMore = async () => {
+        const nextPage = page + 1;
+        setLoadingMore(true);
+        try {
+            const data = await getTaskHistory(project.id, taskId, nextPage, 20);
+            setHistory((prev) => [...prev, ...data.content]);
+            setHasMore(data.page + 1 < data.totalPages);
+            setPage(nextPage);
+        } catch {
+            // Игнорируем или обрабатываем ошибку дозагрузки
+        } finally {
+            setLoadingMore(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+                <CircularProgress size={24} />
             </Box>
-          </Box>
+        );
+    }
+
+    if (error && history.length === 0) {
+        return (
+            <Typography variant="body2" color="error">
+                {error}
+            </Typography>
+        );
+    }
+
+    if (history.length === 0) {
+        return (
+            <Typography variant="body2" color="text.secondary">
+                No history records yet.
+            </Typography>
+        );
+    }
+
+    return (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Box component="ol" sx={{ listStyle: "none", m: 0, p: 0, display: "flex", flexDirection: "column", gap: 2 }}>
+                {history.map((entry) => (
+                    <Box component="li" key={entry.id} sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
+                        {entry.actor ? (
+                            <UserAvatar user={entry.actor} size={30} />
+                        ) : (
+                            <Avatar sx={{ width: 30, height: 30, bgcolor: "action.selected", color: "text.secondary" }}>
+                                <PersonOutlineIcon sx={{ fontSize: 18 }} />
+                            </Avatar>
+                        )}
+                        <Box sx={{ minWidth: 0 }}>
+                            <Typography variant="body2">
+                                {formatHistoryLine(entry)}
+                                {" "}
+                                <Typography
+                                    component="span"
+                                    variant="caption"
+                                    color="text.secondary"
+                                    title={`${formatDate(entry.occurredAt)} ${new Date(entry.occurredAt).toLocaleTimeString()}`}
+                                >
+                                    · {timeAgo(entry.occurredAt)}
+                                </Typography>
+                            </Typography>
+                        </Box>
+                    </Box>
+                ))}
+            </Box>
+
+            {hasMore && (
+                <Button
+                    size="small"
+                    disabled={loadingMore}
+                    onClick={handleLoadMore}
+                    sx={{ alignSelf: "flex-start", textTransform: "none", mt: 1 }}
+                >
+                    {loadingMore ? "Loading..." : "Load more"}
+                </Button>
+            )}
         </Box>
-      ))}
-    </Box>
-  );
+    );
 };
 
 export default TaskHistory;
