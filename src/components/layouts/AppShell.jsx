@@ -9,7 +9,7 @@ import {
 import {
   HomeOutlined, FolderOpenOutlined, HistoryOutlined, ViewColumnOutlined,
   TimerOutlined, BarChartOutlined, GroupOutlined, SettingsOutlined,
-  KeyboardArrowDown, LogoutOutlined, Menu as MenuIcon,
+  KeyboardArrowDown, LogoutOutlined, Menu as MenuIcon, ChatBubbleOutlineOutlined,
 } from "@mui/icons-material";
 import Logo from "../general/Logo";
 import GlobalSearch from "../search/GlobalSearch";
@@ -27,6 +27,7 @@ const NAV_ITEMS = [
   { label: "Home", to: "/", icon: <HomeOutlined /> },
   // workspace pages live under /workspaces/:id, see linkTo below
   { label: "Projects", workspacePath: "projects", icon: <FolderOpenOutlined /> },
+  { label: "Chats", workspacePath: "chats", icon: <ChatBubbleOutlineOutlined /> },
   { label: "Board", to: "/board", icon: <ViewColumnOutlined /> },
   { label: "Sprints", to: "/sprints", icon: <TimerOutlined /> },
   { label: "Reports", to: "/reports", icon: <BarChartOutlined /> },

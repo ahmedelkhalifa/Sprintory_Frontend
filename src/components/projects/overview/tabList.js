@@ -1,4 +1,5 @@
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
 import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import ViewListOutlinedIcon from "@mui/icons-material/ViewListOutlined";
 import ViewColumnOutlinedIcon from "@mui/icons-material/ViewColumnOutlined";
@@ -12,6 +13,7 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 const TABS = [
   { id: "overview", label: "Overview", Icon: HomeOutlinedIcon },
   { id: "members", label: "Members", Icon: GroupOutlinedIcon },
+  { id: "chat", label: "Chat", Icon: ChatBubbleOutlineIcon },
   { id: "backlog", label: "Backlog", Icon: ViewListOutlinedIcon, scrumOnly: true },
   { id: "board", label: "Board", Icon: ViewColumnOutlinedIcon },
   { id: "sprints", label: "Sprints", Icon: TimerOutlinedIcon, scrumOnly: true },
