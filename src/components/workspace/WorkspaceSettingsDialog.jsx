@@ -2,6 +2,8 @@ import { useState } from "react";
 import {
   Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Divider, TextField, Typography,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
+import { ArchiveOutlined, DeleteForeverOutlined, UnarchiveOutlined } from "@mui/icons-material";
 import { archiveWorkspace, deleteWorkspace, renameWorkspace, restoreWorkspace } from "../../api/workspacesApi";
 import { errorMessage } from "../../utils/apiError";
 import { isWorkspaceArchived } from "../../utils/workspace";
@@ -66,30 +68,58 @@ const WorkspaceSettingsDialog = ({ workspace, onClose, onChanged, onDeleted }) =
             ? "Restoring makes the workspace editable again."
             : "An archived workspace becomes read-only. You can restore it at any time."}
         </Typography>
-        <Button variant="outlined" onClick={toggleArchive} disabled={busy}>
+        {/* archiving takes the workspace out of use (amber); restoring is an ordinary action */}
+        <Button
+          variant="outlined"
+          color={archived ? "primary" : "warning"}
+          startIcon={archived ? <UnarchiveOutlined /> : <ArchiveOutlined />}
+          onClick={toggleArchive}
+          disabled={busy}
+        >
           {archived ? "Restore" : "Archive"}
         </Button>
 
         {archived && (
-          <>
-            <Divider sx={{ my: 3 }} />
-            <Typography sx={{ fontWeight: 600 }} color="error">Delete permanently</Typography>
+          // the danger zone: red-edged, so it never reads like the settings above it
+          <Box
+            sx={{
+              mt: 3,
+              p: 2,
+              border: 1,
+              borderColor: "error.main",
+              borderRadius: 2,
+              bgcolor: (theme) => alpha(theme.palette.error.main, 0.06),
+            }}
+          >
+            <Typography sx={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }} color="error">
+              <DeleteForeverOutlined fontSize="small" />
+              Delete permanently
+            </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ my: 1 }}>
               This removes the workspace and everything inside it and cannot be undone. Type{" "}
               <b>{workspace.name}</b> to confirm.
             </Typography>
             <Box sx={{ display: "flex", gap: 1.5 }}>
-              <TextField fullWidth size="small" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+              <TextField
+                fullWidth
+                size="small"
+                color="error"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                slotProps={{ htmlInput: { "aria-label": "Workspace name to confirm" } }}
+                sx={{ bgcolor: "background.paper" }}
+              />
               <Button
                 variant="contained"
                 color="error"
                 onClick={remove}
                 disabled={busy || confirm !== workspace.name}
+                sx={{ flexShrink: 0 }}
               >
                 Delete
               </Button>
             </Box>
-          </>
+          </Box>
         )}
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>

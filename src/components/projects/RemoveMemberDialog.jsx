@@ -1,3 +1,4 @@
+import PersonRemoveOutlinedIcon from "@mui/icons-material/PersonRemoveOutlined";
 import ConfirmDialog from "../general/ConfirmDialog";
 import { removeProjectMember } from "../../api/projectsApi";
 import { useSubmit } from "../../hooks/useSubmit";
@@ -20,7 +21,8 @@ const RemoveMemberDialog = ({ project, member, onClose, onRemoved }) => {
       title={`Remove ${name}?`}
       message={`${name} loses access to ${project.name} right away. They stay in the workspace and in their teams.`}
       confirmLabel="Remove"
-      destructive
+      tone="danger"
+      Icon={PersonRemoveOutlinedIcon}
       loading={submit.submitting}
       error={submit.error}
       onConfirm={handleConfirm}

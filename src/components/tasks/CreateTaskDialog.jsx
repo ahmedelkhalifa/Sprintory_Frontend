@@ -1,11 +1,24 @@
 import { useState } from "react";
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormLabel,
+  Stack,
+  Typography,
+} from "@mui/material";
+import RichTextEditor from "../editor/RichTextEditor";
 import FormField from "../forms/FormField";
 import AssigneePicker from "./AssigneePicker";
 import TaskValueSelect from "./TaskValueSelect";
 import { createTask } from "../../api/tasksApi";
 import { useSubmit } from "../../hooks/useSubmit";
 import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_TYPES } from "../../constants/tasks";
+import { isRichTextError, richTextValue } from "../../utils/richText";
 import { TASK_TITLE_MAX, validateTask } from "../../utils/validation";
 
 const INITIAL_VALUES = {
@@ -28,7 +41,7 @@ const createBody = (values) => ({
 });
 
 // "Create task" window from the project page's Quick actions (EDIT_TASKS): title, type, priority, estimate,
-// assignee and description. Labels and the status are set later in the task's drawer.
+// assignee and description (rich text with @mentions; `description` holds richTextValue's string). Labels and the status are set later in the task's drawer.
 // `onCreated(task)` gets the TaskResponse.
 const CreateTaskDialog = ({ project, onClose, onCreated }) => {
   const [values, setValues] = useState(INITIAL_VALUES);
@@ -54,6 +67,10 @@ const CreateTaskDialog = ({ project, onClose, onCreated }) => {
     const data = error.response?.data;
     if (data?.code === "VALIDATION_ERROR" && data.fieldErrors) {
       setErrors(data.fieldErrors);
+      submit.clearError();
+    } else if (isRichTextError(error)) {
+      // a refused description or mention goes under the description, which keeps its text
+      setErrors({ description: data.message });
       submit.clearError();
     }
   };
@@ -96,7 +113,23 @@ const CreateTaskDialog = ({ project, onClose, onCreated }) => {
               value={values.assignee}
               onChange={(member) => set("assignee", member)}
             />
-            <FormField {...field("description")} label="Description" multiline minRows={4} placeholder="Add more detail" />
+            <Box>
+              <FormLabel sx={{ display: "block", mb: 0.5, fontSize: 14, fontWeight: 500, color: "text.primary" }}>
+                Description
+              </FormLabel>
+              <RichTextEditor
+                onChange={(doc) => set("description", richTextValue(doc))}
+                projectId={project.id}
+                placeholder="Add more detail... Type @ to mention someone"
+                error={Boolean(errors.description)}
+                ariaLabel="Description"
+              />
+              {errors.description && (
+                <Typography variant="caption" color="error" sx={{ display: "block", mt: 0.5, mx: 1.75 }}>
+                  {errors.description}
+                </Typography>
+              )}
+            </Box>
             {submit.error && <Alert severity="error">{submit.error}</Alert>}
           </Stack>
         </DialogContent>

@@ -14,9 +14,11 @@ import QuickActionsMenu from "../../components/projects/overview/QuickActionsMen
 import ProjectSettingsMenu from "../../components/projects/overview/ProjectSettingsMenu";
 import ProjectTabs from "../../components/projects/overview/ProjectTabs";
 import { tabsFor } from "../../components/projects/overview/tabList";
+import { canOpenProjectChat } from "../../utils/chat";
 import { listProjectMembers } from "../../api/projectsApi";
 import { useAsync } from "../../hooks/useAsync";
 import { useProjectAccess, useWorkspaceAccess } from "../../hooks/useResourceAccess";
+import { useTasksChanged } from "../../hooks/useTasksChanged";
 import { can, isProjectArchived, projectPath, projectTabOf, projectTabPath, projectsPath } from "../../utils/project";
 import { isWorkspaceArchived } from "../../utils/workspace";
 import { EMPTY_TASK_FILTERS } from "../../utils/taskFilters";
@@ -44,12 +46,15 @@ const ProjectPage = () => {
   const [dialog, setDialog] = useState(null);
   // bumped after every membership change, so member lists load again
   const [version, setVersion] = useState(0);
-  // bumped after a task is created from Quick actions, so the Backlog / Board tab loads again
+  // bumped after a task is created from Quick actions or restored, so the Backlog / Board tab loads again
   const [taskVersion, setTaskVersion] = useState(0);
   const [createdTask, setCreatedTask] = useState(null);
   // the Board and Backlog's filter bar: kept here (this layout stays mounted while the tab changes),
   // so the filters stay when switching between those tabs
   const [taskFilters, setTaskFilters] = useState(EMPTY_TASK_FILTERS);
+
+  // a task came back (Undo after a delete): the open Backlog / Board loads again, like after a create
+  useTasksChanged(project.id, () => setTaskVersion((v) => v + 1));
 
   const previewState = useAsync(
     (signal) => listProjectMembers(project.id, { size: MEMBERS_PREVIEW_SIZE }, signal),
@@ -65,7 +70,7 @@ const ProjectPage = () => {
   const scrum = project.template === "SCRUM";
   // where a new task shows up: last in the backlog (Scrum), the board's first column (Kanban)
   const workTab = scrum ? "backlog" : "board";
-  const tabs = tabsFor(project.template);
+  const tabs = tabsFor(project.template, canOpenProjectChat(project));
   const tab = projectTabOf(pathname, projectPath(workspace, project));
   const tabPath = (id) => projectTabPath(workspace, project, id);
 

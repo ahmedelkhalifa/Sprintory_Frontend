@@ -1,5 +1,6 @@
 import { Alert, Box, Button, Divider, Stack, Typography } from "@mui/material";
 import SectionCard from "../general/SectionCard";
+import BoardColumnsSection from "../board/BoardColumnsSection";
 import ProjectFormFields from "./ProjectFormFields";
 import { projectActionsFor } from "./projectActions";
 import { useProjectForm } from "../../hooks/useProjectForm";
@@ -21,6 +22,9 @@ const STATUS_ROWS = {
     text: "The project and everything in it are deleted for everyone. This can't be undone.",
   },
 };
+
+// the same colors as the confirmation windows: delete red, archive amber, restore plain
+const buttonColor = (action, danger) => (danger ? "error" : action === "archive" ? "warning" : "inherit");
 
 // name and description, edited in place; read-only without EDIT_SETTINGS or while archived
 const GeneralSection = ({ project, writable, onSaved }) => {
@@ -53,8 +57,8 @@ const GeneralSection = ({ project, writable, onSaved }) => {
   );
 };
 
-// The project's Settings tab: General (name, description, fixed key and template) and, for people with
-// ARCHIVE_PROJECT, archive / restore / delete. Those open the same confirmation dialogs as the
+// The project's Settings tab: General (name, description, fixed key and template), Board columns for people with
+// CONFIGURE_BOARD and, for people with ARCHIVE_PROJECT, archive / restore / delete. Those open the same confirmation dialogs as the
 // "Project settings" menu, through `onAction(type)`; `onSaved` runs after the name or description changed.
 const ProjectSettingsTab = ({ project, writable, workspaceArchived, onSaved, onAction }) => {
   // the menu's edit item is this tab's General section; an archived workspace allows none of them
@@ -69,6 +73,9 @@ const ProjectSettingsTab = ({ project, writable, workspaceArchived, onSaved, onA
         writable={writable}
         onSaved={onSaved}
       />
+
+      {/* also for a Scrum project without a sprint and an admin outside the project, who can't open the board */}
+      {can(project, PERMISSIONS.CONFIGURE_BOARD) && <BoardColumnsSection project={project} writable={writable} />}
 
       {statusActions.length > 0 && (
         <SectionCard title="Archive or delete">
@@ -94,10 +101,14 @@ const ProjectSettingsTab = ({ project, writable, workspaceArchived, onSaved, onA
                 </Box>
                 <Button
                   variant="outlined"
-                  color={danger ? "error" : "inherit"}
+                  color={buttonColor(action, danger)}
                   startIcon={<Icon />}
                   onClick={() => onAction(action)}
-                  sx={{ flexShrink: 0, alignSelf: { xs: "flex-start", sm: "center" }, borderColor: danger ? undefined : "divider" }}
+                  sx={{
+                    flexShrink: 0,
+                    alignSelf: { xs: "flex-start", sm: "center" },
+                    borderColor: buttonColor(action, danger) === "inherit" ? "divider" : undefined,
+                  }}
                 >
                   {label}
                 </Button>

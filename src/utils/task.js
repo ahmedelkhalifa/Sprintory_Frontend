@@ -121,6 +121,15 @@ export const taskValues = (task) => ({
   assigneeId: task.assigneeId ?? null,
 });
 
+// the description into a PATCH body (tasks and subtasks): only when it changed, `clearDescription` when emptied.
+// The values hold richTextValue's string: "" or the TipTap JSON
+const descriptionChange = (task, values, changes) => {
+  const description = (values.description ?? "").trim();
+  if (description === (task.description ?? "")) return;
+  if (description) changes.description = description;
+  else changes.clearDescription = true;
+};
+
 /**
  * The PATCH body for the task form: only the fields that changed. Emptied fields are sent as the backend's clear
  * flags (`clearAssignee`, `clearEstimate`, `clearDescription`), because null there means "unchanged".
@@ -134,11 +143,7 @@ export const taskChanges = (task, values) => {
     if (values[field] !== task[field]) changes[field] = values[field];
   }
 
-  const description = values.description.trim();
-  if (description !== (task.description ?? "")) {
-    if (description) changes.description = description;
-    else changes.clearDescription = true;
-  }
+  descriptionChange(task, values, changes);
 
   const estimate = values.estimate === "" ? null : Number(values.estimate);
   if (estimate !== (task.estimate ?? null)) {
@@ -164,10 +169,11 @@ export const subtaskValues = (subtask) => ({
   statusId: subtask.statusId,
   assigneeId: subtask.assigneeId ?? null,
   estimateMinutes: subtask.estimateMinutes ?? "",
+  description: subtask.description ?? "",
 });
 
-// The PATCH body for a subtask: only what changed. An emptied assignee or time goes as `clearAssignee` /
-// `clearEstimateMinutes`, because null there means "unchanged"
+// The PATCH body for a subtask: only what changed. An emptied assignee, time or description goes as
+// `clearAssignee` / `clearEstimateMinutes` / `clearDescription`, because null there means "unchanged"
 export const subtaskChanges = (subtask, values) => {
   const changes = {};
   const title = values.title.trim();
@@ -185,6 +191,7 @@ export const subtaskChanges = (subtask, values) => {
     if (minutes === null) changes.clearEstimateMinutes = true;
     else changes.estimateMinutes = minutes;
   }
+  descriptionChange(subtask, values, changes);
   return changes;
 };
 
@@ -205,13 +212,91 @@ export const subtaskProgress = (task) => {
   return { done, total, percent: total ? Math.round((done / total) * 100) : 0 };
 };
 
-// the task's status history, oldest first, each with the member who made the move (null when they aren't in the
-// loaded members, e.g. someone who left the project)
-export const describeHistory = (events, members = []) => {
-  const people = new Map(members.map((member) => [member.userId, member]));
-  return [...events]
-    .sort((a, b) => new Date(a.changedAt) - new Date(b.changedAt) || a.id - b.id)
-    .map((event) => ({ ...event, actor: people.get(event.actorId) ?? null }));
+// is this the backend's "the parent still has open subtasks" refusal (tasks-docs.md §10.3)? Then the move needs
+// a confirmation (OpenSubtasksDialog) and goes again with `confirmOpenSubtasks: true`
+export const needsSubtaskConfirmation = (err) => err?.response?.data?.code === "OPEN_SUBTASKS_CONFIRMATION_REQUIRED";
+
+// the delete confirmation's text; deleting a parent deletes its subtasks too (backend tasks-docs.md).
+// No "can't be undone": the snackbar after it offers Undo (restoreTask)
+export const deleteTaskMessage = (task) => {
+  const subtasks = task.subtaskTotal ?? 0;
+  const also = subtasks > 0 ? ` Its ${subtasks === 1 ? "subtask" : `${subtasks} subtasks`} will be deleted too.` : "";
+  return `${task.key} "${task.title}" will be deleted.${also}`;
+};
+
+// a task response only has assigneeId: the loaded people name them, or at least give the id (null = unassigned)
+export const findAssignee = (assigneeId, people = []) =>
+  assigneeId == null ? null : (people.find((person) => person.userId === assigneeId) ?? { userId: assigneeId });
+
+// several loads of the same feed (page 0 again after a save, plus older pages) as one list, newest first like the
+// backend (occurredAt, then id, both descending), each entry once. The feed is append-only, so an entry never
+// changes between loads
+export const mergeHistory = (...lists) => {
+  const byId = new Map();
+  for (const entry of lists.flat()) byId.set(entry.id, entry);
+  return [...byId.values()].sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt) || b.id - a.id);
+};
+
+// what a changed field is called in a history line
+const HISTORY_FIELDS = {
+  TITLE: "title",
+  TYPE: "type",
+  PRIORITY: "priority",
+  STATUS: "status",
+  ESTIMATE: "story points",
+  ESTIMATE_MINUTES: "time estimate",
+  LABELS: "labels",
+};
+
+// enum values come as stored ("HIGHEST"); every type and priority label is the value in sentence case
+const enumLabel = (value) => value.charAt(0) + value.slice(1).toLowerCase();
+
+const historyValue = (field, value) => {
+  if (value == null || value === "") return "None";
+  if (field === "TYPE" || field === "PRIORITY") return enumLabel(value);
+  if (field === "ESTIMATE_MINUTES") return formatMinutes(value);
+  return value;
+};
+
+/**
+ * One entry of a task's activity feed (backend task-history-docs.md §3–4) as the words after the person's name:
+ * { text } and, for a change from one value to another, `from` / `to` plus `kind` ("status": column chips,
+ * "values": plain text). `subtask` says whether the feed is a subtask's ("created the subtask").
+ */
+export const historyLine = (entry, { subtask = false } = {}) => {
+  const { type, field, oldValue, newValue } = entry;
+  switch (type) {
+    case "CREATED":
+      return { text: `created the ${subtask ? "subtask" : "task"}` };
+    case "RESTORED":
+      return { text: `restored the ${subtask ? "subtask" : "task"}` };
+    case "COMMENT_DELETED":
+      return { text: "deleted a comment" };
+    // the value is the subtask's key and title, e.g. "MOB-57 Write tests"
+    case "SUBTASK_ADDED":
+      return { text: `added subtask ${newValue ?? ""}`.trim() };
+    case "SUBTASK_REMOVED":
+      return { text: `removed subtask ${oldValue ?? ""}`.trim() };
+    case "FIELD_CHANGED":
+      break;
+    default:
+      return { text: "updated the task" }; // a type added after this was written
+  }
+
+  if (field === "DESCRIPTION") return { text: "changed the description" };
+  if (field === "ASSIGNEE") {
+    if (oldValue == null && newValue != null) return { text: `assigned it to ${newValue}` };
+    if (newValue == null && oldValue != null) return { text: `unassigned ${oldValue}` };
+    return { text: "changed the assignee", from: historyValue(field, oldValue), to: historyValue(field, newValue), kind: "values" };
+  }
+  const name = HISTORY_FIELDS[field];
+  if (!name) return { text: "updated the task" };
+  return {
+    text: `changed the ${name}`,
+    from: historyValue(field, oldValue),
+    to: historyValue(field, newValue),
+    kind: field === "STATUS" ? "status" : "values",
+  };
 };
 
 // every label used in these tasks, for the label picker's suggestions

@@ -69,6 +69,7 @@ export const PERMISSIONS = {
   MANAGE_BACKLOG: "MANAGE_BACKLOG", // order and prioritize the backlog (R13)
   MANAGE_SPRINTS: "MANAGE_SPRINTS", // plan, start and close sprints (R14, R15)
   EDIT_TASKS: "EDIT_TASKS", // create, edit and delete tasks (story 9)
-  COMMENT: "COMMENT", // comment on tasks (R10)
+  COMMENT: "COMMENT", // comment on tasks (R10) and write in the project chat
+  MODERATE_COMMENTS: "MODERATE_COMMENTS", // delete anyone's comment or chat message (the Project Manager)
   LOG_TIME: "LOG_TIME", // log time on tasks (R19)
 };

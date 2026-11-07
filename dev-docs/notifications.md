@@ -50,7 +50,7 @@ In the frontend: [notificationsApi.js](../src/api/notificationsApi.js) (`listNot
 
 - The badge is the unread count (hidden at 0, `99+`). Opening loads `page=0&size=10`, "Load more" the next pages; pushed notifications go on top, deduplicated by id (`mergeNotifications` in [utils/notification.js](../src/utils/notification.js)).
 - Each item: `message`, the excerpt, "project · workspace" (`notificationWhere`) and the time ago; unread ones are highlighted.
-- A click calls open, marks the item read locally, then goes to `notificationTargetPath(target, workspaces)`: TASK → the task page, PROJECT → the project, NONE (invitations, security) → stays. A `404` shows "This item is no longer available." on the item instead of navigating.
+- A click calls open, marks the item read locally, then goes to `notificationTargetPath(target, workspaces, type)`: TASK → the task page, PROJECT → the project (a `MENTIONED` about a project is a chat mention: its Chat tab), NONE (invitations, security) → stays. A `404` shows "This item is no longer available." on the item instead of navigating.
 - "Mark all as read" sets every loaded item read and the count to the response's `0`.
 
 ## Preferences
@@ -60,8 +60,8 @@ In the frontend: [notificationsApi.js](../src/api/notificationsApi.js) (`listNot
 | `category` | Covers | In-app | Email | Locked |
 | --- | --- | --- | --- | --- |
 | `ASSIGNMENT` | `TASK_ASSIGNED` | on | on | no |
-| `MENTION` | `MENTIONED` (once mentions ship) | on | on | no |
-| `COMMENT` | `TASK_COMMENTED` (once comments ship) | on | off | no |
+| `MENTION` | `MENTIONED` (comments, descriptions, the project chat) | on | on | no |
+| `COMMENT` | `TASK_COMMENTED` | on | off | no |
 | `STATUS_CHANGE` | `TASK_STATUS_CHANGED` | on | off | no |
 | `PROJECT_MEMBERSHIP` | `PROJECT_MEMBER_ADDED`, `PROJECT_ROLES_CHANGED` | on | off | no |
 | `SPRINT` | `SPRINT_STARTED` / `_COMPLETED` / `_CANCELLED` (once sprints ship) | on | off | no |
@@ -74,7 +74,7 @@ In the frontend: [notificationsApi.js](../src/api/notificationsApi.js) (`listNot
 
 ## Watching
 
-[TaskWatchToggle](../src/components/tasks/TaskWatchToggle.jsx) on the task page. Watchers get comment and status-change notifications. You watch tasks you create, are assigned to or comment on automatically; unwatching lasts until the next such trigger. Anyone with `VIEW_WORK` can watch, also in an archived workspace. The task response has no flag, so the toggle loads it with `GET …/watch` (and hides itself if that fails).
+[TaskWatchToggle](../src/components/tasks/TaskWatchToggle.jsx) on the task page and in the task drawer's header (Backlog and Board), for everyone who can see the task, whatever their role. Not on a subtask's page yet. Watchers get comment and status-change notifications. You watch tasks you create, are assigned to or comment on automatically; unwatching lasts until the next such trigger. Anyone with `VIEW_WORK` can watch, also in an archived workspace. The task response has no flag, so the toggle loads it with `GET …/watch` (and hides itself if that fails).
 
 ## Email links
 

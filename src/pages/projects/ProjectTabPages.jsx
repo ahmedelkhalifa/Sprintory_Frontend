@@ -102,6 +102,7 @@ export const ProjectBoardPage = () => {
       onFiltersChange={page.setTaskFilters}
       onCreateTask={() => page.openDialog({ type: "create-task" })}
       onOpenBacklog={() => page.goToTab("backlog")}
+      onOpenSettings={() => page.goToTab("settings")}
     />
   );
 };

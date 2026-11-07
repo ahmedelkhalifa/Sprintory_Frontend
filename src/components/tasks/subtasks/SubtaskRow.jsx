@@ -1,18 +1,17 @@
 import { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
-import { Box, IconButton, Link, Menu, MenuItem, Popover, TextField, Tooltip, Typography } from "@mui/material";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import { Box, IconButton, Link, Popover, TextField, Tooltip, Typography } from "@mui/material";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlineOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
-import ConfirmDialog from "../../general/ConfirmDialog";
 import UserAvatar from "../../general/UserAvatar";
 import AssigneePicker from "../AssigneePicker";
+import TaskDeleteAction from "../TaskDeleteAction";
 import { columnOptions } from "../columnOptions";
-import { deleteTask, updateSubtask } from "../../../api/tasksApi";
+import { updateSubtask } from "../../../api/tasksApi";
 import { useSubmit } from "../../../hooks/useSubmit";
 import { TASK_ERROR_MESSAGES, TASK_STAGES } from "../../../constants/tasks";
 import { memberLabel } from "../../../utils/people";
-import { formatMinutes, subtaskChanges, subtaskValues, taskPath, taskStage } from "../../../utils/task";
+import { findAssignee, formatMinutes, subtaskChanges, subtaskValues, taskPath, taskStage } from "../../../utils/task";
 
 // the empty circle for "unassigned"
 const NoAssignee = () => (
@@ -39,15 +38,11 @@ const NoAssignee = () => (
 // `people` name the assignee (`onPersonPicked` adds someone picked from beyond the loaded members);
 // `onChanged()` runs after a save or delete, so the list and the parent's progress reload.
 const SubtaskRow = ({ workspace, project, parentId, subtask, columns, people, canEdit, onPersonPicked, onChanged }) => {
-  const [menu, setMenu] = useState(null);
   const [picker, setPicker] = useState(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const save = useSubmit(TASK_ERROR_MESSAGES);
-  const remove = useSubmit(TASK_ERROR_MESSAGES);
   const locked = !canEdit || save.submitting;
   const path = taskPath(workspace, project, subtask.id);
-  const assignee =
-    subtask.assigneeId == null ? null : (people.find((p) => p.userId === subtask.assigneeId) ?? { userId: subtask.assigneeId });
+  const assignee = findAssignee(subtask.assigneeId, people);
   const stage = TASK_STAGES[taskStage(subtask.statusId, columns)];
   const column = columns.find((c) => c.id === subtask.statusId);
   const time = formatMinutes(subtask.estimateMinutes);
@@ -63,13 +58,6 @@ const SubtaskRow = ({ workspace, project, parentId, subtask, columns, people, ca
     setPicker(null);
     if (member && !people.some((p) => p.userId === member.userId)) onPersonPicked(member);
     saveField({ assigneeId: member?.userId ?? null });
-  };
-
-  const handleDelete = async () => {
-    const { ok } = await remove.run(() => deleteTask(project.id, subtask.id));
-    if (!ok) return;
-    setConfirmDelete(false);
-    onChanged();
   };
 
   return (
@@ -149,22 +137,13 @@ const SubtaskRow = ({ workspace, project, parentId, subtask, columns, people, ca
           )}
 
           {canEdit && (
-            <>
-              <IconButton size="small" aria-label={`More actions for ${subtask.key}`} onClick={(e) => setMenu(e.currentTarget)}>
-                <MoreHorizIcon fontSize="small" />
-              </IconButton>
-              <Menu anchorEl={menu} open={Boolean(menu)} onClose={() => setMenu(null)}>
-                <MenuItem
-                  sx={{ color: "error.main" }}
-                  onClick={() => {
-                    setMenu(null);
-                    setConfirmDelete(true);
-                  }}
-                >
-                  Delete subtask
-                </MenuItem>
-              </Menu>
-            </>
+            <TaskDeleteAction
+              projectId={project.id}
+              // a list item may leave out its parent; the window should still say "subtask"
+              task={{ ...subtask, parentTaskId: subtask.parentTaskId ?? parentId }}
+              small
+              onDeleted={onChanged}
+            />
           )}
         </Box>
       </Box>
@@ -191,22 +170,6 @@ const SubtaskRow = ({ workspace, project, parentId, subtask, columns, people, ca
           onChange={pickAssignee}
         />
       </Popover>
-
-      {confirmDelete && (
-        <ConfirmDialog
-          title="Delete this subtask?"
-          message={`${subtask.key} "${subtask.title}" will be deleted. This can't be undone.`}
-          confirmLabel="Delete subtask"
-          destructive
-          loading={remove.submitting}
-          error={remove.error}
-          onConfirm={handleDelete}
-          onClose={() => {
-            setConfirmDelete(false);
-            remove.clearError();
-          }}
-        />
-      )}
     </Box>
   );
 };

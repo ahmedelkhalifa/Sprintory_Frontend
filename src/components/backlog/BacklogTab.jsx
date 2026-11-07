@@ -82,7 +82,8 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
   const [openTaskId, setOpenTaskId] = useState(null);
   // which window is open: create-sprint / edit-sprint / start-sprint / delete-sprint (+ sprint)
   const [dialog, setDialog] = useState(null);
-  const [notice, setNotice] = useState("");
+  // { text, severity }: "warning" for a move the user may not make, "error" for one the backend refused
+  const [notice, setNotice] = useState(null);
   const [dragging, setDragging] = useState(null); // { taskId, fromSprintId }
   const [overSprintId, setOverSprintId] = useState(undefined); // list under the pointer (null = backlog)
   const removeSprint = useSubmit(TASK_ERROR_MESSAGES);
@@ -110,7 +111,7 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
       const from = findTask(view, move.taskId);
       if (!from) return;
       if (!mayMove(from.sprintId, move.sprintId)) {
-        setNotice(NOT_ALLOWED[movePermission(from.sprintId, move.sprintId)]);
+        setNotice({ severity: "warning", text: NOT_ALLOWED[movePermission(from.sprintId, move.sprintId)] });
         return;
       }
       const before = state;
@@ -121,7 +122,10 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
         else await moveToSprint(project.id, move);
       } catch (err) {
         setOptimistic({ source: data, state: before });
-        setNotice(errorMessage(err, "Couldn't move the task. Please try again.", TASK_ERROR_MESSAGES));
+        setNotice({
+          severity: "error",
+          text: errorMessage(err, "Couldn't move the task. Please try again.", TASK_ERROR_MESSAGES),
+        });
       }
     },
     [view, state, data, mayMove, project.id],
@@ -401,7 +405,7 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
               : "This empty sprint will be removed."
           }
           confirmLabel="Delete sprint"
-          destructive
+          tone="danger"
           loading={removeSprint.submitting}
           error={removeSprint.error}
           onConfirm={handleDeleteSprint}
@@ -415,11 +419,11 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
       <Snackbar
         open={Boolean(notice)}
         autoHideDuration={5000}
-        onClose={() => setNotice("")}
+        onClose={() => setNotice(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert severity="warning" variant="filled" onClose={() => setNotice("")} sx={{ width: "100%" }}>
-          {notice}
+        <Alert severity={notice?.severity ?? "warning"} variant="filled" onClose={() => setNotice(null)} sx={{ width: "100%" }}>
+          {notice?.text}
         </Alert>
       </Snackbar>
     </Box>

@@ -62,7 +62,8 @@ const LoginForm = () => {
       setUser(user);
       // go back to the page ProtectedRoute sent us away from
       const from = location.state?.from;
-      const destination = from ? `${from.pathname}${from.search}${from.hash}` : "/projects";
+      // otherwise Home: the current workspace's overview (HomeRedirect)
+      const destination = from ? `${from.pathname}${from.search}${from.hash}` : "/";
       navigate(destination, { replace: true });
     } catch (err) {
       const data = err.response?.data;

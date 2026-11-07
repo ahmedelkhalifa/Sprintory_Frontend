@@ -181,7 +181,7 @@ export const startSprint = async (sprintId, body) => {
 };
 
 /**
- * Ends the active sprint. Its tasks in the board's last column are done and stay with it; the unfinished ones move
+ * Ends the active sprint. Its tasks in a Done-category column are done and stay with it; the unfinished ones move
  * to the top of a planned sprint (`carryOverSprintId`), to a new planned sprint (`createSprint`), or back to the
  * backlog (neither). Answers { sprint, carriedOver, toSprint }.
  */

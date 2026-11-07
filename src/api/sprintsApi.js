@@ -24,7 +24,7 @@ export const deleteSprint = (sprintId) => (MOCK ? mock.deleteSprint(sprintId) : 
 export const startSprint = (sprintId, body) =>
   MOCK ? mock.startSprint(sprintId, body) : api.post(`/sprints/${sprintId}/start`, body).then((res) => res.data);
 
-// needs MANAGE_SPRINTS; ends the active sprint. Unfinished tasks (not in the last column) go to the planned sprint
+// needs MANAGE_SPRINTS; ends the active sprint. Unfinished tasks (not in a Done-category column) go to the planned sprint
 // `carryOverSprintId`, to a new sprint (`createSprint: true`), or back to the backlog (neither)
 export const completeSprint = (sprintId, body) =>
   MOCK ? mock.completeSprint(sprintId, body) : api.post(`/sprints/${sprintId}/complete`, body).then((res) => res.data);
