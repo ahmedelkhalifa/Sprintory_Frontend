@@ -228,12 +228,13 @@ export const deleteTaskMessage = (task) => {
 export const findAssignee = (assigneeId, people = []) =>
   assigneeId == null ? null : (people.find((person) => person.userId === assigneeId) ?? { userId: assigneeId });
 
-// two loads of the same feed (page 0 again after a save, plus pages from "Load more") as one list, oldest first,
-// each entry once. The feed is append-only, so an entry never changes between loads
+// several loads of the same feed (page 0 again after a save, plus older pages) as one list, newest first like the
+// backend (occurredAt, then id, both descending), each entry once. The feed is append-only, so an entry never
+// changes between loads
 export const mergeHistory = (...lists) => {
   const byId = new Map();
   for (const entry of lists.flat()) byId.set(entry.id, entry);
-  return [...byId.values()].sort((a, b) => new Date(a.occurredAt) - new Date(b.occurredAt) || a.id - b.id);
+  return [...byId.values()].sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt) || b.id - a.id);
 };
 
 // what a changed field is called in a history line

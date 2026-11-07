@@ -320,12 +320,12 @@ test("historyLine: types and fields added later still get a line", () => {
   assert.deepEqual(historyLine(entry("FIELD_CHANGED", "DUE_DATE", "a", "b")), { text: "updated the task" });
 });
 
-test("mergeHistory keeps each entry once, oldest first", () => {
+test("mergeHistory keeps each entry once, newest first (same moment: higher id first)", () => {
   const at = (id, day) => ({ id, occurredAt: `2026-11-0${day}T10:00:00Z` });
-  const merged = mergeHistory([at(1, 1), at(2, 2)], [at(2, 2), at(3, 2), at(4, 3)]);
+  const merged = mergeHistory([at(4, 3), at(3, 2), at(2, 2)], [at(2, 2), at(1, 1)]);
   assert.deepEqual(
     merged.map((e) => e.id),
-    [1, 2, 3, 4],
+    [4, 3, 2, 1],
   );
 });
 

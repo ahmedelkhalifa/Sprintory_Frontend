@@ -77,19 +77,25 @@ const Entry = ({ entry, members, subtask }) => {
 };
 
 // The task's history (R10, backend task-history-docs.md): created, every field change, subtasks added / removed,
-// deleted comments and restores, oldest first, PAGE_SIZE at a time with "Load more" at the bottom. `members` add
-// photos to the names; `version` changes when the page saves the task, so the new entries show up. `subtask` says
-// whether this is a subtask's own feed.
+// deleted comments and restores, newest first, PAGE_SIZE at a time with "Load older" at the bottom. `members` add
+// photos to the names; `version` changes when the page saves the task, so the new entries show up on top.
+// `subtask` says whether this is a subtask's own feed.
 const TaskHistory = ({ project, taskId, members, version, subtask = false }) => {
   const first = useAsync(
     (signal) => getTaskHistory(project.id, taskId, { page: 0, size: PAGE_SIZE }, signal),
     [project.id, taskId],
     { fallback: "Couldn't load the history. Please try again.", messages: TASK_ERROR_MESSAGES },
   );
-  // the pages loaded with "Load more"; kept through a reload of page 0, since the feed is append-only
+  // older entries: the pages loaded with "Load older", plus what an earlier page 0 showed. The feed is append-only,
+  // so after a save page 0 brings the new entries and the ones it pushed down stay on screen
   const [more, setMore] = useState({ items: [], total: 0, loading: false, error: "" });
+  const [shownFirst, setShownFirst] = useState(first.data);
+  if (first.data !== shownFirst) {
+    setShownFirst(first.data);
+    if (shownFirst) setMore((prev) => ({ ...prev, items: [...prev.items, ...shownFirst.content] }));
+  }
 
-  // a reload, not a dependency: the list stays on screen while the new entries load in
+  // a reload, not a dependency: the list stays on screen while the new entries load in on top
   const { reload } = first;
   const seenVersion = useRef(version);
   useEffect(() => {
@@ -107,12 +113,12 @@ const TaskHistory = ({ project, taskId, members, version, subtask = false }) => 
   const loadMore = async () => {
     setMore((prev) => ({ ...prev, loading: true, error: "" }));
     try {
-      // the page the next unseen entry is on; entries already shown are dropped by mergeHistory
+      // the page the next older entry is on; entries already shown are dropped by mergeHistory
       const page = Math.floor(entries.length / PAGE_SIZE);
       const data = await getTaskHistory(project.id, taskId, { page, size: PAGE_SIZE });
       setMore((prev) => ({ items: [...prev.items, ...data.content], total: data.totalElements, loading: false, error: "" }));
     } catch (err) {
-      const error = errorMessage(err, "Couldn't load more history. Please try again.", TASK_ERROR_MESSAGES);
+      const error = errorMessage(err, "Couldn't load older history. Please try again.", TASK_ERROR_MESSAGES);
       setMore((prev) => ({ ...prev, loading: false, error }));
     }
   };
@@ -147,7 +153,7 @@ const TaskHistory = ({ project, taskId, members, version, subtask = false }) => 
       )}
       {hasMore && !more.error && (
         <Button size="small" onClick={loadMore} loading={more.loading} sx={{ mt: 2 }}>
-          Load more
+          Load older
         </Button>
       )}
     </Box>

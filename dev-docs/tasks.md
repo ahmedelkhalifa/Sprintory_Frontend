@@ -67,8 +67,10 @@ task, same project: own key, title, assignee, status and a time estimate **in mi
 
 ### History (real, backend PMP-133, `docs/task-history-docs.md`)
 
-`GET /{taskId}/history?page=&size=` (`getTaskHistory`): a **PageResponse**, oldest first, `size` default 20, at most
-100, `sort` ignored. (Until 4 Nov it was a plain array of status moves; the old shape crashed the task page.)
+`GET /{taskId}/history?order=&page=&size=` (`getTaskHistory`): a **PageResponse**, `size` default 20, at most 100.
+`order` is `newest` (the default since 7 Nov: `occurredAt`, then `id`, descending) or `oldest`; anything else is
+`400`, `sort` is ignored. We send `newest`. (Until 4 Nov it was a plain array of status moves; until 7 Nov oldest
+first.)
 
 ```jsonc
 { "id": 501, "type": "FIELD_CHANGED", "field": "PRIORITY", "oldValue": "LOW", "newValue": "HIGH", "refId": null,
@@ -80,10 +82,9 @@ task, same project: own key, title, assignee, status and a time estimate **in mi
   `ESTIMATE`, `ESTIMATE_MINUTES`, `LABELS`, `DESCRIPTION` (no values). Values and `actor.name` are snapshots from
   the time; enums come as stored. A subtask has its own feed.
 - `historyLine` in [utils/task.js](../src/utils/task.js) turns an entry into words (null = "None", unknown types
-  → "updated the task"); [TaskHistory](../src/components/tasks/TaskHistory.jsx) shows 20 at a time with Load more
-  and reloads page 0 after each save (`mergeHistory` keeps each entry once).
-- **Asked of the backend (6 Nov):** newest first. When it ships, page 0 goes on top and Load more becomes
-  "Show older".
+  → "updated the task"); [TaskHistory](../src/components/tasks/TaskHistory.jsx) shows the latest 20 first with
+  "Load older" at the bottom, and reloads page 0 after each save so new entries appear on top (`mergeHistory` keeps
+  each entry once, newest first; what the old page 0 showed stays).
 
 ### Descriptions and @mentions (real, backend PMP-136, `docs/mentions-docs.md`)
 
