@@ -3,8 +3,8 @@
 Summary of the backend's `docs/attachments-docs.md` (7 Nov 2026), for the frontend.
 
 **Status:** the contract is agreed, but the backend (PMP-141, branch `features/attachments`) isn't built. The frontend
-follows the contract and was tested against a throwaway fake server. Don't merge it before the backend: until then every
-task page shows "Couldn't load the attachments". Acceptance testing is PMP-143.
+follows the contract and was tested against a throwaway fake server. Don't merge it before the backend: until then the
+section on every task page shows an error. Acceptance testing is PMP-143.
 
 ## What it does
 
