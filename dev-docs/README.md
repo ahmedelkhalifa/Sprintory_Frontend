@@ -1,7 +1,7 @@
 # Backend contract summaries (frontend view)
 
 Short summaries of the backend API contracts, for whoever works on the frontend (people and Claude).
-**Source of truth:** `sprintory_backend/docs/*.md`. These summaries match those docs as of **26 Oct 2026** (workspaces, teams and roles as of 24 Oct). When a backend doc changes, update the matching file here in the same PR.
+**Source of truth:** `sprintory_backend/docs/*.md`. These summaries match those docs as of **26 Oct 2026** (workspaces, teams and roles as of 24 Oct; tasks, comments, mentions, history, board, chat and notifications as of 6 Nov). When a backend doc changes, update the matching file here in the same PR.
 
 | File | Covers | Backend doc |
 | --- | --- | --- |
@@ -9,7 +9,8 @@ Short summaries of the backend API contracts, for whoever works on the frontend 
 | [teams.md](teams.md) | teams and team members | `teams-docs.md` |
 | [projects.md](projects.md) | projects (key, description, settings), project members, adding a team | `projects-docs.md` |
 | [roles.md](roles.md) | workspace and project roles, permissions, role endpoints | `roles-docs.md` |
-| [tasks.md](tasks.md) | tasks and the board (real), sprints (**assumed**: not in the backend yet) | `tasks-docs.md`, `projects-docs.md` §3.8 |
+| [tasks.md](tasks.md) | tasks, subtasks, descriptions with @mentions, comments, history and the board (real), sprints (**assumed**: not in the backend yet) | `tasks-docs.md`, `board-docs.md`, `mentions-docs.md`, `comments-docs.md`, `task-history-docs.md` |
+| [chat.md](chat.md) | the project chat (WebSocket / STOMP) and the workspace Chats page | `project-chat-docs.md` |
 | [audit-log.md](audit-log.md) | the workspace audit log (admins only, read-only) | `audit-log-docs.md` |
 | [search.md](search.md) | universal search (top bar and `/search` page) | `search-docs.md` |
 | [notifications.md](notifications.md) | the bell, its live stream, preferences, watching a task | `notifications-docs.md` |
@@ -72,7 +73,7 @@ Where the frontend is behind these contracts. Fix them, then update this table.
 | Gap | Contract | Affects |
 | --- | --- | --- |
 | Sprints have no backend yet; the Backlog and Board tabs run them on an in-browser mock (on unless `VITE_MOCK_SPRINTS=false`). Tasks and the board are real | [tasks.md](tasks.md#sprints-assumed-mocked) | [sprintsApi.js](../src/api/sprintsApi.js), [sprintsMock.js](../src/mocks/sprintsMock.js) |
-| Task comments and @mentions (backend PMP-133/136, `comments-docs.md`) aren't built: the task page's Comments tab says "coming soon". The history feed is done | [tasks.md](tasks.md#history-real-backend-pmp-133-docstask-history-docsmd) | [TaskActivity](../src/components/tasks/TaskActivity.jsx) |
+| A description's mentions show the label stored in the text, which can be out of date after a rename: the task response has no `mentions` list (comments and chat messages have one). Backend: please add it | [tasks.md](tasks.md#descriptions-and-mentions-real-backend-pmp-136-docsmentions-docsmd) | [TaskDescription](../src/components/tasks/TaskDescription.jsx) |
 | Task history is oldest first (the backend's fixed order) with Load more at the bottom; newest first is asked of the backend | [tasks.md](tasks.md#history-real-backend-pmp-133-docstask-history-docsmd) | [TaskHistory](../src/components/tasks/TaskHistory.jsx) |
 | Deleted tasks can only be restored right after the delete (the Undo snackbar): the backend has no list of deleted tasks | [tasks.md](tasks.md#tasks-real--the-parts-the-frontend-uses) | [UndoDeleteProvider](../src/context/UndoDeleteProvider.jsx) |
 | Archive / restore / delete a project, project `status` / `createdAt`, and the Archived tab are built against **assumed** endpoints the backend doesn't have yet (R30) | [projects.md](projects.md#assumed-by-the-frontend-not-in-the-backend-yet) | the `ASSUMED` block in [projectsApi.js](../src/api/projectsApi.js) |

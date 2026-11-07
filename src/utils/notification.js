@@ -1,15 +1,17 @@
-import { projectPath } from "./project.js";
+import { projectPath, projectTabPath } from "./project.js";
 import { taskPath } from "./task.js";
 
 // Where "open" sends the user ({ kind, workspaceId, projectId, taskId } from POST /notifications/{id}/open),
 // or null for NONE (an invitation or a security notice: there is nothing to open).
 // The url takes the workspace slug; a workspace not in the list yet (e.g. just joined) uses its id,
-// which WorkspaceAccessGuard redirects to the slug
-export const notificationTargetPath = (target, workspaces = []) => {
+// which WorkspaceAccessGuard redirects to the slug. `type` is the notification's: a MENTIONED about a project
+// (not a task) is a mention in the project chat, so it opens the Chat tab.
+export const notificationTargetPath = (target, workspaces = [], type = null) => {
   if (!target || (target.kind !== "TASK" && target.kind !== "PROJECT") || target.projectId == null) return null;
   const workspace = workspaces.find((w) => w.id === target.workspaceId) ?? { slug: String(target.workspaceId) };
   const project = { id: target.projectId };
   if (target.kind === "TASK" && target.taskId != null) return taskPath(workspace, project, target.taskId);
+  if (type === "MENTIONED") return projectTabPath(workspace, project, "chat");
   return projectPath(workspace, project);
 };
 

@@ -242,6 +242,16 @@ test("subtaskChanges sends only what changed, and clear flags for an emptied ass
   assert.equal("estimate" in subtaskChanges(subtask(), { ...subtaskValues(subtask()), estimateMinutes: "30" }), false);
 });
 
+test("subtaskChanges sends a changed description, and clearDescription for an emptied one", () => {
+  const doc = JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Hi" }] }] });
+  const current = subtask({ description: doc });
+  const values = subtaskValues(current);
+  assert.equal(values.description, doc);
+  assert.deepEqual(subtaskChanges(current, values), {});
+  assert.deepEqual(subtaskChanges(current, { ...values, description: "" }), { clearDescription: true });
+  assert.deepEqual(subtaskChanges(subtask(), { ...subtaskValues(subtask()), description: doc }), { description: doc });
+});
+
 test("formatMinutes reads like a time", () => {
   assert.equal(formatMinutes(90), "1h 30m");
   assert.equal(formatMinutes(45), "45m");

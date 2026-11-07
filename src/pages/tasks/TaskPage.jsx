@@ -7,7 +7,6 @@ import {
   Alert,
   Autocomplete,
   Box,
-  Button,
   Paper,
   TextField,
   Typography,
@@ -24,6 +23,7 @@ import TaskActivity from "../../components/tasks/TaskActivity";
 import TaskBreadcrumbs from "../../components/tasks/TaskBreadcrumbs";
 import TaskDates from "../../components/tasks/TaskDates";
 import TaskDeleteAction from "../../components/tasks/TaskDeleteAction";
+import TaskDescription from "../../components/tasks/TaskDescription";
 import TaskStatusSelect from "../../components/tasks/TaskStatusSelect";
 import TaskTitleField from "../../components/tasks/TaskTitleField";
 import TaskValueSelect from "../../components/tasks/TaskValueSelect";
@@ -49,66 +49,6 @@ import {
 } from "../../utils/task";
 import { validateTask } from "../../utils/validation";
 import { isWorkspaceArchived } from "../../utils/workspace";
-
-// the description: text until clicked, then a box with Save and Cancel. A failed save keeps the box open.
-const DescriptionField = ({ description, canEdit, saving, onSave }) => {
-  const [draft, setDraft] = useState(null); // null: showing the description
-
-  if (draft !== null) {
-    return (
-      <Box>
-        <TextField
-          autoFocus
-          multiline
-          fullWidth
-          minRows={6}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          slotProps={{ htmlInput: { "aria-label": "Description" } }}
-        />
-        <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
-          <Button
-            variant="contained"
-            size="small"
-            loading={saving}
-            onClick={async () => {
-              const { ok } = await onSave(draft);
-              if (ok) setDraft(null);
-            }}
-          >
-            Save
-          </Button>
-          <Button size="small" color="inherit" disabled={saving} onClick={() => setDraft(null)}>
-            Cancel
-          </Button>
-        </Box>
-      </Box>
-    );
-  }
-  return (
-    <Box
-      role={canEdit ? "button" : undefined}
-      tabIndex={canEdit ? 0 : undefined}
-      onClick={() => canEdit && setDraft(description ?? "")}
-      onKeyDown={(e) => canEdit && e.key === "Enter" && setDraft(description ?? "")}
-      sx={{
-        borderRadius: 1,
-        px: 1,
-        py: 0.5,
-        mx: -1,
-        minHeight: 40,
-        cursor: canEdit ? "text" : "default",
-        "&:hover": canEdit ? { bgcolor: "action.hover" } : undefined,
-      }}
-    >
-      {description ? (
-        <Typography sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{description}</Typography>
-      ) : (
-        <Typography color="text.disabled">{canEdit ? "Add a description..." : "No description"}</Typography>
-      )}
-    </Box>
-  );
-};
 
 // The loaded task and its fields. Every change is saved at once, like in Jira: one field at a time (useFieldSave
 // with validateTask and taskChanges: only what changed, clear flags for emptied fields). Under the description
@@ -223,10 +163,13 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
           />
 
           <Typography sx={{ fontWeight: 600, mt: 4, mb: 1 }}>Description</Typography>
-          <DescriptionField
+          <TaskDescription
             description={task.description}
+            projectId={project.id}
             canEdit={canEdit}
             saving={fields.submitting}
+            error={errors.description}
+            onEdit={() => fields.clearFieldError("description")}
             onSave={(description) => saveFields({ description })}
           />
 

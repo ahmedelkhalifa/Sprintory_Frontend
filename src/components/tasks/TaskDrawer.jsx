@@ -17,6 +17,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import FormField from "../forms/FormField";
+import RichTextEditor from "../editor/RichTextEditor";
 import AssigneePicker from "./AssigneePicker";
 import OpenSubtasksDialog from "./OpenSubtasksDialog";
 import TaskDeleteAction from "./TaskDeleteAction";
@@ -29,6 +30,7 @@ import { useSubmit } from "../../hooks/useSubmit";
 import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_TYPES } from "../../constants/tasks";
 import { findAssignee, needsSubtaskConfirmation, taskChanges, taskPath, taskValues } from "../../utils/task";
+import { isRichTextError, richTextValue } from "../../utils/richText";
 import { TASK_TITLE_MAX, validateTask } from "../../utils/validation";
 
 // a label above a field that isn't a FormField (the pickers)
@@ -62,6 +64,10 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
     const data = error.response?.data;
     if (data?.code === "VALIDATION_ERROR" && data.fieldErrors) {
       setErrors(data.fieldErrors);
+      save.clearError();
+    } else if (isRichTextError(error)) {
+      // a refused description or mention (backend mentions-docs §5) goes under the description
+      setErrors({ description: data.message });
       save.clearError();
     } else if (needsSubtaskConfirmation(error)) {
       save.clearError();
@@ -153,7 +159,23 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
           />
         </Field>
 
-        <FormField {...field("description")} label="Description" multiline minRows={5} placeholder="Add more detail" />
+        <Field id="task-description" label="Description">
+          <RichTextEditor
+            value={task.description}
+            onChange={(doc) => set("description", richTextValue(doc))}
+            projectId={project.id}
+            placeholder="Add more detail... Type @ to mention someone"
+            disabled={!canEdit}
+            error={Boolean(errors.description)}
+            ariaLabel="Description"
+            minHeight={120}
+          />
+          {errors.description && (
+            <Typography variant="caption" color="error" sx={{ display: "block", mt: 0.5, mx: 1.75 }}>
+              {errors.description}
+            </Typography>
+          )}
+        </Field>
 
         {save.error && <Alert severity="error">{save.error}</Alert>}
       </Stack>

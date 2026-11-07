@@ -19,6 +19,15 @@ test("notificationTargetPath: a task opens the task page under the workspace slu
 test("notificationTargetPath: a project (membership, roles, sprints) opens the project", () => {
   const target = { kind: "PROJECT", workspaceId: 4, projectId: 15, taskId: null };
   assert.equal(notificationTargetPath(target, workspaces), "/workspaces/acme/projects/15");
+  assert.equal(notificationTargetPath(target, workspaces, "PROJECT_MEMBER_ADDED"), "/workspaces/acme/projects/15");
+});
+
+test("notificationTargetPath: a mention about a project is a chat mention and opens the Chat tab", () => {
+  const target = { kind: "PROJECT", workspaceId: 4, projectId: 15, taskId: null };
+  assert.equal(notificationTargetPath(target, workspaces, "MENTIONED"), "/workspaces/acme/projects/15/chat");
+  // a mention in a comment or a description still opens the task
+  const task = { kind: "TASK", workspaceId: 4, projectId: 15, taskId: 230 };
+  assert.equal(notificationTargetPath(task, workspaces, "MENTIONED"), "/workspaces/acme/projects/15/tasks/230");
 });
 
 test("notificationTargetPath: a workspace not in the list yet uses its id (the guard redirects it)", () => {

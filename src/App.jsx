@@ -15,6 +15,8 @@ import WorkspaceMembersPage from "./pages/workspace/WorkspaceMembersPage";
 import TeamsPage from "./pages/teams/TeamsPage";
 import ProjectsPage from "./pages/projects/ProjectsPage";
 import ProjectPage from "./pages/projects/ProjectPage";
+import ProjectChatPage from "./pages/projects/ProjectChatPage";
+import ChatsPage from "./pages/chats/ChatsPage";
 import {
   ProjectBacklogPage,
   ProjectBoardPage,
@@ -69,12 +71,15 @@ const App = () => {
                 <Route path="audit-log" element={<AuditLogPage />} />
                 <Route path="teams" element={<TeamsPage />} />
                 <Route path="projects" element={<ProjectsPage />} />
+                <Route path="chats" element={<ChatsPage />} />
+                <Route path="chats/:projectId" element={<ChatsPage />} />
                 <Route path="projects/:projectId" element={<ProjectAccessGuard />}>
                   {/* ProjectPage is the layout (header + tabs) and stays mounted; only the tab below it changes.
                       paths match the ids in components/projects/overview/tabList.js */}
                   <Route element={<ProjectPage />}>
                     <Route index element={<ProjectOverviewPage />} />
                     <Route path="members" element={<ProjectMembersPage />} />
+                    <Route path="chat" element={<ProjectChatPage />} />
                     <Route path="backlog" element={<ProjectBacklogPage />} />
                     <Route path="board" element={<ProjectBoardPage />} />
                     <Route path="sprints" element={<ProjectComingSoonPage tab="sprints" />} />

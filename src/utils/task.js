@@ -121,6 +121,15 @@ export const taskValues = (task) => ({
   assigneeId: task.assigneeId ?? null,
 });
 
+// the description into a PATCH body (tasks and subtasks): only when it changed, `clearDescription` when emptied.
+// The values hold richTextValue's string: "" or the TipTap JSON
+const descriptionChange = (task, values, changes) => {
+  const description = (values.description ?? "").trim();
+  if (description === (task.description ?? "")) return;
+  if (description) changes.description = description;
+  else changes.clearDescription = true;
+};
+
 /**
  * The PATCH body for the task form: only the fields that changed. Emptied fields are sent as the backend's clear
  * flags (`clearAssignee`, `clearEstimate`, `clearDescription`), because null there means "unchanged".
@@ -134,11 +143,7 @@ export const taskChanges = (task, values) => {
     if (values[field] !== task[field]) changes[field] = values[field];
   }
 
-  const description = values.description.trim();
-  if (description !== (task.description ?? "")) {
-    if (description) changes.description = description;
-    else changes.clearDescription = true;
-  }
+  descriptionChange(task, values, changes);
 
   const estimate = values.estimate === "" ? null : Number(values.estimate);
   if (estimate !== (task.estimate ?? null)) {
@@ -164,10 +169,11 @@ export const subtaskValues = (subtask) => ({
   statusId: subtask.statusId,
   assigneeId: subtask.assigneeId ?? null,
   estimateMinutes: subtask.estimateMinutes ?? "",
+  description: subtask.description ?? "",
 });
 
-// The PATCH body for a subtask: only what changed. An emptied assignee or time goes as `clearAssignee` /
-// `clearEstimateMinutes`, because null there means "unchanged"
+// The PATCH body for a subtask: only what changed. An emptied assignee, time or description goes as
+// `clearAssignee` / `clearEstimateMinutes` / `clearDescription`, because null there means "unchanged"
 export const subtaskChanges = (subtask, values) => {
   const changes = {};
   const title = values.title.trim();
@@ -185,6 +191,7 @@ export const subtaskChanges = (subtask, values) => {
     if (minutes === null) changes.clearEstimateMinutes = true;
     else changes.estimateMinutes = minutes;
   }
+  descriptionChange(subtask, values, changes);
   return changes;
 };
 

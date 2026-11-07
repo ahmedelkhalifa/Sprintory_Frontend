@@ -10,6 +10,7 @@ import TaskActivity from "../TaskActivity";
 import TaskBreadcrumbs from "../TaskBreadcrumbs";
 import TaskDates from "../TaskDates";
 import TaskDeleteAction from "../TaskDeleteAction";
+import TaskDescription from "../TaskDescription";
 import TaskStatusSelect from "../TaskStatusSelect";
 import TaskTitleField from "../TaskTitleField";
 import { updateSubtask } from "../../../api/tasksApi";
@@ -18,9 +19,9 @@ import { findAssignee, formatMinutes, subtaskChanges, subtaskValues, taskPath } 
 import { validateSubtask } from "../../../utils/validation";
 
 // A subtask's own page, opened from its parent's list (like a Jira child issue): only what a subtask has, i.e. its
-// title, status, assignee and time estimate in minutes, each saved on its own (useFieldSave) with the subtask
-// endpoint (the task PATCH would read `estimate` as story points). No description, type, priority, labels or
-// subtasks (one level only). `parent` is its parent task, for the way back; deleting the subtask goes there too.
+// title, description, status, assignee and time estimate in minutes, each saved on its own (useFieldSave) with the
+// subtask endpoint (the task PATCH would read `estimate` as story points), and its own comments and history.
+// No type, priority, labels or subtasks (one level only). `parent` is its parent task, for the way back; deleting the subtask goes there too.
 const SubtaskView = ({ workspace, project, initialTask, parent, columns, members, canEdit }) => {
   const navigate = useNavigate();
   const [task, setTask] = useState(initialTask);
@@ -67,7 +68,7 @@ const SubtaskView = ({ workspace, project, initialTask, parent, columns, members
           alignItems: "start",
         }}
       >
-        {/* left: where it belongs, the title and the activity */}
+        {/* left: where it belongs, the title, the description and the activity */}
         <Box>
           <Link
             component={RouterLink}
@@ -90,6 +91,16 @@ const SubtaskView = ({ workspace, project, initialTask, parent, columns, members
             error={errors.title}
             onEdit={() => fields.clearFieldError("title")}
             onSave={(title) => fields.save({ title })}
+          />
+          <Typography sx={{ fontWeight: 600, mt: 4, mb: 1 }}>Description</Typography>
+          <TaskDescription
+            description={task.description}
+            projectId={project.id}
+            canEdit={canEdit}
+            saving={fields.submitting}
+            error={errors.description}
+            onEdit={() => fields.clearFieldError("description")}
+            onSave={(description) => fields.save({ description })}
           />
           <TaskActivity project={project} task={task} members={people} />
         </Box>

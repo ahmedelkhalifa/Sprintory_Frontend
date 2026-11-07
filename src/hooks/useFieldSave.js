@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSubmit } from "./useSubmit";
 import { TASK_ERROR_MESSAGES } from "../constants/tasks";
+import { isRichTextError } from "../utils/richText";
 
 /**
  * Saving a task page one field at a time (Jira-style), for both tasks and subtasks:
@@ -8,7 +9,7 @@ import { TASK_ERROR_MESSAGES } from "../constants/tasks";
  *   send: (changes) => updateTask(projectId, task.id, changes), onSaved: setTask });
  * `fields.save(patch)` checks the edited field(s) with `validate`, sends only what changed (`toChanges`) and hands
  * the saved task to `onSaved`. It answers { ok }, or { ok: false, invalid } while a field error shows (the
- * backend's VALIDATION_ERROR lands there too), or { ok: false, error, changes } for any other refusal, whose text
+ * backend's VALIDATION_ERROR lands there too, and a refused rich text or mention under `description`), or { ok: false, error, changes } for any other refusal, whose text
  * is in `fields.error`. `fields.send(changes)` sends changes as they are (e.g. again after a confirmation).
  */
 export const useFieldSave = (task, { toValues, validate, toChanges, send, onSaved }) => {
@@ -40,6 +41,12 @@ export const useFieldSave = (task, { toValues, validate, toChanges, send, onSave
     const data = error.response?.data;
     if (data?.code === "VALIDATION_ERROR" && data.fieldErrors) {
       setErrors((prev) => ({ ...prev, ...data.fieldErrors }));
+      submit.clearError();
+      return { ok: false, invalid: true };
+    }
+    // a refused rich text or mention belongs under the description (backend mentions-docs §5)
+    if (isRichTextError(error)) {
+      setErrors((prev) => ({ ...prev, description: data.message }));
       submit.clearError();
       return { ok: false, invalid: true };
     }

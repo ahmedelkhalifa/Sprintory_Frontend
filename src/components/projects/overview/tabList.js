@@ -1,4 +1,5 @@
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
 import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import ViewListOutlinedIcon from "@mui/icons-material/ViewListOutlined";
 import ViewColumnOutlinedIcon from "@mui/icons-material/ViewColumnOutlined";
@@ -12,6 +13,8 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 const TABS = [
   { id: "overview", label: "Overview", Icon: HomeOutlinedIcon },
   { id: "members", label: "Members", Icon: GroupOutlinedIcon },
+  // members only (Viewers included): a workspace admin outside the project can't open its chat
+  { id: "chat", label: "Chat", Icon: ChatBubbleOutlineIcon, membersOnly: true },
   { id: "backlog", label: "Backlog", Icon: ViewListOutlinedIcon, scrumOnly: true },
   { id: "board", label: "Board", Icon: ViewColumnOutlinedIcon },
   { id: "sprints", label: "Sprints", Icon: TimerOutlinedIcon, scrumOnly: true },
@@ -20,7 +23,8 @@ const TABS = [
   { id: "settings", label: "Settings", Icon: SettingsOutlinedIcon },
 ];
 
-// the tabs a project of this template has
-export const tabsFor = (template) => TABS.filter((tab) => !tab.scrumOnly || template === "SCRUM");
+// the tabs a project of this template has; `member` = the caller is in the project
+export const tabsFor = (template, member = true) =>
+  TABS.filter((tab) => (!tab.scrumOnly || template === "SCRUM") && (!tab.membersOnly || member));
 
 export const tabLabel = (id) => TABS.find((tab) => tab.id === id)?.label ?? id;

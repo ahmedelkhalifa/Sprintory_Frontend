@@ -1,13 +1,21 @@
 import { useState } from "react";
 import { Box, Tab, Tabs, Typography } from "@mui/material";
+import TaskComments from "./TaskComments";
 import TaskHistory from "./TaskHistory";
+import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
+import { PERMISSIONS } from "../../constants/projects";
+import { can, isProjectArchived } from "../../utils/project";
+import { isWorkspaceArchived } from "../../utils/workspace";
 
 const tabSx = { minHeight: 40, textTransform: "none", fontWeight: 600, px: 1.5, minWidth: 0 };
 
-// A task page's Activity, like Jira's: Comments and History tabs. History is the task's activity feed
-// (TaskHistory); comments come with their own story, so that tab only says so for now and History opens first.
+// A task page's Activity, like Jira's: Comments (TaskComments, opens first) and History (TaskHistory, the
+// activity feed). Used by a task's and a subtask's page; both have their own comments and history.
 const TaskActivity = ({ project, task, members }) => {
-  const [tab, setTab] = useState("history");
+  const { workspace } = useWorkspaceAccess();
+  const [tab, setTab] = useState("comments");
+  // Viewers and archived workspaces / projects only read (hiding is for usability, the backend refuses anyway)
+  const canComment = can(project, PERMISSIONS.COMMENT) && !isWorkspaceArchived(workspace) && !isProjectArchived(project);
 
   return (
     <Box sx={{ mt: 4 }}>
@@ -29,9 +37,7 @@ const TaskActivity = ({ project, task, members }) => {
           subtask={task.parentTaskId != null}
         />
       ) : (
-        <Typography variant="body2" color="text.secondary">
-          Comments are coming soon.
-        </Typography>
+        <TaskComments project={project} taskId={task.id} members={members} canComment={canComment} />
       )}
     </Box>
   );

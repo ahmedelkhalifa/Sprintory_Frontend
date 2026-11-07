@@ -20,7 +20,8 @@ changing `EDIT_TASKS`; a workspace admin who isn't a member gets `403` on everyt
   "assigneeId": 7,               // a project member, or null; the name comes from GET /projects/{id}/members
   "estimate": 3,                 // whole story points >= 0, or null
   "labels": ["R09", "backend"],  // sorted; at most 20, each at most 50 characters
-  "description": "…", "sprintId": null, "createdAt": "…", "updatedAt": "…" }
+  "description": "{\"type\":\"doc\",…}",  // TipTap JSON as a string (see "Descriptions and @mentions"), or null
+  "sprintId": null, "createdAt": "…", "updatedAt": "…" }
 ```
 
 | Call | Endpoint | Notes |
@@ -44,7 +45,7 @@ task, same project: own key, title, assignee, status and a time estimate **in mi
 | --- | --- | --- |
 | list | `GET /{parentId}/subtasks` | oldest first; the main task list never includes subtasks (no cards, no WIP counts) |
 | create | `POST /{parentId}/subtasks { title, assigneeId?, statusId?, estimateMinutes? }` | `201`; no status = the first column |
-| edit | `PATCH /{parentId}/subtasks/{subtaskId}` | `title`, `statusId`, `assigneeId`, `estimateMinutes`, `clearAssignee`, `clearEstimateMinutes` (`subtaskChanges`); never the task PATCH, whose `estimate` is story points |
+| edit | `PATCH /{parentId}/subtasks/{subtaskId}` | `title`, `statusId`, `assigneeId`, `estimateMinutes`, `description`, `clearAssignee`, `clearEstimateMinutes`, `clearDescription` (`subtaskChanges`); never the task PATCH, whose `estimate` is story points |
 | delete | `DELETE /{subtaskId}` | soft; deleting a parent takes its subtasks with it; `POST /{subtaskId}/restore` undoes it |
 
 - TaskResponse adds `parentTaskId`, `estimateMinutes`, `subtaskTotal`, `subtaskDone` (done = a Done-category column).
@@ -54,9 +55,10 @@ task, same project: own key, title, assignee, status and a time estimate **in mi
   board the card stays where it was dropped while the window is open, Cancel puts it back.
 - UI ([TaskPage](../src/pages/tasks/TaskPage.jsx), [components/tasks/subtasks/](../src/components/tasks/subtasks/)):
   a parent's page has a Subtasks section ("3 / 5 done", status and assignee changed on the row, Add subtask) and an
-  Activity area (History tab; Comments tab waits for the comments branch). A subtask's title opens its own page
-  (`SubtaskView`: title, status, assignee, time; "Subtask of …" back to the parent). Both pages save one field at a
-  time with `useFieldSave`. Board cards show "3/5" for parents.
+  Activity area (Comments and History tabs, [TaskActivity](../src/components/tasks/TaskActivity.jsx)). A subtask's
+  title opens its own page (`SubtaskView`: title, description, status, assignee, time, its own comments and history;
+  "Subtask of …" back to the parent). Both pages save one field at a time with `useFieldSave`. Board cards show
+  "3/5" for parents.
 - Delete and Undo: [TaskDeleteAction](../src/components/tasks/TaskDeleteAction.jsx) (page, subtask page and rows,
   drawer) confirms (a parent's window says its subtasks go too), deletes, then
   [UndoDeleteProvider](../src/context/UndoDeleteProvider.jsx) shows "MOB-42 was deleted · Undo" for 8 s, above the
@@ -82,6 +84,50 @@ task, same project: own key, title, assignee, status and a time estimate **in mi
   and reloads page 0 after each save (`mergeHistory` keeps each entry once).
 - **Asked of the backend (6 Nov):** newest first. When it ships, page 0 goes on top and Load more becomes
   "Show older".
+
+### Descriptions and @mentions (real, backend PMP-136, `docs/mentions-docs.md`)
+
+- A description (task and subtask, create and edit) is a **TipTap document sent as a JSON string**
+  (`JSON.stringify(doc)`). The backend checks it and returns its normalized copy; plain text is refused with
+  `400 INVALID_RICH_TEXT`, a mention of someone outside the project with `400 INVALID_MENTION` (both shown under the
+  description, the draft stays; `isRichTextError`). An empty document is stored as no description.
+- Allowed: paragraphs, headings 1–3, bulleted / numbered lists, quotes, code blocks, rules, hard breaks; bold,
+  italic, underline, strike, code, links (http, https, mailto only); `mention` nodes `{ kind: "user" | "team", id,
+  label }`.
+- `GET /projects/{projectId}/mentionables?q=` (`getMentionables` in [mentionsApi.js](../src/api/mentionsApi.js)):
+  `{ users: [{ id, name, email }], teams: [{ id, name, membersInProject }] }`, at most 10 people (not the caller) and 5
+  teams. A workspace admin outside the project gets `403`.
+- Descriptions saved before 4 Nov 2026 may still be plain text: they are shown as paragraphs, and saving through the
+  editor converts them.
+- The task response has no `mentions` list (comments and chat messages do), so a description shows each mention's
+  stored label, which can be out of date after a rename.
+- One editor for descriptions, comments and the chat, in [components/editor/](../src/components/editor/):
+  `RichTextEditor` (toolbar, link window, @ suggestions after a 200 ms pause, Ctrl/⌘+Enter), `RichText` (read-only,
+  drawn node by node, never as HTML), helpers in [utils/richText.js](../src/utils/richText.js) (`toDoc`,
+  `richTextValue`, `isEmptyDoc`, `safeHref`, `mentionName`).
+
+### Comments (real, backend PMP-133/136, `docs/comments-docs.md`)
+
+`/projects/{projectId}/tasks/{taskId}/comments` ([commentsApi.js](../src/api/commentsApi.js)); a subtask uses its own id.
+
+| Call | Endpoint | Notes |
+| --- | --- | --- |
+| list | `GET ?page=&size=` | PageResponse, **oldest first**; deleted ones stay as placeholders (`deleted`, `body: null`) |
+| post | `POST { body }` | `COMMENT` (not Viewers); `body` = TipTap JSON string, not empty, at most 10,000 characters; the author starts watching |
+| edit | `PATCH /{commentId} { body }` | the author only; sets `editedAt` ("(edited)") |
+| delete | `DELETE /{commentId}` | the author, or `MODERATE_COMMENTS` (Project Manager); soft; writes `COMMENT_DELETED` to the history |
+
+```jsonc
+{ "id": 77, "taskId": 230, "author": { "id": 7, "name": "Ada Lovelace" },  // author null if the account is gone
+  "body": "{\"type\":\"doc\",…}", "mentions": [{ "kind": "user", "id": 31, "name": "Damir Gabaidullin" }],
+  "createdAt": "…", "editedAt": null, "deleted": false, "deletedAt": null, "canEdit": true, "canDelete": true }
+```
+
+- [TaskComments](../src/components/tasks/TaskComments.jsx) in the task page's Activity (it opens first): 20 at a time,
+  Load more at the bottom, the box for a new comment last (only with `COMMENT`, nothing archived). Edit and Delete
+  follow `canEdit` / `canDelete`; Delete asks first. Mentions show `mentions[].name` (the current name).
+- Posted, edited and deleted comments replace the loaded copies (`mergeComments` in
+  [utils/comment.js](../src/utils/comment.js)), so a later page never shows one twice.
 
 ### Filters (real) — the Board and Backlog filter bar
 
@@ -181,6 +227,8 @@ Errors are the usual ones (`VALIDATION_ERROR` with `fieldErrors` on `name`, `cap
 | order the backlog | `MANAGE_BACKLOG` | Product Owner |
 | plan, start, complete sprints; move tasks into or out of them | `MANAGE_SPRINTS` | Scrum Master |
 | add, edit, move, delete columns; WIP limits | `CONFIGURE_BOARD` | Project Manager, workspace admin |
+| comment, edit / delete own comments and chat messages | `COMMENT` | every project role except Viewer |
+| delete anyone's comment or chat message | `MODERATE_COMMENTS` | Project Manager |
 
 ## The sprint mock
 

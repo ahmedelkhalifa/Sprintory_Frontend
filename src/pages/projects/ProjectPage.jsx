@@ -14,6 +14,7 @@ import QuickActionsMenu from "../../components/projects/overview/QuickActionsMen
 import ProjectSettingsMenu from "../../components/projects/overview/ProjectSettingsMenu";
 import ProjectTabs from "../../components/projects/overview/ProjectTabs";
 import { tabsFor } from "../../components/projects/overview/tabList";
+import { canOpenProjectChat } from "../../utils/chat";
 import { listProjectMembers } from "../../api/projectsApi";
 import { useAsync } from "../../hooks/useAsync";
 import { useProjectAccess, useWorkspaceAccess } from "../../hooks/useResourceAccess";
@@ -69,7 +70,7 @@ const ProjectPage = () => {
   const scrum = project.template === "SCRUM";
   // where a new task shows up: last in the backlog (Scrum), the board's first column (Kanban)
   const workTab = scrum ? "backlog" : "board";
-  const tabs = tabsFor(project.template);
+  const tabs = tabsFor(project.template, canOpenProjectChat(project));
   const tab = projectTabOf(pathname, projectPath(workspace, project));
   const tabPath = (id) => projectTabPath(workspace, project, id);
 

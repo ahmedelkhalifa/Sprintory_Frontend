@@ -100,7 +100,7 @@ const NotificationBell = () => {
     try {
       const target = await openNotification(notification.id);
       markRead(notification.id);
-      const path = notificationTargetPath(target, workspaces);
+      const path = notificationTargetPath(target, workspaces, notification.type);
       // NONE (an invitation or a security notice): nothing to open, it just turns read
       if (path) {
         setAnchor(null);
