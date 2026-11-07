@@ -18,11 +18,18 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^9.5.0",
     "@mui/material": "^9.5.0",
+    "@tiptap/extension-link": "^3.33.0",
+    "@tiptap/extension-mention": "^3.33.0",
+    "@tiptap/extension-underline": "^3.33.0",
+    "@tiptap/react": "^3.33.0",
+    "@tiptap/starter-kit": "^3.33.0",
+    "@tiptap/suggestion": "^3.33.0",
     "axios": "^1.20.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-icons": "^5.7.0",
-    "react-router-dom": "^7.18.4"
+    "react-router-dom": "^7.18.4",
+    "tippy.js": "^6.3.7"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
