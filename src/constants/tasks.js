@@ -50,6 +50,12 @@ export const TASK_ERROR_MESSAGES = {
   OPEN_SUBTASKS_CONFIRMATION_REQUIRED: "This task still has open subtasks.",
 };
 
+// the same for one attachment, where a 404 is about the file
+export const ATTACHMENT_ERROR_MESSAGES = {
+  ...TASK_ERROR_MESSAGES,
+  RESOURCE_NOT_FOUND: "This file no longer exists, or you no longer have access to it.",
+};
+
 // the same for changes to the board's columns
 export const COLUMN_ERROR_MESSAGES = {
   ...TASK_ERROR_MESSAGES,

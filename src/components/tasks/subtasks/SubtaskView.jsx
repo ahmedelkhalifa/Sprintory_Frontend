@@ -7,6 +7,7 @@ import FormField from "../../forms/FormField";
 import AssigneePicker from "../AssigneePicker";
 import DetailRow from "../DetailRow";
 import TaskActivity from "../TaskActivity";
+import TaskAttachments from "../attachments/TaskAttachments";
 import TaskBreadcrumbs from "../TaskBreadcrumbs";
 import TaskDates from "../TaskDates";
 import TaskDeleteAction from "../TaskDeleteAction";
@@ -20,13 +21,14 @@ import { validateSubtask } from "../../../utils/validation";
 
 // A subtask's own page, opened from its parent's list (like a Jira child issue): only what a subtask has, i.e. its
 // title, description, status, assignee and time estimate in minutes, each saved on its own (useFieldSave) with the
-// subtask endpoint (the task PATCH would read `estimate` as story points), and its own comments and history.
+// subtask endpoint (the task PATCH would read `estimate` as story points), and its own attachments, comments and history.
 // No type, priority, labels or subtasks (one level only). `parent` is its parent task, for the way back; deleting the subtask goes there too.
 const SubtaskView = ({ workspace, project, initialTask, parent, columns, members, canEdit }) => {
   const navigate = useNavigate();
   const [task, setTask] = useState(initialTask);
   const [minutes, setMinutes] = useState(null); // the typed time, until it's saved
   const [people, setPeople] = useState(members);
+  const [attachmentChanges, setAttachmentChanges] = useState(0); // the history has a new entry to show
   const fields = useFieldSave(task, {
     toValues: subtaskValues,
     validate: validateSubtask,
@@ -68,7 +70,7 @@ const SubtaskView = ({ workspace, project, initialTask, parent, columns, members
           alignItems: "start",
         }}
       >
-        {/* left: where it belongs, the title, the description and the activity */}
+        {/* left: where it belongs, the title, the description, the attachments and the activity */}
         <Box>
           <Link
             component={RouterLink}
@@ -102,7 +104,13 @@ const SubtaskView = ({ workspace, project, initialTask, parent, columns, members
             onEdit={() => fields.clearFieldError("description")}
             onSave={(description) => fields.save({ description })}
           />
-          <TaskActivity project={project} task={task} members={people} />
+          <TaskAttachments
+            project={project}
+            taskId={task.id}
+            canEdit={canEdit}
+            onChanged={() => setAttachmentChanges((count) => count + 1)}
+          />
+          <TaskActivity project={project} task={task} members={people} historyVersion={attachmentChanges} />
         </Box>
 
         {/* right: the status, the details and the dates */}

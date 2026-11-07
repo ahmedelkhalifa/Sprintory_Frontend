@@ -29,6 +29,7 @@ import TaskTitleField from "../../components/tasks/TaskTitleField";
 import TaskValueSelect from "../../components/tasks/TaskValueSelect";
 import SubtaskList from "../../components/tasks/subtasks/SubtaskList";
 import SubtaskView from "../../components/tasks/subtasks/SubtaskView";
+import TaskAttachments from "../../components/tasks/attachments/TaskAttachments";
 import TaskWatchToggle from "../../components/tasks/TaskWatchToggle";
 import { loadWork } from "../../components/tasks/loadWork";
 import { getTask, updateTask } from "../../api/tasksApi";
@@ -52,7 +53,7 @@ import { isWorkspaceArchived } from "../../utils/workspace";
 
 // The loaded task and its fields. Every change is saved at once, like in Jira: one field at a time (useFieldSave
 // with validateTask and taskChanges: only what changed, clear flags for emptied fields). Under the description
-// come its subtasks (SubtaskList) and the activity (TaskActivity).
+// come its attachments (TaskAttachments), subtasks (SubtaskList) and the activity (TaskActivity).
 // `canEdit` = EDIT_TASKS and neither the workspace nor the project archived.
 const TaskView = ({ workspace, project, initialTask, columns, members, labels, canEdit }) => {
   const navigate = useNavigate();
@@ -63,6 +64,7 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
   // a move to Done the backend refused because subtasks are open: the same changes, waiting for a confirmation
   const [confirmDone, setConfirmDone] = useState(null);
   const [wipNotice, setWipNotice] = useState(null); // a status change put the task over a column's WIP limit
+  const [attachmentChanges, setAttachmentChanges] = useState(0); // the history has a new entry to show
   // only the latest subtask refresh may land (see refreshTask)
   const refreshCount = useRef(0);
 
@@ -152,7 +154,7 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
           alignItems: "start",
         }}
       >
-        {/* left: the title, the description, the subtasks and the activity */}
+        {/* left: the title, the description, the attachments, the subtasks and the activity */}
         <Box>
           <TaskTitleField
             title={task.title}
@@ -173,6 +175,13 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
             onSave={(description) => saveFields({ description })}
           />
 
+          <TaskAttachments
+            project={project}
+            taskId={task.id}
+            canEdit={canEdit}
+            onChanged={() => setAttachmentChanges((count) => count + 1)}
+          />
+
           <SubtaskList
             workspace={workspace}
             project={project}
@@ -183,7 +192,7 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
             onChanged={refreshTask}
           />
 
-          <TaskActivity project={project} task={task} members={people} />
+          <TaskActivity project={project} task={task} members={people} historyVersion={attachmentChanges} />
         </Box>
 
         {/* right: the status, the details and the dates */}

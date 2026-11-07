@@ -288,6 +288,17 @@ test("historyLine: created, restored, comments and subtasks", () => {
   });
 });
 
+test("historyLine: attachments name the file, in whichever value it comes", () => {
+  assert.deepEqual(historyLine(entry("ATTACHMENT_ADDED", null, null, "login.webp")), { text: "attached login.webp" });
+  assert.deepEqual(historyLine(entry("ATTACHMENT_REMOVED", null, "login.webp", null)), {
+    text: "removed the attachment login.webp",
+  });
+  assert.deepEqual(historyLine(entry("ATTACHMENT_REMOVED", null, null, "login.webp")), {
+    text: "removed the attachment login.webp",
+  });
+  assert.deepEqual(historyLine(entry("ATTACHMENT_ADDED")), { text: "attached a file" });
+});
+
 test("historyLine: field changes show both values, empty ones as None", () => {
   assert.deepEqual(historyLine(entry("FIELD_CHANGED", "STATUS", "To Do", "In Progress")), {
     text: "changed the status",

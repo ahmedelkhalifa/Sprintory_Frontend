@@ -1,7 +1,7 @@
 # Backend contract summaries (frontend view)
 
 Short summaries of the backend API contracts, for whoever works on the frontend (people and Claude).
-**Source of truth:** `sprintory_backend/docs/*.md`. These summaries match those docs as of **26 Oct 2026** (workspaces, teams and roles as of 24 Oct; tasks, comments, mentions, history, board, chat and notifications as of 6 Nov). When a backend doc changes, update the matching file here in the same PR.
+**Source of truth:** `sprintory_backend/docs/*.md`. These summaries match those docs as of **26 Oct 2026** (workspaces, teams and roles as of 24 Oct; tasks, comments, mentions, history, board, chat and notifications as of 6 Nov; attachments as of 7 Nov). When a backend doc changes, update the matching file here in the same PR.
 
 | File | Covers | Backend doc |
 | --- | --- | --- |
@@ -10,6 +10,7 @@ Short summaries of the backend API contracts, for whoever works on the frontend 
 | [projects.md](projects.md) | projects (key, description, settings), project members, adding a team | `projects-docs.md` |
 | [roles.md](roles.md) | workspace and project roles, permissions, role endpoints | `roles-docs.md` |
 | [tasks.md](tasks.md) | tasks, subtasks, descriptions with @mentions, comments, history and the board (real), sprints (**assumed**: not in the backend yet) | `tasks-docs.md`, `board-docs.md`, `mentions-docs.md`, `comments-docs.md`, `task-history-docs.md` |
+| [attachments.md](attachments.md) | files on tasks and subtasks: upload, preview, download, delete (**backend not built yet**) | `attachments-docs.md` |
 | [chat.md](chat.md) | the project chat (WebSocket / STOMP) and the workspace Chats page | `project-chat-docs.md` |
 | [audit-log.md](audit-log.md) | the workspace audit log (admins only, read-only) | `audit-log-docs.md` |
 | [search.md](search.md) | universal search (top bar and `/search` page) | `search-docs.md` |
@@ -72,6 +73,7 @@ Where the frontend is behind these contracts. Fix them, then update this table.
 
 | Gap | Contract | Affects |
 | --- | --- | --- |
+| Attachments are built from the contract, but the backend (PMP-141) isn't: until it is, the section on every task page shows a load error. Which history value holds the file name is assumed | [attachments.md](attachments.md) | [TaskAttachments](../src/components/tasks/attachments/TaskAttachments.jsx), `historyLine` in [utils/task.js](../src/utils/task.js) |
 | Sprints have no backend yet; the Backlog and Board tabs run them on an in-browser mock (on unless `VITE_MOCK_SPRINTS=false`). Tasks and the board are real | [tasks.md](tasks.md#sprints-assumed-mocked) | [sprintsApi.js](../src/api/sprintsApi.js), [sprintsMock.js](../src/mocks/sprintsMock.js) |
 | A description's mentions show the label stored in the text, which can be out of date after a rename: the task response has no `mentions` list (comments and chat messages have one). Backend: please add it | [tasks.md](tasks.md#descriptions-and-mentions-real-backend-pmp-136-docsmentions-docsmd) | [TaskDescription](../src/components/tasks/TaskDescription.jsx) |
 | Deleted tasks can only be restored right after the delete (the Undo snackbar): the backend has no list of deleted tasks | [tasks.md](tasks.md#tasks-real--the-parts-the-frontend-uses) | [UndoDeleteProvider](../src/context/UndoDeleteProvider.jsx) |

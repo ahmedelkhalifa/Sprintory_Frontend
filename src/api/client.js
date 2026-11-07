@@ -23,6 +23,15 @@ export const refreshSession = () => {
 api.interceptors.response.use(
   (res) => res,
   async (err) => {
+    // a file download asks for a Blob, so its JSON error is one too: read it, or no `code` is found below or in the page
+    if (err.response?.data instanceof Blob) {
+      try {
+        err.response.data = JSON.parse(await err.response.data.text());
+      } catch {
+        // not JSON, so there's no code to read
+      }
+    }
+
     const config = err.config;
     const isAuthPath = AUTH_PATHS.some((path) => config?.url?.includes(path));
     // only an expired/missing access token is worth a refresh (not e.g. INVALID_TOKEN)

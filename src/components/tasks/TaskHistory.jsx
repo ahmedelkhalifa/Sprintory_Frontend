@@ -76,8 +76,8 @@ const Entry = ({ entry, members, subtask }) => {
   );
 };
 
-// The task's history (R10, backend task-history-docs.md): created, every field change, subtasks added / removed,
-// deleted comments and restores, newest first, PAGE_SIZE at a time with "Load older" at the bottom. `members` add
+// The task's history (R10, backend task-history-docs.md): created, every field change, subtasks and attachments
+// added / removed, deleted comments and restores, newest first, PAGE_SIZE at a time with "Load older". `members` add
 // photos to the names; `version` changes when the page saves the task, so the new entries show up on top.
 // `subtask` says whether this is a subtask's own feed.
 const TaskHistory = ({ project, taskId, members, version, subtask = false }) => {
