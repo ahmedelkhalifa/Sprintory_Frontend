@@ -1,3 +1,11 @@
+import {
+  ATTACHMENT_EXTENSIONS,
+  MAX_ATTACHMENT_BYTES,
+  MAX_ATTACHMENT_FILES,
+  MAX_ATTACHMENT_MB,
+  fileExtension,
+} from "./attachment.js";
+
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const validateEmail = (email) => {
@@ -118,6 +126,20 @@ export const validateWipLimit = (value) => {
     ? ""
     : `Enter a whole number from 1 to ${WIP_LIMIT_MAX}`;
 };
+
+const attachmentsError = (files) => {
+  if (files.length === 0) return "Choose at least one file to upload.";
+  if (files.length > MAX_ATTACHMENT_FILES) return `You can upload at most ${MAX_ATTACHMENT_FILES} files at once.`;
+  for (const file of files) {
+    if (!ATTACHMENT_EXTENSIONS.includes(fileExtension(file.name))) return `${file.name}: this file type is not allowed.`;
+    if (file.size === 0) return `${file.name} is empty.`;
+    if (file.size > MAX_ATTACHMENT_BYTES) return `${file.name}: file too large (max ${MAX_ATTACHMENT_MB} MB).`;
+  }
+  return "";
+};
+
+// files picked for a task (backend attachments-docs §3.1). One bad file stops them all, as it does on the backend
+export const validateAttachments = (files) => onlyErrors({ files: attachmentsError(files) });
 
 // Returns { field: message } for every invalid field (empty object = valid)
 export const validateRegister = (values) =>

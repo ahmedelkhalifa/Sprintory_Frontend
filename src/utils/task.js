@@ -277,6 +277,11 @@ export const historyLine = (entry, { subtask = false } = {}) => {
       return { text: `added subtask ${newValue ?? ""}`.trim() };
     case "SUBTASK_REMOVED":
       return { text: `removed subtask ${oldValue ?? ""}`.trim() };
+    // the value is the file's name then; only words, since the file may be gone
+    case "ATTACHMENT_ADDED":
+      return { text: `attached ${newValue ?? oldValue ?? "a file"}` };
+    case "ATTACHMENT_REMOVED":
+      return { text: `removed the attachment ${newValue ?? oldValue ?? ""}`.trim() };
     case "FIELD_CHANGED":
       break;
     default:

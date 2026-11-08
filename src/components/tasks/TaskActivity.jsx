@@ -11,7 +11,8 @@ const tabSx = { minHeight: 40, textTransform: "none", fontWeight: 600, px: 1.5, 
 
 // A task page's Activity, like Jira's: Comments (TaskComments, opens first) and History (TaskHistory, the
 // activity feed). Used by a task's and a subtask's page; both have their own comments and history.
-const TaskActivity = ({ project, task, members }) => {
+// `historyVersion` changes after something that writes history without touching the task, like an attachment.
+const TaskActivity = ({ project, task, members, historyVersion = 0 }) => {
   const { workspace } = useWorkspaceAccess();
   const [tab, setTab] = useState("comments");
   // Viewers and archived workspaces / projects only read (hiding is for usability, the backend refuses anyway)
@@ -33,7 +34,7 @@ const TaskActivity = ({ project, task, members }) => {
           project={project}
           taskId={task.id}
           members={members}
-          version={task.updatedAt}
+          version={`${task.updatedAt}-${historyVersion}`}
           subtask={task.parentTaskId != null}
         />
       ) : (

@@ -78,7 +78,8 @@ first.)
 ```
 
 - `type`: `CREATED`, `FIELD_CHANGED`, `COMMENT_DELETED`, `SUBTASK_ADDED` / `SUBTASK_REMOVED` (on the parent, value =
-  "KEY title"), `RESTORED`. `field`: `TITLE`, `TYPE`, `PRIORITY`, `STATUS` (column names), `ASSIGNEE` (names),
+  "KEY title"), `ATTACHMENT_ADDED` / `ATTACHMENT_REMOVED` (value = the file name, see [attachments.md](attachments.md)),
+  `RESTORED`. `field`: `TITLE`, `TYPE`, `PRIORITY`, `STATUS` (column names), `ASSIGNEE` (names),
   `ESTIMATE`, `ESTIMATE_MINUTES`, `LABELS`, `DESCRIPTION` (no values). Values and `actor.name` are snapshots from
   the time; enums come as stored. A subtask has its own feed.
 - `historyLine` in [utils/task.js](../src/utils/task.js) turns an entry into words (null = "None", unknown types
