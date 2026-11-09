@@ -94,6 +94,14 @@ test("backlogView puts sprint tasks in their sprints and the rest in the backlog
   assert.deepEqual(ids(gone.sprints[0].tasks), [5]);
 });
 
+test("backlogView leaves out the done items of an ended sprint, which isn't listed", () => {
+  // task 3 stayed with sprint 7 when it was completed or cancelled; task 4 was just moved out of the listed sprint 10
+  const tasks = [task(1), task(2), task(3, { sprintId: 7 }), task(4, { sprintId: 10 }), task(5, { sprintId: 10 })];
+  const view = backlogView({ tasks, sprints: [{ id: 10, name: "Sprint 2", taskIds: [5] }] });
+  assert.deepEqual(ids(view.backlog), [1, 2, 4]);
+  assert.deepEqual(ids(view.sprints[0].tasks), [5]);
+});
+
 test("findTask says which list a task is in", () => {
   const view = backlogView(state());
   assert.equal(findTask(view, 2).sprintId, null);

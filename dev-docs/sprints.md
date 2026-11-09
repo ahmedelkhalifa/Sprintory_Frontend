@@ -93,7 +93,8 @@ the backlog); `historyLine` in [utils/task.js](../src/utils/task.js) words them.
 
 - **Backlog tab** ([BacklogTab](../src/components/backlog/BacklogTab.jsx)): planned and active sprints above the
   backlog; create, edit, start, delete; drag or move tasks. The sprint header shows points / capacity and
-  "N not estimated", counted from the tasks on screen so they follow moves at once.
+  "N not estimated", counted from the tasks on screen so they follow moves at once. Done items of a completed or
+  cancelled sprint keep its `sprintId` and are left out of the backlog (`backlogView`): they can't be moved (`409`).
 - **Edit sprint** ([SprintDialog](../src/components/backlog/SprintDialog.jsx)) also shows
   [SprintCapacity](../src/components/backlog/SprintCapacity.jsx): the suggestion with "Use", and each member's days
   (saved when the field loses focus). Not in Create: the sprint must exist first. The body comes from `sprintRequest`
