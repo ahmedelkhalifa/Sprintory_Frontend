@@ -49,142 +49,123 @@ const NOT_ALLOWED = {
   [PERMISSIONS.MANAGE_SPRINTS]: "Only the Scrum Master can move work into or out of a sprint.",
 };
 
-// The Backlog tab of a Scrum project (R13, planning from R14): planned and active sprints on top, the product
-// backlog below. Tasks are dragged by their handle or moved from their menu; who may move what follows the
-// project's permissions (ordering the backlog: Product Owner, anything with a sprint: Scrum Master).
-// `writable` is false in an archived project or workspace, which makes everything read-only.
-// `taskVersion` goes up when a task is created outside the tab (the page's Create task window);
-// `onCreateTask` opens that window, for the button on top (the quick bar above the backlog's rows stays).
-// `filters` come from the filter bar (shared with the Board): the backend says which tasks match, the lists show
-// only those (their counts and estimates still cover every task).
 const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters, onFiltersChange }) => {
   const canView = can(project, PERMISSIONS.VIEW_WORK);
-  // a reload, not a dependency: the lists stay on screen while the new task loads in
+
   const backlogState = useAsync((signal) => loadWork(project, "backlog", signal), [project.id], {
     enabled: canView,
     fallback: "Couldn't load the backlog. Please try again.",
     messages: TASK_ERROR_MESSAGES,
   });
   const { reload: reloadBacklog } = backlogState;
-  // no filter requests for someone who can't see the work
+
   const match = useTaskFilterMatches(project.id, "backlog", canView ? filters : EMPTY_TASK_FILTERS);
   const { reload: reloadMatches } = match;
-  // only changes while the tab is open: the first load already has every task created before it
+
   const seenTaskVersion = useRef(taskVersion);
   useEffect(() => {
     if (taskVersion === seenTaskVersion.current) return;
     seenTaskVersion.current = taskVersion;
     reloadBacklog();
-    reloadMatches(); // the new task may match the filters
+    reloadMatches();
   }, [taskVersion, reloadBacklog, reloadMatches]);
-  // moves show at once and are sent in the background; the loaded data wins again after the next load
+
   const [optimistic, setOptimistic] = useState({ source: null, state: null });
   const [openTaskId, setOpenTaskId] = useState(null);
-  // which window is open: create-sprint / edit-sprint / start-sprint / delete-sprint (+ sprint)
   const [dialog, setDialog] = useState(null);
-  // { text, severity }: "warning" for a move the user may not make, "error" for one the backend refused
   const [notice, setNotice] = useState(null);
-  const [dragging, setDragging] = useState(null); // { taskId, fromSprintId }
-  const [overSprintId, setOverSprintId] = useState(undefined); // list under the pointer (null = backlog)
+  const [dragging, setDragging] = useState(null);
+  const [overSprintId, setOverSprintId] = useState(undefined);
   const removeSprint = useSubmit(TASK_ERROR_MESSAGES);
   const sensors = useSensors(
-    // a short move before dragging starts, so clicks on the row still work
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+      useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+      useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
   const data = backlogState.data;
-  // { tasks, sprints }: what moves change; `view` is the lists on screen
   const state = optimistic.source === data && optimistic.state ? optimistic.state : data;
   const view = useMemo(() => (state ? backlogView(state) : null), [state]);
-  const canPlan = writable && can(project, PERMISSIONS.MANAGE_SPRINTS);
+
+  // AC Start #4: Kanban projects do not use sprint planning
+  const isKanban = project?.type === "KANBAN";
+  const canPlan = !isKanban && writable && can(project, PERMISSIONS.MANAGE_SPRINTS);
+
   const mayMove = useCallback(
-    (fromSprintId, toSprintId) => writable && canMoveTask(project, fromSprintId, toSprintId),
-    [writable, project],
+      (fromSprintId, toSprintId) => writable && canMoveTask(project, fromSprintId, toSprintId),
+      [writable, project],
   );
 
-  // The rows' callbacks stay the same until the lists change, so the renders a drag causes (when it starts and when
-  // it crosses into another list) skip every row (TaskRow is memoized) instead of redrawing them all.
-  // move = { taskId, sprintId (null = backlog), afterTaskId (null = first) }
   const applyMove = useCallback(
-    async (move) => {
-      const from = findTask(view, move.taskId);
-      if (!from) return;
-      if (!mayMove(from.sprintId, move.sprintId)) {
-        setNotice({ severity: "warning", text: NOT_ALLOWED[movePermission(from.sprintId, move.sprintId)] });
-        return;
-      }
-      const before = state;
-      setOptimistic({ source: data, state: moveInBacklog(state, move) });
-      try {
-        // ranking the backlog is the real backend; anything with a sprint goes to the (mocked) sprint endpoints
-        if (from.sprintId === null && move.sprintId === null) await rankInBacklog(project.id, move.taskId, move.afterTaskId);
-        else await moveToSprint(project.id, move);
-      } catch (err) {
-        setOptimistic({ source: data, state: before });
-        setNotice({
-          severity: "error",
-          text: errorMessage(err, "Couldn't move the task. Please try again.", TASK_ERROR_MESSAGES),
-        });
-      }
-    },
-    [view, state, data, mayMove, project.id],
+      async (move) => {
+        const from = findTask(view, move.taskId);
+        if (!from) return;
+        if (!mayMove(from.sprintId, move.sprintId)) {
+          setNotice({ severity: "warning", text: NOT_ALLOWED[movePermission(from.sprintId, move.sprintId)] });
+          return;
+        }
+        const before = state;
+        setOptimistic({ source: data, state: moveInBacklog(state, move) });
+        try {
+          if (from.sprintId === null && move.sprintId === null) await rankInBacklog(project.id, move.taskId, move.afterTaskId);
+          else await moveToSprint(project.id, move);
+        } catch (err) {
+          setOptimistic({ source: data, state: before });
+          setNotice({
+            severity: "error",
+            text: errorMessage(err, "Couldn't move the task. Please try again.", TASK_ERROR_MESSAGES),
+          });
+        }
+      },
+      [view, state, data, mayMove, project.id],
   );
 
-  // the menu's moves for a row, limited to what this user may do (worked out when the menu opens)
   const movesFor = useCallback(
-    (task, sprintId) => {
-      const moves = [];
-      if (sprintId === null && mayMove(null, null)) {
-        const index = view.backlog.findIndex((t) => t.id === task.id);
-        const last = view.backlog.at(-1);
-        if (index > 0) moves.push({ label: "Move to top of backlog", sprintId: null, afterTaskId: null });
-        if (index < view.backlog.length - 1) moves.push({ label: "Move to bottom of backlog", sprintId: null, afterTaskId: last.id });
-      }
-      if (canPlan) {
-        view.sprints
-          .filter((sprint) => sprint.id !== sprintId)
-          .forEach((sprint) =>
-            moves.push({ label: `Move to ${sprint.name}`, sprintId: sprint.id, afterTaskId: sprint.tasks.at(-1)?.id ?? null }),
-          );
-        // it goes back to its own place in the backlog
-        if (sprintId !== null) moves.push({ label: "Move to backlog", sprintId: null, afterTaskId: null });
-      }
-      return moves.map((move) => ({ ...move, taskId: task.id }));
-    },
-    [view, mayMove, canPlan],
+      (task, sprintId) => {
+        const moves = [];
+        if (sprintId === null && mayMove(null, null)) {
+          const index = view.backlog.findIndex((t) => t.id === task.id);
+          const last = view.backlog.at(-1);
+          if (index > 0) moves.push({ label: "Move to top of backlog", sprintId: null, afterTaskId: null });
+          if (index < view.backlog.length - 1) moves.push({ label: "Move to bottom of backlog", sprintId: null, afterTaskId: last.id });
+        }
+        if (canPlan) {
+          view.sprints
+              .filter((sprint) => sprint.id !== sprintId)
+              .forEach((sprint) =>
+                  moves.push({ label: `Move to ${sprint.name}`, sprintId: sprint.id, afterTaskId: sprint.tasks.at(-1)?.id ?? null }),
+              );
+          if (sprintId !== null) moves.push({ label: "Move to backlog", sprintId: null, afterTaskId: null });
+        }
+        return moves.map((move) => ({ ...move, taskId: task.id }));
+      },
+      [view, mayMove, canPlan],
   );
 
   if (!canView) return <NoWorkAccess />;
 
   if (!state) {
     return (
-      <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2 }}>
-        <LoadState loading={!backlogState.error} error={backlogState.error} onRetry={backlogState.reload} rows={6} />
-      </Paper>
+        <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2 }}>
+          <LoadState loading={!backlogState.error} error={backlogState.error} onRetry={backlogState.reload} rows={6} />
+        </Paper>
     );
   }
 
   const canEditTasks = writable && can(project, PERMISSIONS.EDIT_TASKS);
   const canRank = writable && can(project, PERMISSIONS.MANAGE_BACKLOG);
-  // a filtered list hides rows, so dropping "before" a row would be ambiguous: no dragging while filtering
-  // (the row menu's moves still work)
   const filtering = hasTaskFilters(filters);
-  // only the tasks the backend says match the filters (all of them when no filter is set)
   const keep = (tasks) => (match.matches ? tasks.filter((task) => match.matches.has(task.id)) : tasks);
   const activeSprint = view.sprints.find((sprint) => sprint.status === "ACTIVE");
-  // a change can change what matches too
+
   const reload = () => {
     backlogState.reload();
     match.reload();
   };
 
   const listOf = (sprintId) =>
-    sprintId === null ? view.backlog : view.sprints.find((sprint) => sprint.id === sprintId).tasks;
+      sprintId === null ? view.backlog : view.sprints.find((sprint) => sprint.id === sprintId).tasks;
 
-  // rows in a sprint move only with MANAGE_SPRINTS; backlog rows with either permission
   const canDragFrom = (sprintId) => !filtering && (sprintId === null ? canRank || canPlan : canPlan);
-
   const lookup = (taskId) => findTask(view, taskId);
 
   const handleDragStart = ({ active }) => {
@@ -204,17 +185,16 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
     const list = listOf(target.sprintId);
     let afterTaskId;
     if (target.sprintId === from.sprintId) {
-      if (target.overTaskId === null) return; // dropped on its own list's empty space
+      if (target.overTaskId === null) return;
       const newIndex = list.findIndex((t) => t.id === target.overTaskId);
       if (newIndex === from.index) return;
       const reordered = arrayMove(list, from.index, newIndex);
       afterTaskId = reordered[newIndex - 1]?.id ?? null;
     } else if (target.overTaskId !== null) {
-      // into another list: before the row it was dropped on, or after it when dropped on its lower half
       const overIndex = list.findIndex((t) => t.id === target.overTaskId);
       afterTaskId = isBelow(active, over) ? target.overTaskId : (list[overIndex - 1]?.id ?? null);
     } else {
-      afterTaskId = list.at(-1)?.id ?? null; // on the list itself: at its end
+      afterTaskId = list.at(-1)?.id ?? null;
     }
     applyMove({ taskId: from.task.id, sprintId: target.sprintId, afterTaskId });
   };
@@ -224,25 +204,24 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
     setOverSprintId(undefined);
   };
 
-  // highlight the list a dragged task would land in, when it's another list and the move is allowed
   const highlighted = (sprintId) =>
-    Boolean(dragging) &&
-    overSprintId === sprintId &&
-    dragging.fromSprintId !== sprintId &&
-    mayMove(dragging.fromSprintId, sprintId);
+      Boolean(dragging) &&
+      overSprintId === sprintId &&
+      dragging.fromSprintId !== sprintId &&
+      mayMove(dragging.fromSprintId, sprintId);
 
   const rows = (tasks, sprintId) =>
-    keep(tasks).map((task) => (
-      <TaskRow
-        key={task.id}
-        task={task}
-        sprintId={sprintId}
-        canDrag={canDragFrom(sprintId)}
-        getMoves={movesFor}
-        onMove={applyMove}
-        onOpen={setOpenTaskId}
-      />
-    ));
+      keep(tasks).map((task) => (
+          <TaskRow
+              key={task.id}
+              task={task}
+              sprintId={sprintId}
+              canDrag={canDragFrom(sprintId)}
+              getMoves={movesFor}
+              onMove={applyMove}
+              onOpen={setOpenTaskId}
+          />
+      ));
 
   const emptyText = (tasks, fallback) => (filtering && tasks.length > 0 ? "No tasks match these filters." : fallback);
   const draggedTask = dragging && lookup(dragging.taskId)?.task;
@@ -258,175 +237,174 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
   };
 
   return (
-    <Box>
-      <TaskFilterBar
-        filters={filters}
-        onChange={onFiltersChange}
-        members={data.members}
-        columns={data.columns}
-        labels={projectLabels(state.tasks)}
-        match={match}
-        shown={keep(state.tasks).length}
-        total={state.tasks.length}
-        actions={
-          (canPlan || (canEditTasks && onCreateTask)) && (
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-              {canPlan && (
-                <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setDialog({ type: "create-sprint" })}>
-                  Create sprint
-                </Button>
-              )}
-              {canEditTasks && onCreateTask && (
-                <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
-                  Create task
-                </Button>
-              )}
-            </Box>
-          )
-        }
-      />
-
-      <DndContext
-        sensors={sensors}
-        collisionDetection={collisionDetection}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-        onDragCancel={handleDragCancel}
-      >
-        <Stack spacing={2.5}>
-          {view.sprints.map((sprint) => (
-            <TaskList
-              key={sprint.id}
-              sprintId={sprint.id}
-              tasks={keep(sprint.tasks)}
-              highlight={highlighted(sprint.id)}
-              emptyText={emptyText(sprint.tasks, canPlan ? "Drag tasks here to plan this sprint." : "No tasks planned yet.")}
-              header={
-                <SprintHeader
-                  sprint={sprint}
-                  canPlan={canPlan}
-                  startBlocked={Boolean(activeSprint)}
-                  onStart={() => setDialog({ type: "start-sprint", sprint })}
-                  onEdit={() => setDialog({ type: "edit-sprint", sprint })}
-                  onDelete={() => setDialog({ type: "delete-sprint", sprint })}
-                />
-              }
-            >
-              {rows(sprint.tasks, sprint.id)}
-            </TaskList>
-          ))}
-
-          {/* before any sprint exists the sprint box still shows, as the place where planning happens */}
-          {view.sprints.length === 0 && (
-            <TaskList
-              sprintId="placeholder"
-              tasks={[]}
-              droppable={false}
-              emptyText={
-                canPlan
-                  ? "Create a sprint, then drag tasks here from the backlog to plan it."
-                  : "No sprint is planned yet. The Scrum Master plans sprints here."
-              }
-              emptyAction={
-                canPlan && (
-                  <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setDialog({ type: "create-sprint" })}>
-                    Create sprint
-                  </Button>
+      <Box>
+        <TaskFilterBar
+            filters={filters}
+            onChange={onFiltersChange}
+            members={data.members}
+            columns={data.columns}
+            labels={projectLabels(state.tasks)}
+            match={match}
+            shown={keep(state.tasks).length}
+            total={state.tasks.length}
+            actions={
+                (canPlan || (canEditTasks && onCreateTask)) && (
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                      {canPlan && (
+                          <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setDialog({ type: "create-sprint" })}>
+                            Create sprint
+                          </Button>
+                      )}
+                      {canEditTasks && onCreateTask && (
+                          <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
+                            Create task
+                          </Button>
+                      )}
+                    </Box>
                 )
-              }
-              header={
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, px: { xs: 2, sm: 2.5 }, py: 1.75 }}>
-                  <Typography component="h3" sx={{ fontWeight: 700, fontSize: 16 }}>
-                    Sprint planning
-                  </Typography>
-                  <ToneChip label="No sprint" tone="text.secondary" />
-                </Box>
-              }
-            />
-          )}
-
-          <TaskList
-            sprintId={null}
-            tasks={keep(view.backlog)}
-            highlight={highlighted(null)}
-            emptyHeight={288}
-            emptyText={emptyText(
-              view.backlog,
-              canEditTasks ? "The backlog is empty. Add the first task with the bar above." : "The backlog is empty.",
-            )}
-            header={
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1.5, px: { xs: 2, sm: 2.5 }, py: 1.75 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-                  <Typography component="h3" sx={{ fontWeight: 700, fontSize: 16 }}>
-                    Backlog
-                  </Typography>
-                  <ToneChip label={view.backlog.length} tone="primary.main" />
-                </Box>
-                <EstimateSummary tasks={view.backlog} />
-              </Box>
             }
-            // above the rows, so adding never needs scrolling past a long backlog
-            toolbar={canEditTasks && <QuickAddTask projectId={project.id} onCreated={reload} />}
-          >
-            {rows(view.backlog, null)}
-          </TaskList>
-        </Stack>
-
-        {/* the row that follows the pointer while dragging */}
-        <DragOverlay dropAnimation={null}>{draggedTask && <TaskRowContent task={draggedTask} raised />}</DragOverlay>
-      </DndContext>
-
-      {openTaskId !== null && (
-        <TaskDrawer
-          project={project}
-          taskId={openTaskId}
-          columns={data.columns}
-          members={data.members}
-          labels={projectLabels(state.tasks)}
-          canEdit={canEditTasks}
-          onClose={() => setOpenTaskId(null)}
-          onChanged={reload}
         />
-      )}
 
-      {(dialog?.type === "create-sprint" || dialog?.type === "edit-sprint") && (
-        <SprintDialog projectId={project.id} sprint={dialog.sprint} onClose={closeDialog} onSaved={afterChange} />
-      )}
-      {dialog?.type === "start-sprint" && (
-        <StartSprintDialog sprint={dialog.sprint} onClose={closeDialog} onStarted={afterChange} />
-      )}
-      {dialog?.type === "delete-sprint" && (
-        <ConfirmDialog
-          title={`Delete ${dialog.sprint.name}?`}
-          message={
-            dialog.sprint.tasks.length > 0
-              ? "Its tasks go back to their places in the backlog. The tasks themselves are kept."
-              : "This empty sprint will be removed."
-          }
-          confirmLabel="Delete sprint"
-          tone="danger"
-          loading={removeSprint.submitting}
-          error={removeSprint.error}
-          onConfirm={handleDeleteSprint}
-          onClose={() => {
-            closeDialog();
-            removeSprint.clearError();
-          }}
-        />
-      )}
+        <DndContext
+            sensors={sensors}
+            collisionDetection={collisionDetection}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+        >
+          <Stack spacing={2.5}>
+            {/* Sprints section rendered only for Scrum projects */}
+            {!isKanban &&
+                view.sprints.map((sprint) => (
+                    <TaskList
+                        key={sprint.id}
+                        sprintId={sprint.id}
+                        tasks={keep(sprint.tasks)}
+                        highlight={highlighted(sprint.id)}
+                        emptyText={emptyText(sprint.tasks, canPlan ? "Drag tasks here to plan this sprint." : "No tasks planned yet.")}
+                        header={
+                          <SprintHeader
+                              sprint={sprint}
+                              canPlan={canPlan}
+                              startBlocked={Boolean(activeSprint)}
+                              onStart={() => setDialog({ type: "start-sprint", sprint })}
+                              onEdit={() => setDialog({ type: "edit-sprint", sprint })}
+                              onDelete={() => setDialog({ type: "delete-sprint", sprint })}
+                          />
+                        }
+                    >
+                      {rows(sprint.tasks, sprint.id)}
+                    </TaskList>
+                ))}
 
-      <Snackbar
-        open={Boolean(notice)}
-        autoHideDuration={5000}
-        onClose={() => setNotice(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert severity={notice?.severity ?? "warning"} variant="filled" onClose={() => setNotice(null)} sx={{ width: "100%" }}>
-          {notice?.text}
-        </Alert>
-      </Snackbar>
-    </Box>
+            {!isKanban && view.sprints.length === 0 && (
+                <TaskList
+                    sprintId="placeholder"
+                    tasks={[]}
+                    droppable={false}
+                    emptyText={
+                      canPlan
+                          ? "Create a sprint, then drag tasks here from the backlog to plan it."
+                          : "No sprint is planned yet. The Scrum Master plans sprints here."
+                    }
+                    emptyAction={
+                        canPlan && (
+                            <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setDialog({ type: "create-sprint" })}>
+                              Create sprint
+                            </Button>
+                        )
+                    }
+                    header={
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, px: { xs: 2, sm: 2.5 }, py: 1.75 }}>
+                        <Typography component="h3" sx={{ fontWeight: 700, fontSize: 16 }}>
+                          Sprint planning
+                        </Typography>
+                        <ToneChip label="No sprint" tone="text.secondary" />
+                      </Box>
+                    }
+                />
+            )}
+
+            <TaskList
+                sprintId={null}
+                tasks={keep(view.backlog)}
+                highlight={highlighted(null)}
+                emptyHeight={288}
+                emptyText={emptyText(
+                    view.backlog,
+                    canEditTasks ? "The backlog is empty. Add the first task with the bar above." : "The backlog is empty.",
+                )}
+                header={
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1.5, px: { xs: 2, sm: 2.5 }, py: 1.75 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
+                      <Typography component="h3" sx={{ fontWeight: 700, fontSize: 16 }}>
+                        Backlog
+                      </Typography>
+                      <ToneChip label={view.backlog.length} tone="primary.main" />
+                    </Box>
+                    <EstimateSummary tasks={view.backlog} />
+                  </Box>
+                }
+                toolbar={canEditTasks && <QuickAddTask projectId={project.id} onCreated={reload} />}
+            >
+              {rows(view.backlog, null)}
+            </TaskList>
+          </Stack>
+
+          <DragOverlay dropAnimation={null}>{draggedTask && <TaskRowContent task={draggedTask} raised />}</DragOverlay>
+        </DndContext>
+
+        {openTaskId !== null && (
+            <TaskDrawer
+                project={project}
+                taskId={openTaskId}
+                columns={data.columns}
+                members={data.members}
+                labels={projectLabels(state.tasks)}
+                canEdit={canEditTasks}
+                onClose={() => setOpenTaskId(null)}
+                onChanged={reload}
+            />
+        )}
+
+        {(dialog?.type === "create-sprint" || dialog?.type === "edit-sprint") && (
+            <SprintDialog projectId={project.id} sprint={dialog.sprint} onClose={closeDialog} onSaved={afterChange} />
+        )}
+        {dialog?.type === "start-sprint" && (
+            <StartSprintDialog sprint={dialog.sprint} onClose={closeDialog} onStarted={afterChange} />
+        )}
+        {dialog?.type === "delete-sprint" && (
+            <ConfirmDialog
+                title={`Delete ${dialog.sprint.name}?`}
+                message={
+                  dialog.sprint.tasks.length > 0
+                      ? "Its tasks go back to their places in the backlog. The tasks themselves are kept."
+                      : "This empty sprint will be removed."
+                }
+                confirmLabel="Delete sprint"
+                tone="danger"
+                loading={removeSprint.submitting}
+                error={removeSprint.error}
+                onConfirm={handleDeleteSprint}
+                onClose={() => {
+                  closeDialog();
+                  removeSprint.clearError();
+                }}
+            />
+        )}
+
+        <Snackbar
+            open={Boolean(notice)}
+            autoHideDuration={5000}
+            onClose={() => setNotice(null)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert severity={notice?.severity ?? "warning"} variant="filled" onClose={() => setNotice(null)} sx={{ width: "100%" }}>
+            {notice?.text}
+          </Alert>
+        </Snackbar>
+      </Box>
   );
 };
 
