@@ -16,11 +16,13 @@ const dateInput = (days = 0) => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 };
 
-// "Start sprint" window: confirm the dates and goal; the sprint becomes active and shows on the board
+// "Start sprint" window: confirm the dates and goal; the sprint becomes active and shows on the board.
+// The backend needs a goal and at least one task (sprints-docs §2), so both are checked here first.
 const StartSprintDialog = ({ sprint, onClose, onStarted }) => {
   const [values, setValues] = useState({
     startDate: sprint.startDate || dateInput(),
-    endDate: sprint.endDate || dateInput(SPRINT_DAYS),
+    // both ends count as sprint days
+    endDate: sprint.endDate || dateInput(SPRINT_DAYS - 1),
     goal: sprint.goal ?? "",
   });
   const [errors, setErrors] = useState({});
@@ -35,6 +37,8 @@ const StartSprintDialog = ({ sprint, onClose, onStarted }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const found = validateSprint(values, { requireDates: true });
+    // the backend's own words for a missing goal
+    if (!values.goal.trim()) found.goal = "Add a Sprint Goal first.";
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
@@ -82,13 +86,18 @@ const StartSprintDialog = ({ sprint, onClose, onStarted }) => {
             <FormField
               id="start-sprint-goal"
               label="Sprint goal"
+              required
               value={values.goal}
               onChange={change("goal")}
               placeholder="What should this sprint achieve?"
               multiline
               minRows={2}
+              error={Boolean(errors.goal)}
+              helperText={errors.goal}
             />
-            {count === 0 && <Alert severity="info">This sprint has no tasks yet. You can still start it and add work later.</Alert>}
+            {count === 0 && (
+              <Alert severity="info">This sprint has no tasks yet. Drag at least one task into it before starting.</Alert>
+            )}
             {submit.error && <Alert severity="error">{submit.error}</Alert>}
           </Stack>
         </DialogContent>
@@ -96,7 +105,7 @@ const StartSprintDialog = ({ sprint, onClose, onStarted }) => {
           <Button onClick={onClose} disabled={submit.submitting} color="inherit">
             Cancel
           </Button>
-          <Button type="submit" variant="contained" loading={submit.submitting}>
+          <Button type="submit" variant="contained" loading={submit.submitting} disabled={count === 0}>
             Start sprint
           </Button>
         </DialogActions>

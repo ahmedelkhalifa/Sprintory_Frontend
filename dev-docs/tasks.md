@@ -1,10 +1,8 @@
 # Tasks, the board, the backlog and sprints
 
 **Tasks and the board are real** (backend story 9 and story 8, `features/project-template-defaults`, 26 Oct 2026):
-full contract in `sprintory_backend/docs/tasks-docs.md` and `projects-docs.md` §3.8. **Sprints are not in the backend
-yet** (R14, R15): the frontend runs them on an in-browser mock against the **assumed** contract below.
-**Backend: please implement the sprint shapes, or tell us what changed**, then update this file and the `ASSUMED`
-notes in [sprintsApi.js](../src/api/sprintsApi.js).
+full contract in `sprintory_backend/docs/tasks-docs.md` and `projects-docs.md` §3.8. **Sprints are real too**
+(R14, R15): see [sprints.md](sprints.md).
 
 ## Tasks (real) — the parts the frontend uses
 
@@ -156,8 +154,8 @@ set narrows the list, **one value per filter**. `q` matches the title or the key
 `{ template, backlogEnabled, sprintsEnabled, wipLimitsEnabled, activeSprintId, columns: [{ id, name, position, category,
 wipLimit, taskCount, wipExceeded, subtaskCount }] }` (`taskCount` = top-level tasks, the WIP count; `subtaskCount`
 separately). `VIEW_WORK` **or** `CONFIGURE_BOARD`, so a workspace admin outside the project can read it. Scrum starts with To Do / In Progress / In Review / Done, Kanban with
-Backlog / To Do / In Progress / Done. `activeSprintId` stays null until the backend has sprints; the frontend reads
-the active sprint from the sprint mock instead.
+Backlog / To Do / In Progress / Done. `activeSprintId` is the Scrum project's active sprint (null in Kanban); the
+frontend takes the active sprint from the sprint list instead, which `loadWork` loads anyway.
 
 **Done = a column of category `DONE`** (`TODO` / `IN_PROGRESS` / `DONE`, independent of the name). The sprint
 progress bar, Complete sprint and the task stage chips go by category (`columnCategory` in
@@ -191,34 +189,9 @@ All need `CONFIGURE_BOARD` (Project Manager, workspace admin) and answer the who
   a warning (`wipWarningText`) and the column's "4 / 3" turns red until it drops back. Scrum never shows WIP
   (`wipLimitsEnabled` false).
 
-## Sprints (assumed, mocked)
+## Sprints
 
-```jsonc
-// SprintResponse
-{ "id": 3, "projectId": 7,
-  "name": "MOB Sprint 2",      // ≤ 100 chars; blank on create → "<KEY> Sprint <n>"
-  "goal": "", "capacity": 20,  // capacity in story points, or null
-  "startDate": "2026-10-25", "endDate": "2026-11-08",   // date only; null while planning
-  "status": "PLANNED",         // PLANNED | ACTIVE | COMPLETED
-  "taskIds": [55, 41, 60],     // the sprint's tasks, in sprint order
-  "completedAt": null }
-```
-
-A Scrum task is in the backlog when no planned or active sprint holds it. Its backlog rank never changes while it
-is in a sprint, so a task taken out of a sprint goes back to its old place in the backlog.
-
-| Method and path | Permission | Notes |
-| --- | --- | --- |
-| `GET /projects/{id}/sprints` → SprintResponse[] | `VIEW_WORK` | planned and active only. Scrum only (`400 BAD_REQUEST`) |
-| `POST /projects/{id}/sprints` `{ name?, goal?, capacity?, startDate?, endDate? }` | `MANAGE_SPRINTS` | `201`, `PLANNED` |
-| `PATCH /sprints/{id}` (same fields) | `MANAGE_SPRINTS` | an active sprint keeps both dates; a completed one can't change (`409 CONFLICT`) |
-| `DELETE /sprints/{id}` | `MANAGE_SPRINTS` | `PLANNED` only (`409 CONFLICT`); its tasks return to the backlog |
-| `POST /sprints/{id}/start` `{ startDate, endDate, goal? }` | `MANAGE_SPRINTS` | `PLANNED` only; `409 SPRINT_ALREADY_ACTIVE` if another sprint is active |
-| `POST /sprints/{id}/complete` `{ carryOverSprintId, createSprint }` → `{ sprint, carriedOver, toSprint }` | `MANAGE_SPRINTS` | `ACTIVE` only (`409 CONFLICT`). Done tasks stay with it; unfinished ones go to the top of the planned sprint `carryOverSprintId`, to a new planned sprint (`createSprint: true`), or to the backlog (neither) |
-| `POST /projects/{id}/sprints/move` `{ taskId, sprintId, afterTaskId }` | `MANAGE_SPRINTS` | into a sprint after `afterTaskId` (null = first), or back to the backlog (`sprintId` null). `204`; `409 CONFLICT` for a completed sprint |
-
-Errors are the usual ones (`VALIDATION_ERROR` with `fieldErrors` on `name`, `capacity`, `startDate`, `endDate`;
-`ACCESS_DENIED`; `RESOURCE_NOT_FOUND`; `WORKSPACE_ARCHIVED`) plus the new `SPRINT_ALREADY_ACTIVE`.
+Real since 8 Nov 2026; contract and how the frontend uses it in [sprints.md](sprints.md).
 
 ## Who does what (roles matrix, [roles.md](roles.md))
 
@@ -227,16 +200,8 @@ Errors are the usual ones (`VALIDATION_ERROR` with `fieldErrors` on `name`, `cap
 | see tasks, board, sprints | `VIEW_WORK` | every project role, not a non-member workspace admin (who can still read the board's columns) |
 | create, edit, delete, restore tasks; move cards on the board | `EDIT_TASKS` | PM, PO, SM, Developer |
 | order the backlog | `MANAGE_BACKLOG` | Product Owner |
-| plan, start, complete sprints; move tasks into or out of them | `MANAGE_SPRINTS` | Scrum Master |
+| plan, start, complete sprints; move tasks into or out of them; member availability | `MANAGE_SPRINTS` | Scrum Master |
+| cancel the active sprint (PMP-41, not built in the frontend yet) | `CANCEL_SPRINTS` | Product Owner, Project Manager |
 | add, edit, move, delete columns; WIP limits | `CONFIGURE_BOARD` | Project Manager, workspace admin |
 | comment, edit / delete own comments and chat messages | `COMMENT` | every project role except Viewer |
 | delete anyone's comment or chat message | `MODERATE_COMMENTS` | Project Manager |
-
-## The sprint mock
-
-- [src/mocks/sprintsMock.js](../src/mocks/sprintsMock.js), **on unless `VITE_MOCK_SPRINTS=false`**. It needs the real
-  backend: it reads `GET /projects/{id}` for the caller's permissions, and the real board and tasks to tell done from
-  unfinished on Complete sprint.
-- Data is kept in `localStorage` under `sprintory.mock.sprints` (no seed data). Clear that key to start over; the old
-  `sprintory.mock.tasks` key from the all-mock version isn't used any more.
-- It follows the rules above, except that it can't see whether the **workspace** is archived (the UI hides changes anyway).

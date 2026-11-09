@@ -8,6 +8,7 @@ import ProjectMembersCard from "../../components/projects/overview/ProjectMember
 import ComingSoonPanel from "../../components/projects/overview/ComingSoonPanel";
 import BacklogTab from "../../components/backlog/BacklogTab";
 import BoardTab from "../../components/board/BoardTab";
+import SprintsTab from "../../components/sprints/SprintsTab";
 import { tabLabel } from "../../components/projects/overview/tabList";
 import { useProjectAccess, useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { useProjectPage } from "../../hooks/useProjectPage";
@@ -123,5 +124,12 @@ export const ProjectSettingsPage = () => {
   );
 };
 
-// .../sprints, /reports, /files until they are built
+// .../sprints (Scrum only, like the backlog)
+export const ProjectSprintsPage = () => {
+  const { project } = useProjectAccess();
+  const page = useProjectPage();
+  return <SprintsTab project={project} onOpenBacklog={() => page.goToTab("backlog")} />;
+};
+
+// .../reports, /files until they are built
 export const ProjectComingSoonPage = ({ tab }) => <ComingSoonPanel title={tabLabel(tab)} />;

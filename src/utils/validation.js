@@ -88,17 +88,33 @@ export const validateSubtask = (values) => {
   });
 };
 
-// sprints: dates are optional while planning, required to start one (`requireDates`)
+export const SPRINT_MAX_DAYS = 90;
+
+// calendar days from one date input value ("2026-11-09") to another
+const daysBetween = (from, to) => (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000;
+
+const sprintEndError = (startDate, endDate, requireDates) => {
+  if (!endDate) return requireDates || startDate ? "End date is required" : "";
+  if (!startDate) return "";
+  const days = daysBetween(startDate, endDate);
+  if (days <= 0) return "End date must be after the start date";
+  // both dates count, so day 1 to day 90 is the longest
+  return days > SPRINT_MAX_DAYS - 1 ? `A sprint can be at most ${SPRINT_MAX_DAYS} days` : "";
+};
+
+// sprints (backend sprints-docs §1–2): dates are optional while planning but come in pairs, and are required to
+// start one (`requireDates`); the end is after the start, at most 90 days in all. Capacity is whole points, 0 or more
 export const validateSprint = (values, { requireDates = false } = {}) => {
-  const { startDate, endDate } = values;
-  let endError = "";
-  if (requireDates && !endDate) endError = "End date is required";
-  else if (startDate && endDate && endDate < startDate) endError = "End date can't be before the start date";
+  const { startDate, endDate, capacity } = values;
+  const blankCapacity = capacity === "" || capacity == null;
   return onlyErrors({
     name: (values.name ?? "").trim().length > 100 ? "Use at most 100 characters" : "",
-    capacity: nonNegative(values.capacity),
-    startDate: requireDates && !startDate ? "Start date is required" : "",
-    endDate: endError,
+    capacity:
+      blankCapacity || (nonNegative(capacity) === "" && Number.isInteger(Number(capacity)))
+        ? ""
+        : "Enter a whole number of 0 or more",
+    startDate: !startDate && (requireDates || endDate) ? "Start date is required" : "",
+    endDate: sprintEndError(startDate, endDate, requireDates),
   });
 };
 

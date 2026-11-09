@@ -1,7 +1,7 @@
 # Backend contract summaries (frontend view)
 
 Short summaries of the backend API contracts, for whoever works on the frontend (people and Claude).
-**Source of truth:** `sprintory_backend/docs/*.md`. These summaries match those docs as of **26 Oct 2026** (workspaces, teams and roles as of 24 Oct; tasks, comments, mentions, history, board, chat and notifications as of 6 Nov; attachments as of 7 Nov). When a backend doc changes, update the matching file here in the same PR.
+**Source of truth:** `sprintory_backend/docs/*.md`. These summaries match those docs as of **26 Oct 2026** (workspaces, teams and roles as of 24 Oct; tasks, comments, mentions, history, board, chat and notifications as of 6 Nov; attachments as of 7 Nov; sprints as of 9 Nov). When a backend doc changes, update the matching file here in the same PR.
 
 | File | Covers | Backend doc |
 | --- | --- | --- |
@@ -9,7 +9,8 @@ Short summaries of the backend API contracts, for whoever works on the frontend 
 | [teams.md](teams.md) | teams and team members | `teams-docs.md` |
 | [projects.md](projects.md) | projects (key, description, settings), project members, adding a team | `projects-docs.md` |
 | [roles.md](roles.md) | workspace and project roles, permissions, role endpoints | `roles-docs.md` |
-| [tasks.md](tasks.md) | tasks, subtasks, descriptions with @mentions, comments, history and the board (real), sprints (**assumed**: not in the backend yet) | `tasks-docs.md`, `board-docs.md`, `mentions-docs.md`, `comments-docs.md`, `task-history-docs.md` |
+| [tasks.md](tasks.md) | tasks, subtasks, descriptions with @mentions, comments, history and the board | `tasks-docs.md`, `board-docs.md`, `mentions-docs.md`, `comments-docs.md`, `task-history-docs.md` |
+| [sprints.md](sprints.md) | sprints: planning, capacity suggestion and availability, start, close, scope changes; the Backlog, Board and Sprints tabs | `sprints-docs.md` |
 | [attachments.md](attachments.md) | files on tasks and subtasks: upload, preview, download, delete (**backend not built yet**) | `attachments-docs.md` |
 | [chat.md](chat.md) | the project chat (WebSocket / STOMP) and the workspace Chats page | `project-chat-docs.md` |
 | [audit-log.md](audit-log.md) | the workspace audit log (admins only, read-only) | `audit-log-docs.md` |
@@ -74,10 +75,11 @@ Where the frontend is behind these contracts. Fix them, then update this table.
 | Gap | Contract | Affects |
 | --- | --- | --- |
 | Attachments are built from the contract, but the backend (PMP-141) isn't: until it is, the section on every task page shows a load error. Which history value holds the file name is assumed | [attachments.md](attachments.md) | [TaskAttachments](../src/components/tasks/attachments/TaskAttachments.jsx), `historyLine` in [utils/task.js](../src/utils/task.js) |
-| Sprints have no backend yet; the Backlog and Board tabs run them on an in-browser mock (on unless `VITE_MOCK_SPRINTS=false`). Tasks and the board are real | [tasks.md](tasks.md#sprints-assumed-mocked) | [sprintsApi.js](../src/api/sprintsApi.js), [sprintsMock.js](../src/mocks/sprintsMock.js) |
+| The backend can't list ended sprints (`GET /projects/{id}/sprints` is planned and active only), so the Sprints tab's "Previous sprints" is empty. Backend: please add a list of completed and cancelled sprints | [sprints.md](sprints.md) | [SprintsTab](../src/components/sprints/SprintsTab.jsx) |
+| Sprint close preview, Cancel sprint and the "Carried over ×N" marker aren't built (PMP-41); Complete sprint counts done / unfinished itself | [sprints.md](sprints.md#closing) | [CompleteSprintDialog](../src/components/board/CompleteSprintDialog.jsx), [sprintsApi.js](../src/api/sprintsApi.js) |
 | A description's mentions show the label stored in the text, which can be out of date after a rename: the task response has no `mentions` list (comments and chat messages have one). Backend: please add it | [tasks.md](tasks.md#descriptions-and-mentions-real-backend-pmp-136-docsmentions-docsmd) | [TaskDescription](../src/components/tasks/TaskDescription.jsx) |
 | Deleted tasks can only be restored right after the delete (the Undo snackbar): the backend has no list of deleted tasks | [tasks.md](tasks.md#tasks-real--the-parts-the-frontend-uses) | [UndoDeleteProvider](../src/context/UndoDeleteProvider.jsx) |
 | Archive / restore / delete a project, project `status` / `createdAt`, and the Archived tab are built against **assumed** endpoints the backend doesn't have yet (R30) | [projects.md](projects.md#assumed-by-the-frontend-not-in-the-backend-yet) | the `ASSUMED` block in [projectsApi.js](../src/api/projectsApi.js) |
 | The "Recent activity" cards on the workspace and project overviews still show sample data; they could read the first entries of the audit log (admins only) | [audit-log.md](audit-log.md) | [RecentActivity](../src/components/workspace/RecentActivity.jsx), [RecentActivityCard](../src/components/projects/overview/RecentActivityCard.jsx) |
-| Notifications: no full notifications page (the bell has "Load more" only) and no workspace filter; a subtask's page has no Watch toggle. Sprint notifications appear once sprints ship in the backend | [notifications.md](notifications.md) | [NotificationBell](../src/components/layouts/NotificationBell.jsx) |
+| Notifications: no full notifications page (the bell has "Load more" only) and no workspace filter; a subtask's page has no Watch toggle. | [notifications.md](notifications.md) | [NotificationBell](../src/components/layouts/NotificationBell.jsx) |
 | No UI for removing a workspace member or leaving a workspace (changing the workspace role is done: the Members page) | [roles.md](roles.md#endpoints) | `workspacesApi.js`, [WorkspaceMembersPage](../src/pages/workspace/WorkspaceMembersPage.jsx) |

@@ -4,6 +4,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ToneChip from "../general/ToneChip";
 import { SPRINT_STATUS } from "../../constants/tasks";
 import { formatDate } from "../../utils/format";
+import { countUnestimated } from "../../utils/sprint";
 import { formatEstimate, sumEstimates } from "../../utils/task";
 
 const plural = (count, noun) => `${count} ${noun}${count === 1 ? "" : "s"}`;
@@ -28,12 +29,15 @@ export const EstimateSummary = ({ tasks, capacity = null }) => {
   );
 };
 
-// Top of a sprint card: name, status, dates, size, goal; for planners Start sprint and Edit / Delete.
+// Top of a sprint card: name, status, dates, size, goal, tasks without points; for planners Start sprint and
+// Edit / Delete.
 // `startBlocked` is true while another sprint is active (only one can run at a time).
 const SprintHeader = ({ sprint, canPlan, startBlocked, onStart, onEdit, onDelete }) => {
   const [anchor, setAnchor] = useState(null);
   const status = SPRINT_STATUS[sprint.status] ?? SPRINT_STATUS.PLANNED;
   const planned = sprint.status === "PLANNED";
+  // from the tasks on screen rather than the response's unestimatedTaskIds, so it follows moves at once
+  const unestimated = countUnestimated(sprint.tasks);
 
   const pick = (action) => {
     setAnchor(null);
@@ -72,7 +76,15 @@ const SprintHeader = ({ sprint, canPlan, startBlocked, onStart, onEdit, onDelete
         )}
       </Box>
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
+        {/* a soft warning like over capacity: the total leaves these out, so it may look smaller than the work */}
+        {unestimated > 0 && (
+          <Tooltip title={`${plural(unestimated, "task")} without story points, not counted in the total`}>
+            <Box component="span" sx={{ display: "inline-flex" }}>
+              <ToneChip label={`${unestimated} not estimated`} tone="warning.main" />
+            </Box>
+          </Tooltip>
+        )}
         <EstimateSummary tasks={sprint.tasks} capacity={sprint.capacity} />
         {canPlan && planned && (
           <Tooltip title={startBlocked ? "Another sprint is already active" : ""}>

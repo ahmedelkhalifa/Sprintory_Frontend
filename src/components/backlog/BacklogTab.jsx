@@ -117,7 +117,7 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
       const before = state;
       setOptimistic({ source: data, state: moveInBacklog(state, move) });
       try {
-        // ranking the backlog is the real backend; anything with a sprint goes to the (mocked) sprint endpoints
+        // ranking the backlog is a task endpoint; anything with a sprint goes to the sprint move endpoint
         if (from.sprintId === null && move.sprintId === null) await rankInBacklog(project.id, move.taskId, move.afterTaskId);
         else await moveToSprint(project.id, move);
       } catch (err) {
@@ -391,7 +391,13 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
       )}
 
       {(dialog?.type === "create-sprint" || dialog?.type === "edit-sprint") && (
-        <SprintDialog projectId={project.id} sprint={dialog.sprint} onClose={closeDialog} onSaved={afterChange} />
+        <SprintDialog
+          projectId={project.id}
+          sprint={dialog.sprint}
+          members={data.members}
+          onClose={closeDialog}
+          onSaved={afterChange}
+        />
       )}
       {dialog?.type === "start-sprint" && (
         <StartSprintDialog sprint={dialog.sprint} onClose={closeDialog} onStarted={afterChange} />
