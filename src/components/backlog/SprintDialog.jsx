@@ -1,16 +1,20 @@
 import { useState } from "react";
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack } from "@mui/material";
 import FormField from "../forms/FormField";
+import SprintCapacity from "./SprintCapacity";
 import { createSprint, updateSprint } from "../../api/sprintsApi";
 import { useSubmit } from "../../hooks/useSubmit";
 import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
+import { sprintRequest } from "../../utils/sprint";
 import { validateSprint } from "../../utils/validation";
 
 const FIELDS = ["name", "goal", "capacity", "startDate", "endDate"];
 
-// "Create sprint" / "Edit sprint" window: name, goal, capacity (same unit as task estimates) and optional dates.
-// Without `sprint` it creates one; a blank name lets the backend number it ("WR Sprint 3").
-const SprintDialog = ({ projectId, sprint, onClose, onSaved }) => {
+// "Create sprint" / "Edit sprint" window: name, goal, capacity (story points) and optional dates.
+// Without `sprint` it creates one; a blank name lets the backend number it ("WR Sprint 3") and blank dates give the
+// next free period. Editing also shows the capacity suggestion and the team's availability (SprintCapacity), which
+// need the sprint to exist; `members` are the project's, for their names.
+const SprintDialog = ({ projectId, sprint, members = [], onClose, onSaved }) => {
   const editing = Boolean(sprint);
   const [values, setValues] = useState(() =>
     Object.fromEntries(FIELDS.map((field) => [field, sprint?.[field] ?? ""])),
@@ -30,13 +34,7 @@ const SprintDialog = ({ projectId, sprint, onClose, onSaved }) => {
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
-    const body = {
-      name: values.name.trim(),
-      goal: values.goal.trim(),
-      capacity: values.capacity === "" ? null : Number(values.capacity),
-      startDate: values.startDate || null,
-      endDate: values.endDate || null,
-    };
+    const body = sprintRequest(values, { editing });
     const { ok, error } = await submit.run(() => (editing ? updateSprint(sprint.id, body) : createSprint(projectId, body)));
     if (ok) {
       onSaved();
@@ -74,9 +72,16 @@ const SprintDialog = ({ projectId, sprint, onClose, onSaved }) => {
               {...field("capacity")}
               label="Capacity"
               type="number"
-              placeholder="Optional, in the same unit as task estimates"
-              slotProps={{ htmlInput: { min: 0, step: "any" } }}
+              placeholder="Optional, in story points"
+              slotProps={{ htmlInput: { min: 0, step: 1 } }}
             />
+            {editing && (
+              <SprintCapacity
+                sprintId={sprint.id}
+                members={members}
+                onUse={(capacity) => change("capacity")({ target: { value: String(capacity) } })}
+              />
+            )}
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
               <FormField {...field("startDate")} label="Start date" type="date" />
               <FormField {...field("endDate")} label="End date" type="date" />

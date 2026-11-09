@@ -23,7 +23,7 @@ export const insertAfter = (list, item, afterId, idOf = (x) => x.id) => {
 
 /**
  * The Backlog tab's data is { tasks, sprints }: `tasks` are the project's tasks in backlog order (from the backend),
- * `sprints` the planned and active sprints, each with the ordered `taskIds` it holds (mocked until sprints exist).
+ * `sprints` the planned and active sprints, each with the ordered `taskIds` it holds.
  * backlogView turns that into the lists on screen: { sprints: [{ ...sprint, tasks }], backlog }, where the backlog is
  * every task in no sprint. Ids of deleted tasks are skipped.
  */
@@ -282,6 +282,13 @@ export const historyLine = (entry, { subtask = false } = {}) => {
       return { text: `attached ${newValue ?? oldValue ?? "a file"}` };
     case "ATTACHMENT_REMOVED":
       return { text: `removed the attachment ${newValue ?? oldValue ?? ""}`.trim() };
+    // taken into or out of a sprint after it started (backend sprints-docs §4): the sprint's name is in newValue
+    // when added, in oldValue when removed
+    case "SPRINT_SCOPE_CHANGED":
+      return newValue != null ? { text: `added it to ${newValue}` } : { text: `removed it from ${oldValue ?? "the sprint"}` };
+    // unfinished when its sprint ended (§2): from the closed sprint (oldValue) to another sprint or the backlog (null)
+    case "CARRIED_OVER":
+      return { text: `carried it over from ${oldValue ?? "a sprint"} to ${newValue ?? "the backlog"}` };
     case "FIELD_CHANGED":
       break;
     default:

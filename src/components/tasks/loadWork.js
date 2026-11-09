@@ -9,7 +9,7 @@ const MEMBERS_SIZE = 100;
 /**
  * Everything the Backlog and Board tabs show, in one load: the project's tasks in `order` ("backlog" or "board"),
  * the board (its columns are the task statuses), the members (to name assignees) and, in Scrum, the planned and
- * active sprints (mocked until the backend has them). Tasks come with `assignee` and `stage` (describeTasks).
+ * active sprints. Tasks come with `assignee` and `stage` (describeTasks).
  */
 export const loadWork = async (project, order, signal) => {
   const [tasks, board, members, sprints] = await Promise.all([

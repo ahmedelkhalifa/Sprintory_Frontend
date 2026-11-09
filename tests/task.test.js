@@ -225,6 +225,18 @@ test("validateSprint checks capacity and dates; starting needs both dates", () =
   assert.ok(start.startDate && start.endDate);
 });
 
+test("validateSprint follows the backend: whole capacity, dates in pairs, end after start, at most 90 days", () => {
+  assert.ok(validateSprint({ capacity: "2.5" }).capacity);
+  assert.deepEqual(validateSprint({ capacity: "0" }), {});
+  assert.ok(validateSprint({ startDate: "2026-11-10", endDate: "" }).endDate);
+  assert.ok(validateSprint({ startDate: "", endDate: "2026-11-10" }).startDate);
+  assert.ok(validateSprint({ startDate: "2026-11-10", endDate: "2026-11-10" }).endDate);
+  assert.deepEqual(validateSprint({ startDate: "2026-11-10", endDate: "2026-11-11" }), {});
+  // Nov 1 to Jan 29 is 90 days with both ends counted; one more is too long
+  assert.deepEqual(validateSprint({ startDate: "2026-11-01", endDate: "2027-01-29" }), {});
+  assert.ok(validateSprint({ startDate: "2026-11-01", endDate: "2027-01-30" }).endDate);
+});
+
 // ----- subtasks -----
 
 const subtask = (extra = {}) => ({ id: 57, title: "Write tests", statusId: 11, assigneeId: null, estimateMinutes: null, ...extra });
@@ -299,6 +311,19 @@ test("historyLine: attachments name the file, in whichever value it comes", () =
   assert.deepEqual(historyLine(entry("ATTACHMENT_ADDED")), { text: "attached a file" });
 });
 
+test("historyLine: sprint scope changes and carry-overs name the sprints", () => {
+  assert.deepEqual(historyLine(entry("SPRINT_SCOPE_CHANGED", null, null, "MOB Sprint 2")), { text: "added it to MOB Sprint 2" });
+  assert.deepEqual(historyLine(entry("SPRINT_SCOPE_CHANGED", null, "MOB Sprint 2", null)), {
+    text: "removed it from MOB Sprint 2",
+  });
+  assert.deepEqual(historyLine(entry("CARRIED_OVER", null, "MOB Sprint 2", "MOB Sprint 3")), {
+    text: "carried it over from MOB Sprint 2 to MOB Sprint 3",
+  });
+  assert.deepEqual(historyLine(entry("CARRIED_OVER", null, "MOB Sprint 2", null)), {
+    text: "carried it over from MOB Sprint 2 to the backlog",
+  });
+});
+
 test("historyLine: field changes show both values, empty ones as None", () => {
   assert.deepEqual(historyLine(entry("FIELD_CHANGED", "STATUS", "To Do", "In Progress")), {
     text: "changed the status",
@@ -327,7 +352,7 @@ test("historyLine: assignee wording depends on what changed", () => {
 });
 
 test("historyLine: types and fields added later still get a line", () => {
-  assert.deepEqual(historyLine(entry("SPRINT_SCOPE_CHANGED")), { text: "updated the task" });
+  assert.deepEqual(historyLine(entry("SOMETHING_NEW")), { text: "updated the task" });
   assert.deepEqual(historyLine(entry("FIELD_CHANGED", "DUE_DATE", "a", "b")), { text: "updated the task" });
 });
 
