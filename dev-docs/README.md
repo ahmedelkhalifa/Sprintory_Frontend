@@ -1,7 +1,7 @@
 # Backend contract summaries (frontend view)
 
 Short summaries of the backend API contracts, for whoever works on the frontend (people and Claude).
-**Source of truth:** `sprintory_backend/docs/*.md`. These summaries match those docs as of **26 Oct 2026** (workspaces, teams and roles as of 24 Oct; tasks, comments, mentions, history, board, chat and notifications as of 6 Nov; attachments as of 7 Nov; sprints as of 9 Nov). When a backend doc changes, update the matching file here in the same PR.
+**Source of truth:** `sprintory_backend/docs/*.md`. These summaries match those docs as of **26 Oct 2026** (workspaces, teams and roles as of 24 Oct; tasks, comments, mentions, history, board, chat and notifications as of 6 Nov; attachments as of 7 Nov; sprints and the project charter as of 9 Nov). When a backend doc changes, update the matching file here in the same PR.
 
 | File | Covers | Backend doc |
 | --- | --- | --- |
@@ -12,6 +12,7 @@ Short summaries of the backend API contracts, for whoever works on the frontend 
 | [tasks.md](tasks.md) | tasks, subtasks, descriptions with @mentions, comments, history and the board | `tasks-docs.md`, `board-docs.md`, `mentions-docs.md`, `comments-docs.md`, `task-history-docs.md` |
 | [sprints.md](sprints.md) | sprints: planning, capacity suggestion and availability, start, close, scope changes; the Backlog, Board and Sprints tabs | `sprints-docs.md` |
 | [attachments.md](attachments.md) | files on tasks and subtasks: upload, preview, download, delete (**backend not built yet**) | `attachments-docs.md` |
+| [charter.md](charter.md) | the project charter: goals, scope, stakeholders, history (Charter tab) | `project-charter-docs.md` |
 | [chat.md](chat.md) | the project chat (WebSocket / STOMP) and the workspace Chats page | `project-chat-docs.md` |
 | [audit-log.md](audit-log.md) | the workspace audit log (admins only, read-only) | `audit-log-docs.md` |
 | [search.md](search.md) | universal search (top bar and `/search` page) | `search-docs.md` |

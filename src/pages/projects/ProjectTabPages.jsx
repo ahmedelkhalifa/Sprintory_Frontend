@@ -9,6 +9,7 @@ import ComingSoonPanel from "../../components/projects/overview/ComingSoonPanel"
 import BacklogTab from "../../components/backlog/BacklogTab";
 import BoardTab from "../../components/board/BoardTab";
 import SprintsTab from "../../components/sprints/SprintsTab";
+import CharterTab from "../../components/charter/CharterTab";
 import { tabLabel } from "../../components/projects/overview/tabList";
 import { useProjectAccess, useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { useProjectPage } from "../../hooks/useProjectPage";
@@ -129,6 +130,14 @@ export const ProjectSprintsPage = () => {
   const { project } = useProjectAccess();
   const page = useProjectPage();
   return <SprintsTab project={project} onOpenBacklog={() => page.goToTab("backlog")} />;
+};
+
+// .../charter (members only, Viewers included: tabList.js hides it from a workspace admin outside the project)
+export const ProjectCharterPage = () => {
+  const { workspace } = useWorkspaceAccess();
+  const { project } = useProjectAccess();
+  const page = useProjectPage();
+  return <CharterTab project={project} workspace={workspace} writable={page.writable} />;
 };
 
 // .../reports, /files until they are built
