@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Alert, Box, Button, Paper, Snackbar, Typography } from "@mui/material";
@@ -16,16 +17,19 @@ import BoardColumn from "./BoardColumn";
 import BoardCard, { BoardCardContent } from "./BoardCard";
 import SprintBoardHeader from "./SprintBoardHeader";
 import CompleteSprintDialog from "./CompleteSprintDialog";
+import CancelSprintDialog from "./CancelSprintDialog";
 import AddColumnButton from "./AddColumnButton";
 import { useColumnConfig } from "./useColumnConfig";
 import { moveOnBoard } from "../../api/tasksApi";
 import { useAsync } from "../../hooks/useAsync";
+import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { useTaskFilterMatches } from "../../hooks/useTaskFilterMatches";
 import { PERMISSIONS } from "../../constants/projects";
 import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
 import { errorMessage } from "../../utils/apiError";
 import { can } from "../../utils/project";
 import { boardMove, groupByColumn, wipWarningText } from "../../utils/board";
+import { sprintEndedText, sprintPath } from "../../utils/sprint";
 import { needsSubtaskConfirmation, projectLabels, taskStage } from "../../utils/task";
 import { EMPTY_TASK_FILTERS } from "../../utils/taskFilters";
 
@@ -53,7 +57,8 @@ const NoActiveSprint = ({ onOpenBacklog, onOpenSettings }) => (
   </Paper>
 );
 
-// The Board tab. Scrum (R15): the active sprint's tasks by column, with its progress and Complete sprint.
+// The Board tab. Scrum (R15): the active sprint's tasks by column, with its progress, Complete sprint (Scrum Master) and
+// Cancel sprint (Product Owner / Project Manager); after either, the sprint's own page shows what was saved (PMP-41).
 // Kanban (R16): every task by column, with the work-in-progress limits (soft: a move past one still happens,
 // the column turns red and a warning shows). Anyone with EDIT_TASKS drags cards across and within columns.
 // People with CONFIGURE_BOARD (Project Manager, workspace admin) configure the columns from their menus
@@ -75,6 +80,8 @@ const BoardTab = ({
   onOpenSettings,
 }) => {
   const canView = can(project, PERMISSIONS.VIEW_WORK);
+  const { workspace } = useWorkspaceAccess();
+  const navigate = useNavigate();
   // a reload, not a dependency: the board stays on screen while the new task loads in
   const boardState = useAsync((signal) => loadWork(project, "board", signal), [project.id], {
     enabled: canView,
@@ -96,7 +103,7 @@ const BoardTab = ({
   // moves show at once and are sent in the background; the loaded data wins again after the next load
   const [optimistic, setOptimistic] = useState({ source: null, tasks: null });
   const [openTaskId, setOpenTaskId] = useState(null);
-  const [completing, setCompleting] = useState(false);
+  const [ending, setEnding] = useState(null); // the open window that ends the sprint: "complete" | "cancel"
   const [notice, setNotice] = useState(null); // { text, severity }
   const [dragging, setDragging] = useState(null); // { taskId, fromStatusId }
   const [overStatusId, setOverStatusId] = useState(null);
@@ -162,7 +169,9 @@ const BoardTab = ({
   const visible = match.matches ? tasks.filter((task) => match.matches.has(task.id)) : tasks;
   const shownBoard = match.matches ? groupByColumn(columns, visible) : board;
   const canMove = writable && can(project, PERMISSIONS.EDIT_TASKS);
+  // ending the sprint: completing is the Scrum Master's, cancelling the Product Owner's / Project Manager's
   const canComplete = writable && can(project, PERMISSIONS.MANAGE_SPRINTS);
+  const canCancel = writable && can(project, PERMISSIONS.CANCEL_SPRINTS);
   const wipEnabled = Boolean(data.board.wipLimitsEnabled);
 
   const lookup = (taskId) => tasks.find((task) => task.id === taskId);
@@ -260,10 +269,18 @@ const BoardTab = ({
 
   const draggedTask = dragging && lookup(dragging.taskId);
 
-  const handleCompleted = ({ sprint: completed, carriedOver, toSprint }) => {
-    setCompleting(false);
-    const moved = carriedOver === 0 ? "" : ` ${carriedOver} unfinished ${carriedOver === 1 ? "task moved" : "tasks moved"} to ${toSprint ? toSprint.name : "the backlog"}.`;
-    setNotice({ severity: "success", text: `${completed.name} is complete.${moved}` });
+  // completed or cancelled: on to the sprint's own page, which shows what was saved, with the message on top. The
+  // board, backlog and Sprints tab load fresh when opened again, so nothing is patched here
+  const handleEnded = (result) => {
+    const text = sprintEndedText(result, ending === "cancel" ? "cancelled" : "completed");
+    setEnding(null);
+    navigate(sprintPath(workspace, project, result.sprint.id), { state: { notice: text } });
+  };
+
+  // someone else ended the sprint meanwhile, or the project became read-only: say so and show what's there now
+  const handleGone = (text) => {
+    setEnding(null);
+    setNotice({ severity: "error", text });
     reload();
   };
 
@@ -274,8 +291,11 @@ const BoardTab = ({
           sprint={sprint}
           tasks={tasks}
           columns={columns}
+          overdue={data.board.activeSprint?.overdue}
           canComplete={canComplete}
-          onComplete={() => setCompleting(true)}
+          canCancel={canCancel}
+          onCompleteSprint={() => setEnding("complete")}
+          onCancelSprint={() => setEnding("cancel")}
         />
       )}
 
@@ -371,15 +391,11 @@ const BoardTab = ({
         />
       )}
 
-      {completing && (
-        <CompleteSprintDialog
-          sprint={sprint}
-          tasks={tasks}
-          columns={columns}
-          plannedSprints={data.sprints.filter((s) => s.status === "PLANNED")}
-          onClose={() => setCompleting(false)}
-          onCompleted={handleCompleted}
-        />
+      {ending === "complete" && (
+        <CompleteSprintDialog sprint={sprint} onClose={() => setEnding(null)} onEnded={handleEnded} onGone={handleGone} />
+      )}
+      {ending === "cancel" && (
+        <CancelSprintDialog sprint={sprint} onClose={() => setEnding(null)} onEnded={handleEnded} onGone={handleGone} />
       )}
 
       {columnConfig.dialogs}

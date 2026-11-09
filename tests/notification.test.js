@@ -16,10 +16,18 @@ test("notificationTargetPath: a task opens the task page under the workspace slu
   assert.equal(notificationTargetPath(target, workspaces), "/workspaces/acme/projects/15/tasks/230");
 });
 
-test("notificationTargetPath: a project (membership, roles, sprints) opens the project", () => {
+test("notificationTargetPath: a project (membership, roles) opens the project", () => {
   const target = { kind: "PROJECT", workspaceId: 4, projectId: 15, taskId: null };
   assert.equal(notificationTargetPath(target, workspaces), "/workspaces/acme/projects/15");
   assert.equal(notificationTargetPath(target, workspaces, "PROJECT_MEMBER_ADDED"), "/workspaces/acme/projects/15");
+});
+
+test("notificationTargetPath: sprint notifications open the Board (started, overdue) or the Sprints tab (ended)", () => {
+  const target = { kind: "PROJECT", workspaceId: 4, projectId: 15, taskId: null };
+  assert.equal(notificationTargetPath(target, workspaces, "SPRINT_STARTED"), "/workspaces/acme/projects/15/board");
+  assert.equal(notificationTargetPath(target, workspaces, "SPRINT_OVERDUE"), "/workspaces/acme/projects/15/board");
+  assert.equal(notificationTargetPath(target, workspaces, "SPRINT_COMPLETED"), "/workspaces/acme/projects/15/sprints");
+  assert.equal(notificationTargetPath(target, workspaces, "SPRINT_CANCELLED"), "/workspaces/acme/projects/15/sprints");
 });
 
 test("notificationTargetPath: a mention about a project is a chat mention and opens the Chat tab", () => {

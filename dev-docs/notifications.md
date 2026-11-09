@@ -50,7 +50,7 @@ In the frontend: [notificationsApi.js](../src/api/notificationsApi.js) (`listNot
 
 - The badge is the unread count (hidden at 0, `99+`). Opening loads `page=0&size=10`, "Load more" the next pages; pushed notifications go on top, deduplicated by id (`mergeNotifications` in [utils/notification.js](../src/utils/notification.js)).
 - Each item: `message`, the excerpt, "project · workspace" (`notificationWhere`) and the time ago; unread ones are highlighted.
-- A click calls open, marks the item read locally, then goes to `notificationTargetPath(target, workspaces, type)`: TASK → the task page, PROJECT → the project (a `MENTIONED` about a project is a chat mention: its Chat tab), NONE (invitations, security) → stays. A `404` shows "This item is no longer available." on the item instead of navigating.
+- A click calls open, marks the item read locally, then goes to `notificationTargetPath(target, workspaces, type)`: TASK → the task page, PROJECT → the project (a `MENTIONED` about a project is a chat mention: its Chat tab; `SPRINT_STARTED` / `SPRINT_OVERDUE` → the Board tab, `SPRINT_COMPLETED` / `SPRINT_CANCELLED` → the Sprints tab, since they carry no sprint id), NONE (invitations, security) → stays. A `404` shows "This item is no longer available." on the item instead of navigating.
 - "Mark all as read" sets every loaded item read and the count to the response's `0`.
 
 ## Preferences
@@ -64,7 +64,7 @@ In the frontend: [notificationsApi.js](../src/api/notificationsApi.js) (`listNot
 | `COMMENT` | `TASK_COMMENTED` | on | off | no |
 | `STATUS_CHANGE` | `TASK_STATUS_CHANGED` | on | off | no |
 | `PROJECT_MEMBERSHIP` | `PROJECT_MEMBER_ADDED`, `PROJECT_ROLES_CHANGED` | on | off | no |
-| `SPRINT` | `SPRINT_STARTED` / `_COMPLETED` / `_CANCELLED` (once sprints ship) | on | off | no |
+| `SPRINT` | `SPRINT_STARTED` / `_COMPLETED` / `_CANCELLED`, and `SPRINT_OVERDUE` (daily to the Scrum Masters while the active sprint is past its end date; no actor) | on | off | no |
 | `INVITATION` | `WORKSPACE_INVITATION` | on | on | **yes** |
 | `SECURITY` | `PASSWORD_RESET`, `LOGIN_FAILED_REPEATED` | on | on | **yes** |
 

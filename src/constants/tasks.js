@@ -37,6 +37,7 @@ export const SPRINT_STATUS = {
   PLANNED: { value: "PLANNED", label: "Planned", tone: "text.secondary" },
   ACTIVE: { value: "ACTIVE", label: "Active", tone: "success.main" },
   COMPLETED: { value: "COMPLETED", label: "Completed", tone: "primary.main" },
+  CANCELLED: { value: "CANCELLED", label: "Cancelled", tone: "error.main" },
 };
 
 // what to tell the user when a change is refused, by error code

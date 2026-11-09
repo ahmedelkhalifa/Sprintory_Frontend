@@ -44,11 +44,13 @@ const EmptyPanel = ({ children }) => (
 
 // The active sprint in detail: the board's header (dates, goal, progress), the numbers the backend keeps (points
 // committed at the start, points in it now, capacity, tasks without points) and what changed since it started.
-const CurrentSprint = ({ sprint, tasks, columns, members }) => {
+// `overdue` is the board's `activeSprint.overdue` (still active after its end date)
+const CurrentSprint = ({ sprint, tasks, columns, members, overdue }) => {
   const unestimated = sprint.unestimatedTaskIds.length;
   return (
     <Stack spacing={2}>
-      <SprintBoardHeader sprint={sprint} tasks={tasks} columns={columns} canComplete={false} />
+      {/* read-only here: the sprint is completed or cancelled from the Board */}
+      <SprintBoardHeader sprint={sprint} tasks={tasks} columns={columns} overdue={overdue} />
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
         <Stat value={formatEstimate(sprint.committedPoints ?? 0)} label="points committed at the start" />
         <Stat
@@ -92,7 +94,7 @@ const SprintsTab = ({ project, onOpenBacklog }) => {
     );
   }
 
-  const { tasks, columns, members, sprints } = state.data;
+  const { tasks, columns, members, sprints, board } = state.data;
   const active = sprints.find((sprint) => sprint.status === "ACTIVE");
   const planned = sprints.filter((sprint) => sprint.status === "PLANNED");
   const inActive = active && new Set(active.taskIds);
@@ -106,6 +108,7 @@ const SprintsTab = ({ project, onOpenBacklog }) => {
             tasks={tasks.filter((task) => inActive.has(task.id))}
             columns={columns}
             members={members}
+            overdue={board.activeSprint?.overdue}
           />
         ) : (
           <EmptyPanel>

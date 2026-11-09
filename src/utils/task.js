@@ -286,9 +286,13 @@ export const historyLine = (entry, { subtask = false } = {}) => {
     // when added, in oldValue when removed
     case "SPRINT_SCOPE_CHANGED":
       return newValue != null ? { text: `added it to ${newValue}` } : { text: `removed it from ${oldValue ?? "the sprint"}` };
-    // unfinished when its sprint ended (§2): from the closed sprint (oldValue) to another sprint or the backlog (null)
+    // unfinished when its sprint ended (§2): from the closed sprint (oldValue) to another sprint or the backlog (null).
+    // `sprintId` is the ended sprint (refId), whose page the history links to
     case "CARRIED_OVER":
-      return { text: `carried it over from ${oldValue ?? "a sprint"} to ${newValue ?? "the backlog"}` };
+      return {
+        text: `carried it over from ${oldValue ?? "a sprint"} to ${newValue ?? "the backlog"}`,
+        ...(entry.refId != null && { sprintId: entry.refId }),
+      };
     case "FIELD_CHANGED":
       break;
     default:

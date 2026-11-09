@@ -324,6 +324,17 @@ test("historyLine: sprint scope changes and carry-overs name the sprints", () =>
   });
 });
 
+test("historyLine: a carry-over names the ended sprint's id (refId), for the link to its page", () => {
+  assert.deepEqual(historyLine({ ...entry("CARRIED_OVER", null, "MOB Sprint 4", null), refId: 42 }), {
+    text: "carried it over from MOB Sprint 4 to the backlog",
+    sprintId: 42,
+  });
+  // only a carry-over links: a scope change keeps plain text
+  assert.deepEqual(historyLine({ ...entry("SPRINT_SCOPE_CHANGED", null, null, "MOB Sprint 4"), refId: 42 }), {
+    text: "added it to MOB Sprint 4",
+  });
+});
+
 test("historyLine: field changes show both values, empty ones as None", () => {
   assert.deepEqual(historyLine(entry("FIELD_CHANGED", "STATUS", "To Do", "In Progress")), {
     text: "changed the status",
