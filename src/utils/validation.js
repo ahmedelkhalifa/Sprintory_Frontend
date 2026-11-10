@@ -118,6 +118,31 @@ export const validateSprint = (values, { requireDates = false } = {}) => {
   });
 };
 
+// ending a sprint (PMP-41): the close note and the cancel reason are at most 1000 characters
+export const SPRINT_TEXT_MAX = 1000;
+
+// our own text for each field of the Complete / Cancel sprint windows; the backend's fieldErrors are validator defaults
+// ("must not be blank"), so they're shown as these instead (fieldErrorsAs)
+export const SPRINT_END_FIELD_TEXTS = {
+  goalAchieved: "Choose whether the sprint goal was achieved",
+  goalNote: `Use at most ${SPRINT_TEXT_MAX} characters`,
+  reason: `Enter a reason of at most ${SPRINT_TEXT_MAX} characters`,
+};
+
+const tooLong = (text) => ((text ?? "").trim().length > SPRINT_TEXT_MAX ? `Use at most ${SPRINT_TEXT_MAX} characters` : "");
+
+// completing: the goal answer (Yes / Partially / No) is required, the note optional
+export const validateCompleteSprint = ({ goalAchieved, goalNote }) =>
+  onlyErrors({ goalAchieved: goalAchieved ? "" : SPRINT_END_FIELD_TEXTS.goalAchieved, goalNote: tooLong(goalNote) });
+
+// cancelling: a reason is required
+export const validateCancelSprint = ({ reason }) =>
+  onlyErrors({ reason: (reason ?? "").trim() ? tooLong(reason) : "Enter a reason" });
+
+// a backend `fieldErrors` object with our own text (`texts`) for every field it names
+export const fieldErrorsAs = (fieldErrors, texts) =>
+  Object.fromEntries(Object.entries(fieldErrors ?? {}).map(([field, message]) => [field, texts[field] ?? message]));
+
 // board columns (backend board-docs §1): a name of 1–100 characters, unique on the board ignoring case.
 // `columns` are the board's, `columnId` the one being edited (null when adding)
 export const validateBoardColumn = (values, columns, columnId = null) => {

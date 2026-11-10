@@ -37,6 +37,7 @@ export const SPRINT_STATUS = {
   PLANNED: { value: "PLANNED", label: "Planned", tone: "text.secondary" },
   ACTIVE: { value: "ACTIVE", label: "Active", tone: "success.main" },
   COMPLETED: { value: "COMPLETED", label: "Completed", tone: "primary.main" },
+  CANCELLED: { value: "CANCELLED", label: "Cancelled", tone: "error.main" },
 };
 
 // what to tell the user when a change is refused, by error code
@@ -48,6 +49,8 @@ export const TASK_ERROR_MESSAGES = {
   SPRINT_ALREADY_ACTIVE: "Another sprint is already active. Complete it before starting this one.",
   // every place that moves a task asks to confirm instead (OpenSubtasksDialog); this is only a fallback
   OPEN_SUBTASKS_CONFIRMATION_REQUIRED: "This task still has open subtasks.",
+  // not a taken name here: the backend says why ("Tasks from an ended sprint cannot be moved.", a read-only project)
+  CONFLICT: null,
 };
 
 // the same for one attachment, where a 404 is about the file

@@ -8,6 +8,7 @@ import PersonOutlineIcon from "@mui/icons-material/PersonOutlineOutlined";
 import ToneChip from "../general/ToneChip";
 import UserAvatar from "../general/UserAvatar";
 import { TASK_PRIORITIES, TASK_STAGES, TASK_TYPES } from "../../constants/tasks";
+import { carriedOverLabel } from "../../utils/sprint";
 import { formatEstimate, labelTone } from "../../utils/task";
 import { memberLabel } from "../../utils/people";
 import { rowId } from "../tasks/dnd";
@@ -19,6 +20,8 @@ export const TaskRowContent = ({ task, handle, onOpen, actions, raised = false }
   const priority = TASK_PRIORITIES[task.priority] ?? TASK_PRIORITIES.MEDIUM;
   const stage = TASK_STAGES[task.stage] ?? TASK_STAGES.TODO;
   const estimate = formatEstimate(task.estimate);
+  // left unfinished by an earlier sprint (PMP-41); a closed sprint puts it at the top of the backlog
+  const carried = carriedOverLabel(task);
 
   return (
     <Box
@@ -57,6 +60,11 @@ export const TaskRowContent = ({ task, handle, onOpen, actions, raised = false }
         </Typography>
       </ButtonBase>
 
+      {carried && (
+        <Box sx={{ display: { xs: "none", sm: "block" }, flexShrink: 0 }}>
+          <ToneChip label={carried} tone="warning.main" />
+        </Box>
+      )}
       <Box sx={{ display: { xs: "none", md: "flex" }, gap: 0.75, flexShrink: 0 }}>
         {task.labels.slice(0, 2).map((label) => (
           <ToneChip key={label} label={label} tone={labelTone(label)} />

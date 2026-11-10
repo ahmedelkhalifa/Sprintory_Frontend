@@ -68,6 +68,7 @@ export const PERMISSIONS = {
   CONFIGURE_BOARD: "CONFIGURE_BOARD", // board columns and WIP limits (R16)
   MANAGE_BACKLOG: "MANAGE_BACKLOG", // order and prioritize the backlog (R13)
   MANAGE_SPRINTS: "MANAGE_SPRINTS", // plan, start and close sprints (R14, R15)
+  CANCEL_SPRINTS: "CANCEL_SPRINTS", // cancel the active sprint (PMP-41): Product Owner, Project Manager, not the SM
   EDIT_TASKS: "EDIT_TASKS", // create, edit and delete tasks (story 9)
   COMMENT: "COMMENT", // comment on tasks (R10) and write in the project chat
   MODERATE_COMMENTS: "MODERATE_COMMENTS", // delete anyone's comment or chat message (the Project Manager)

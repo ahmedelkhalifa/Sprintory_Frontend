@@ -10,7 +10,11 @@ export const NOTIFICATION_CATEGORIES = {
     label: "Project membership and roles",
     description: "You are added to a project or your project roles change.",
   },
-  SPRINT: { label: "Sprints", description: "A sprint starts, is completed or is cancelled in your projects." },
+  SPRINT: {
+    label: "Sprints",
+    description:
+      "A sprint starts, is completed or is cancelled in your projects. Scrum Masters also get a daily reminder while a sprint runs past its end date.",
+  },
   INVITATION: { label: "Workspace invitations", description: "You are invited to a workspace." },
   SECURITY: { label: "Security alerts", description: "Your password changes, or repeated failed sign-ins." },
 };

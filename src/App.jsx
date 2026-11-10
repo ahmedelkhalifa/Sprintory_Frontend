@@ -26,6 +26,7 @@ import {
   ProjectOverviewPage,
   ProjectSettingsPage,
   ProjectSprintsPage,
+  ProjectSprintSummaryPage,
 } from "./pages/projects/ProjectTabPages";
 import ProjectsRedirect from "./pages/projects/ProjectsRedirect";
 import HomeRedirect from "./pages/home/HomeRedirect";
@@ -86,6 +87,7 @@ const App = () => {
                     <Route path="backlog" element={<ProjectBacklogPage />} />
                     <Route path="board" element={<ProjectBoardPage />} />
                     <Route path="sprints" element={<ProjectSprintsPage />} />
+                    <Route path="sprints/:sprintId" element={<ProjectSprintSummaryPage />} />
                     <Route path="reports" element={<ProjectComingSoonPage tab="reports" />} />
                     <Route path="files" element={<ProjectComingSoonPage tab="files" />} />
                     <Route path="settings" element={<ProjectSettingsPage />} />
