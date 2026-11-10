@@ -66,6 +66,15 @@ test("errors branch on the code, and fall back to the backend message", () => {
   assert.equal(errorMessage({ response: { status: 502, data: "<html>" } }, "Fallback"), "Fallback");
 });
 
+test("an override of null shows the backend's own message for that code", () => {
+  const ended = apiError({ code: "CONFLICT", message: "Tasks from an ended sprint cannot be moved." });
+  assert.equal(errorMessage(ended, "Fallback", { CONFLICT: null }), "Tasks from an ended sprint cannot be moved.");
+  assert.equal(errorMessage(apiError({ code: "CONFLICT" }), "Fallback", { CONFLICT: null }), "Fallback");
+  // without the override CONFLICT keeps the shared text, and other codes are unchanged
+  assert.equal(errorMessage(ended), "That name is already in use.");
+  assert.equal(errorMessage(apiError({ code: "ACCESS_DENIED", message: "x" }), "Fallback", { CONFLICT: null }), "You don't have permission to do this.");
+});
+
 test("cancelled requests are recognised", () => {
   assert.equal(isAbort({ code: "ERR_CANCELED" }), true);
   assert.equal(isAbort(apiError({ code: "CONFLICT" })), false);

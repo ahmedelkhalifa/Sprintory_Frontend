@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Box, Button, Typography } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
+import { Alert, Box, Button, Link, Typography } from "@mui/material";
 import ArrowRightAltRoundedIcon from "@mui/icons-material/ArrowRightAltRounded";
 import LoadState from "../general/LoadState";
 import UserAvatar from "../general/UserAvatar";
 import { getTaskHistory } from "../../api/tasksApi";
 import { useAsync } from "../../hooks/useAsync";
+import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
 import { errorMessage } from "../../utils/apiError";
 import { formatDate, timeAgo } from "../../utils/format";
+import { sprintPath } from "../../utils/sprint";
 import { historyLine, mergeHistory } from "../../utils/task";
 
 const PAGE_SIZE = 20;
@@ -38,7 +41,8 @@ const Value = ({ children }) => (
   </Typography>
 );
 
-const Entry = ({ entry, members, subtask }) => {
+// `project` and `workspace` build the link of an entry about a sprint (a carry-over opens the ended sprint's page)
+const Entry = ({ entry, members, subtask, project, workspace }) => {
   const line = historyLine(entry, { subtask });
   // the actor's name is a snapshot from the time; a loaded member only adds the photo
   const member = members.find((m) => m.userId === entry.actor?.id);
@@ -55,6 +59,13 @@ const Entry = ({ entry, members, subtask }) => {
             {name}
           </Box>{" "}
           {line.text}{" "}
+          {line.sprintId != null && (
+            <>
+              <Link component={RouterLink} to={sprintPath(workspace, project, line.sprintId)} underline="hover">
+                (see the sprint)
+              </Link>{" "}
+            </>
+          )}
           <Typography
             component="span"
             variant="caption"
@@ -81,6 +92,7 @@ const Entry = ({ entry, members, subtask }) => {
 // photos to the names; `version` changes when the page saves the task, so the new entries show up on top.
 // `subtask` says whether this is a subtask's own feed.
 const TaskHistory = ({ project, taskId, members, version, subtask = false }) => {
+  const { workspace } = useWorkspaceAccess();
   const first = useAsync(
     (signal) => getTaskHistory(project.id, taskId, { page: 0, size: PAGE_SIZE }, signal),
     [project.id, taskId],
@@ -135,7 +147,14 @@ const TaskHistory = ({ project, taskId, members, version, subtask = false }) => 
     <Box>
       <Box component="ol" sx={{ listStyle: "none", m: 0, p: 0, display: "flex", flexDirection: "column", gap: 2 }}>
         {entries.map((entry) => (
-          <Entry key={entry.id} entry={entry} members={members} subtask={subtask} />
+          <Entry
+            key={entry.id}
+            entry={entry}
+            members={members}
+            subtask={subtask}
+            project={project}
+            workspace={workspace}
+          />
         ))}
       </Box>
       {more.error && (

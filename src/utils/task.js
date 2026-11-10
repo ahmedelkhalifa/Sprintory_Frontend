@@ -26,16 +26,21 @@ export const insertAfter = (list, item, afterId, idOf = (x) => x.id) => {
  * `sprints` the planned and active sprints, each with the ordered `taskIds` it holds.
  * backlogView turns that into the lists on screen: { sprints: [{ ...sprint, tasks }], backlog }, where the backlog is
  * every task in no sprint. Ids of deleted tasks are skipped.
+ * A done item of a completed or cancelled sprint stays linked to it (`sprintId`), but ended sprints aren't listed:
+ * it isn't backlog work and can't be moved (409), so it's left out. A task just moved out of a listed sprint still
+ * has that sprint's id until the next load, and does show in the backlog.
  */
 export const backlogView = ({ tasks, sprints }) => {
   const byId = new Map(tasks.map((task) => [task.id, task]));
   const planned = new Set(sprints.flatMap((sprint) => sprint.taskIds));
+  const listed = new Set(sprints.map((sprint) => sprint.id));
+  const inEndedSprint = (task) => task.sprintId != null && !listed.has(task.sprintId);
   return {
     sprints: sprints.map((sprint) => ({
       ...sprint,
       tasks: sprint.taskIds.map((id) => byId.get(id)).filter(Boolean),
     })),
-    backlog: tasks.filter((task) => !planned.has(task.id)),
+    backlog: tasks.filter((task) => !planned.has(task.id) && !inEndedSprint(task)),
   };
 };
 
@@ -286,9 +291,13 @@ export const historyLine = (entry, { subtask = false } = {}) => {
     // when added, in oldValue when removed
     case "SPRINT_SCOPE_CHANGED":
       return newValue != null ? { text: `added it to ${newValue}` } : { text: `removed it from ${oldValue ?? "the sprint"}` };
-    // unfinished when its sprint ended (§2): from the closed sprint (oldValue) to another sprint or the backlog (null)
+    // unfinished when its sprint ended (§2): from the closed sprint (oldValue) to another sprint or the backlog (null).
+    // `sprintId` is the ended sprint (refId), whose page the history links to
     case "CARRIED_OVER":
-      return { text: `carried it over from ${oldValue ?? "a sprint"} to ${newValue ?? "the backlog"}` };
+      return {
+        text: `carried it over from ${oldValue ?? "a sprint"} to ${newValue ?? "the backlog"}`,
+        ...(entry.refId != null && { sprintId: entry.refId }),
+      };
     case "FIELD_CHANGED":
       break;
     default:

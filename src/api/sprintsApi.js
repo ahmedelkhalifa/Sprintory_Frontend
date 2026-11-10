@@ -31,6 +31,18 @@ export const startSprint = (sprintId, body) => api.post(`/sprints/${sprintId}/st
 export const completeSprint = (sprintId, body) =>
   api.post(`/sprints/${sprintId}/complete`, body).then((res) => res.data);
 
+// what closing or cancelling the active sprint would do (PMP-41; VIEW_WORK): { doneCount, donePoints, unfinishedCount,
+// unfinishedPoints, unfinished: [{ taskId, key, title, estimate, statusName, openSubtasks }] in sprint order,
+// endsEarly, daysLeft, plannedSprints: [{ id, name, startDate }] }. 409 CONFLICT once it's no longer active
+export const getClosePreview = (sprintId, signal) =>
+  api.get(`/sprints/${sprintId}/close-preview`, { signal }).then((res) => res.data);
+
+// CANCEL_SPRINTS (Product Owner, Project Manager, not the Scrum Master): ends the active sprint as CANCELLED because
+// its goal became obsolete. `reason` is required (≤ 1000); unfinished work goes to the top of the backlog.
+// Answers { sprint, carriedOver, toSprint: null }
+export const cancelSprint = (sprintId, reason) =>
+  api.post(`/sprints/${sprintId}/cancel`, { reason }).then((res) => res.data);
+
 // puts a task into a sprint after `afterTaskId` (null = first), or back in the backlog (sprintId null)
 export const moveToSprint = (projectId, { taskId, sprintId = null, afterTaskId = null }) =>
   api.post(`/projects/${projectId}/sprints/move`, { taskId, sprintId, afterTaskId });

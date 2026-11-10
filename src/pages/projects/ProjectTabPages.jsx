@@ -1,3 +1,4 @@
+import { useParams } from "react-router-dom";
 import { Box, Stack } from "@mui/material";
 import ProjectMembersTab from "../../components/projects/ProjectMembersTab";
 import ProjectSettingsTab from "../../components/projects/ProjectSettingsTab";
@@ -9,6 +10,7 @@ import ComingSoonPanel from "../../components/projects/overview/ComingSoonPanel"
 import BacklogTab from "../../components/backlog/BacklogTab";
 import BoardTab from "../../components/board/BoardTab";
 import SprintsTab from "../../components/sprints/SprintsTab";
+import SprintSummaryPage from "../../components/sprints/SprintSummaryPage";
 import { tabLabel } from "../../components/projects/overview/tabList";
 import { useProjectAccess, useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { useProjectPage } from "../../hooks/useProjectPage";
@@ -129,6 +131,15 @@ export const ProjectSprintsPage = () => {
   const { project } = useProjectAccess();
   const page = useProjectPage();
   return <SprintsTab project={project} onOpenBacklog={() => page.goToTab("backlog")} />;
+};
+
+// .../sprints/:sprintId: one sprint's page, ended ones included (the Sprints tab stays selected)
+export const ProjectSprintSummaryPage = () => {
+  const { project } = useProjectAccess();
+  const { sprintId } = useParams();
+  const page = useProjectPage();
+  // remounts for another sprint, so nothing of the previous one shows
+  return <SprintSummaryPage key={sprintId} project={project} sprintId={sprintId} onBack={() => page.goToTab("sprints")} />;
 };
 
 // .../reports, /files until they are built

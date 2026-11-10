@@ -4,8 +4,10 @@ import { CSS } from "@dnd-kit/utilities";
 import { Box, Tooltip, Typography } from "@mui/material";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlineOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import ToneChip from "../general/ToneChip";
 import UserAvatar from "../general/UserAvatar";
 import { TASK_PRIORITIES, TASK_TYPES } from "../../constants/tasks";
+import { carriedOverLabel } from "../../utils/sprint";
 import { formatEstimate, subtaskProgress } from "../../utils/task";
 import { memberLabel } from "../../utils/people";
 import { rowId } from "../tasks/dnd";
@@ -18,6 +20,8 @@ export const BoardCardContent = ({ task, raised = false, draggable = false }) =>
   const estimate = formatEstimate(task.estimate);
   // subtasks aren't cards of their own (PMP-132): the parent shows how many are done
   const subtasks = subtaskProgress(task);
+  // left unfinished by an earlier sprint (PMP-41)
+  const carried = carriedOverLabel(task);
 
   return (
     <Box
@@ -46,6 +50,12 @@ export const BoardCardContent = ({ task, raised = false, draggable = false }) =>
       >
         {task.title}
       </Typography>
+
+      {carried && (
+        <Box sx={{ mt: 1 }}>
+          <ToneChip label={carried} tone="warning.main" />
+        </Box>
+      )}
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1.25 }}>
         <Tooltip title={type.label}>
