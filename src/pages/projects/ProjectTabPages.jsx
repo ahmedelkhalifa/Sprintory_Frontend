@@ -11,6 +11,7 @@ import BacklogTab from "../../components/backlog/BacklogTab";
 import BoardTab from "../../components/board/BoardTab";
 import SprintsTab from "../../components/sprints/SprintsTab";
 import SprintSummaryPage from "../../components/sprints/SprintSummaryPage";
+import CharterTab from "../../components/charter/CharterTab";
 import { tabLabel } from "../../components/projects/overview/tabList";
 import { useProjectAccess, useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { useProjectPage } from "../../hooks/useProjectPage";
@@ -140,6 +141,14 @@ export const ProjectSprintSummaryPage = () => {
   const page = useProjectPage();
   // remounts for another sprint, so nothing of the previous one shows
   return <SprintSummaryPage key={sprintId} project={project} sprintId={sprintId} onBack={() => page.goToTab("sprints")} />;
+};
+
+// .../charter (members only, Viewers included: tabList.js hides it from a workspace admin outside the project)
+export const ProjectCharterPage = () => {
+  const { workspace } = useWorkspaceAccess();
+  const { project } = useProjectAccess();
+  const page = useProjectPage();
+  return <CharterTab project={project} workspace={workspace} writable={page.writable} />;
 };
 
 // .../reports, /files until they are built
