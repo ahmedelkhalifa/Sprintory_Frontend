@@ -1,6 +1,5 @@
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
-import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import ViewListOutlinedIcon from "@mui/icons-material/ViewListOutlined";
 import ViewColumnOutlinedIcon from "@mui/icons-material/ViewColumnOutlined";
 import TimerOutlinedIcon from "@mui/icons-material/TimerOutlined";
@@ -13,7 +12,6 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 const TABS = [
   // also the project charter (PMP-117), for members only
   { id: "overview", label: "Overview", Icon: HomeOutlinedIcon },
-  { id: "members", label: "Members", Icon: GroupOutlinedIcon },
   // members only (Viewers included): a workspace admin outside the project can't open its chat
   { id: "chat", label: "Chat", Icon: ChatBubbleOutlineIcon, membersOnly: true },
   { id: "backlog", label: "Backlog", Icon: ViewListOutlinedIcon, scrumOnly: true },
@@ -21,6 +19,7 @@ const TABS = [
   { id: "sprints", label: "Sprints", Icon: TimerOutlinedIcon, scrumOnly: true },
   { id: "reports", label: "Reports", Icon: BarChartOutlinedIcon },
   { id: "files", label: "Files", Icon: FolderOpenOutlinedIcon },
+  // also the members ("People and access"), at settings/people
   { id: "settings", label: "Settings", Icon: SettingsOutlinedIcon },
 ];
 

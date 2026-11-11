@@ -1,19 +1,19 @@
 import { Box, Button } from "@mui/material";
 import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
 import GroupAddOutlinedIcon from "@mui/icons-material/GroupAddOutlined";
-import SectionCard from "../general/SectionCard";
-import SearchField from "../general/SearchField";
-import LoadState from "../general/LoadState";
-import Pager from "../general/Pager";
-import MembersTable from "./MembersTable";
-import { listProjectMembers } from "../../api/projectsApi";
-import { usePagedList } from "../../hooks/usePagedList";
+import SectionCard from "../../general/SectionCard";
+import SearchField from "../../general/SearchField";
+import LoadState from "../../general/LoadState";
+import Pager from "../../general/Pager";
+import MembersTable from "../MembersTable";
+import { listProjectMembers } from "../../../api/projectsApi";
+import { usePagedList } from "../../../hooks/usePagedList";
 
-// The project page's Members tab: every member with their roles, searchable and paged.
+// Settings → People and access: every member with their roles, searchable and paged.
 // People who may manage members also get Add people / Add team and a remove button per row.
 // People who may manage roles also get a "Change roles" button per row.
 // `version` changes after every add/remove/role change, so the list loads again.
-const ProjectMembersTab = ({ project, version, canManage, canEditRoles, onAddPeople, onAddTeam, onRemove, onEditRoles }) => {
+const MembersSection = ({ project, version, canManage, canEditRoles, onAddPeople, onAddTeam, onRemove, onEditRoles }) => {
   const members = usePagedList(
     (params, signal) => listProjectMembers(project.id, params, signal),
     [project.id, version],
@@ -68,4 +68,4 @@ const ProjectMembersTab = ({ project, version, canManage, canEditRoles, onAddPeo
   );
 };
 
-export default ProjectMembersTab;
+export default MembersSection;

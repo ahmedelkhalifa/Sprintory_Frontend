@@ -13,13 +13,22 @@ import ProjectOverviewHeader from "../../components/projects/overview/ProjectOve
 import QuickActionsMenu from "../../components/projects/overview/QuickActionsMenu";
 import ProjectSettingsMenu from "../../components/projects/overview/ProjectSettingsMenu";
 import ProjectTabs from "../../components/projects/overview/ProjectTabs";
+import { projectActionsFor } from "../../components/projects/projectActions";
 import { tabsFor } from "../../components/projects/overview/tabList";
 import { canOpenProjectChat } from "../../utils/chat";
 import { listProjectMembers } from "../../api/projectsApi";
 import { useAsync } from "../../hooks/useAsync";
 import { useProjectAccess, useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { useTasksChanged } from "../../hooks/useTasksChanged";
-import { can, isProjectArchived, projectPath, projectTabOf, projectTabPath, projectsPath } from "../../utils/project";
+import {
+  can,
+  isProjectArchived,
+  projectPath,
+  projectSettingsPath,
+  projectTabOf,
+  projectTabPath,
+  projectsPath,
+} from "../../utils/project";
 import { isWorkspaceArchived } from "../../utils/workspace";
 import { EMPTY_TASK_FILTERS } from "../../utils/taskFilters";
 import { PERMISSIONS } from "../../constants/projects";
@@ -90,6 +99,10 @@ const ProjectPage = () => {
     else afterChange();
   };
 
+  const settingsPath = (section) => projectSettingsPath(workspace, project, section);
+
+  // the members used to be their own tab: old links land on Settings → People and access
+  if (tab === "members") return <Navigate to={settingsPath("people")} replace />;
   // an unknown tab, or Backlog / Sprints in a Kanban project: Overview instead
   if (!tabs.some((t) => t.id === tab)) return <Navigate to={tabPath("overview")} replace />;
 
@@ -107,6 +120,7 @@ const ProjectPage = () => {
     openDialog: setDialog,
     afterChange,
     goToTab: (id) => navigate(tabPath(id)),
+    goToSettings: (section) => navigate(settingsPath(section)),
   };
 
   return (
@@ -123,9 +137,13 @@ const ProjectPage = () => {
               canInvite={canManage}
               onInvite={() => setDialog({ type: "add-people" })}
             />
-            {!workspaceArchived && (
-              <ProjectSettingsMenu project={project} onAction={(type) => setDialog({ type })} />
-            )}
+            {/* in an archived workspace only its links are left: nothing can be edited, archived or deleted */}
+            <ProjectSettingsMenu
+              actions={workspaceArchived ? [] : projectActionsFor(project)}
+              onAction={(type) => setDialog({ type })}
+              peoplePath={settingsPath("people")}
+              settingsPath={settingsPath("general")}
+            />
           </>
         }
       />

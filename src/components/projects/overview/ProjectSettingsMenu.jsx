@@ -1,18 +1,20 @@
 import { useState } from "react";
-import { Button, ListItemIcon, ListItemText, Menu, MenuItem } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
+import { Button, Divider, ListItemIcon, ListItemText, Menu, MenuItem } from "@mui/material";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import { projectActionsFor } from "../projectActions";
+import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
-// "Project settings" dropdown: Edit / Archive or Restore / Delete, with the same rules as the ⋮ menu
-// in the projects list. Shows nothing when the user may do none of them.
-const ProjectSettingsMenu = ({ project, onAction }) => {
+// "Project settings" dropdown: the caller's actions (Edit / Archive or Restore / Delete, from projectActionsFor,
+// the same rules as the ⋮ menu in the projects list), then links to Settings → People and access and to all of
+// Settings, which everyone who can open the project may read.
+const ProjectSettingsMenu = ({ actions, onAction, peoplePath, settingsPath }) => {
   const [anchor, setAnchor] = useState(null);
-  const items = projectActionsFor(project);
-  if (items.length === 0) return null;
+  const close = () => setAnchor(null);
 
   const choose = (action) => {
-    setAnchor(null);
+    close();
     onAction(action);
   };
 
@@ -33,12 +35,12 @@ const ProjectSettingsMenu = ({ project, onAction }) => {
       <Menu
         anchorEl={anchor}
         open={Boolean(anchor)}
-        onClose={() => setAnchor(null)}
+        onClose={close}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
-        slotProps={{ paper: { sx: { mt: 0.5, minWidth: 200 } } }}
+        slotProps={{ paper: { sx: { mt: 0.5, minWidth: 220 } } }}
       >
-        {items.map(({ action, label, Icon, danger }) => (
+        {actions.map(({ action, label, Icon, danger }) => (
           <MenuItem key={action} onClick={() => choose(action)} sx={danger ? { color: "error.main" } : undefined}>
             <ListItemIcon sx={danger ? { color: "error.main" } : undefined}>
               <Icon fontSize="small" />
@@ -46,6 +48,19 @@ const ProjectSettingsMenu = ({ project, onAction }) => {
             <ListItemText>{label === "Edit" ? "Edit project" : label}</ListItemText>
           </MenuItem>
         ))}
+        {actions.length > 0 && <Divider />}
+        <MenuItem component={RouterLink} to={peoplePath} onClick={close}>
+          <ListItemIcon>
+            <GroupOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>People and access</ListItemText>
+        </MenuItem>
+        <MenuItem component={RouterLink} to={settingsPath} onClick={close}>
+          <ListItemIcon>
+            <TuneOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>All settings</ListItemText>
+        </MenuItem>
       </Menu>
     </>
   );

@@ -68,7 +68,7 @@ const NoActiveSprint = ({ onOpenBacklog, onOpenSettings }) => (
 // `onCreateTask` opens that window, for the Kanban board's button on top (its quick bar stays).
 // `filters` come from the filter bar (shared with the Backlog): the backend says which tasks match, the board shows
 // only those, while the counts, WIP limits, sprint progress and drop positions keep using every task.
-// `onOpenSettings` opens the Settings tab, whose "Board columns" section also works without an active sprint.
+// `onOpenSettings` opens Settings → Board columns, which also works without an active sprint.
 const BoardTab = ({
   project,
   writable,

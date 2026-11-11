@@ -74,5 +74,11 @@ export const projectPath = (workspace, project) => `${projectsPath(workspace)}/$
 export const projectTabPath = (workspace, project, tab) =>
   tab === "overview" ? projectPath(workspace, project) : `${projectPath(workspace, project)}/${tab}`;
 
+// a section of the Settings tab (general / people / board / archive); General is the tab's own url
+export const projectSettingsPath = (workspace, project, section = "general") => {
+  const settings = projectTabPath(workspace, project, "settings");
+  return section === "general" ? settings : `${settings}/${section}`;
+};
+
 // the tab in a url under `basePath` (the project's path): the segment right after it, Overview when there is none
 export const projectTabOf = (pathname, basePath) => pathname.slice(basePath.length).split("/")[1] || "overview";

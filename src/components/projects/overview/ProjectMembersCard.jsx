@@ -10,7 +10,7 @@ import { isProjectManager, projectRoleLabel } from "../../../utils/project";
 const SHOWN = 5;
 
 // "Project members" card: up to 5 members with their role, Project Managers first (with a crown).
-// "See all" opens the Members tab, "Add member" opens the Add people window. `preview` is a PageResponse.
+// "See all" opens Settings → People and access, "Add member" opens the Add people window. `preview` is a PageResponse.
 const ProjectMembersCard = ({ project, preview, loading, canManage, onSeeAll, onAdd }) => {
   // sort is stable, so people keep the backend's alphabetical order within each group
   const shown = loading

@@ -2,8 +2,7 @@ import { useParams } from "react-router-dom";
 import { Alert, Box, Paper, Snackbar, Stack } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import LoadState from "../../components/general/LoadState";
-import ProjectMembersTab from "../../components/projects/ProjectMembersTab";
-import ProjectSettingsTab from "../../components/projects/ProjectSettingsTab";
+import ProjectSettingsTab from "../../components/projects/settings/ProjectSettingsTab";
 import ProjectStats from "../../components/projects/overview/ProjectStats";
 import ProjectDescriptionCard from "../../components/projects/overview/ProjectDescriptionCard";
 import ProjectDetailsCard from "../../components/projects/overview/ProjectDetailsCard";
@@ -20,6 +19,7 @@ import CharterHistory from "../../components/charter/CharterHistory";
 import { useCharter } from "../../components/charter/useCharter";
 import { tabLabel } from "../../components/projects/overview/tabList";
 import { canOpenProjectChat } from "../../utils/chat";
+import { projectSettingsPath } from "../../utils/project";
 import { useProjectAccess, useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { useProjectPage } from "../../hooks/useProjectPage";
 
@@ -102,7 +102,7 @@ export const ProjectOverviewPage = () => {
             preview={page.preview}
             loading={!page.preview}
             canManage={page.canManage}
-            onSeeAll={() => page.goToTab("members")}
+            onSeeAll={() => page.goToSettings("people")}
             onAdd={() => page.openDialog({ type: "add-people" })}
           />
         </Stack>
@@ -141,25 +141,6 @@ export const ProjectOverviewPage = () => {
   );
 };
 
-// .../members
-export const ProjectMembersPage = () => {
-  const { project } = useProjectAccess();
-  const page = useProjectPage();
-
-  return (
-    <ProjectMembersTab
-      project={project}
-      version={page.version}
-      canManage={page.canManage}
-      canEditRoles={page.canEditRoles}
-      onAddPeople={() => page.openDialog({ type: "add-people" })}
-      onAddTeam={() => page.openDialog({ type: "add-team" })}
-      onRemove={(member) => page.openDialog({ type: "remove", member })}
-      onEditRoles={(member) => page.openDialog({ type: "roles", member })}
-    />
-  );
-};
-
 // .../backlog (Scrum only; ProjectPage sends Kanban projects back to Overview)
 export const ProjectBacklogPage = () => {
   const { project } = useProjectAccess();
@@ -189,21 +170,34 @@ export const ProjectBoardPage = () => {
       onFiltersChange={page.setTaskFilters}
       onCreateTask={() => page.openDialog({ type: "create-task" })}
       onOpenBacklog={() => page.goToTab("backlog")}
-      onOpenSettings={() => page.goToTab("settings")}
+      onOpenSettings={() => page.goToSettings("board")}
     />
   );
 };
 
-// .../settings
+// .../settings and .../settings/:section (people, board, archive); the old .../members url lands on people
 export const ProjectSettingsPage = () => {
+  const { workspace } = useWorkspaceAccess();
   const { project } = useProjectAccess();
+  const { section } = useParams();
   const page = useProjectPage();
 
   return (
     <ProjectSettingsTab
       project={project}
+      section={section}
+      pathFor={(id) => projectSettingsPath(workspace, project, id)}
       writable={page.writable}
       workspaceArchived={page.workspaceArchived}
+      people={{
+        version: page.version,
+        canManage: page.canManage,
+        canEditRoles: page.canEditRoles,
+        onAddPeople: () => page.openDialog({ type: "add-people" }),
+        onAddTeam: () => page.openDialog({ type: "add-team" }),
+        onRemove: (member) => page.openDialog({ type: "remove", member }),
+        onEditRoles: (member) => page.openDialog({ type: "roles", member }),
+      }}
       onSaved={page.afterChange}
       onAction={(type) => page.openDialog({ type })}
     />
