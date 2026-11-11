@@ -19,17 +19,14 @@ const PageHeader = ({ title, subtitle, breadcrumb, avatar, actions }) => {
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, minWidth: 0 }}>
           {avatar}
           <Box sx={{ minWidth: 0 }}>
-            <Typography
-              variant="h4"
-              component="h1"
-              sx={{ fontWeight: 700, letterSpacing: "-0.02em", fontSize: { xs: 26, sm: 30 } }}
-            >
+            {/* the theme's page-title size (h4); phones a step smaller */}
+            <Typography variant="h4" component="h1" sx={{ fontSize: { xs: 20, sm: 24 } }}>
               {title}
             </Typography>
             {/* text goes in a paragraph; anything else (e.g. chips) in a plain box */}
             {subtitle &&
               (typeof subtitle === "string" ? (
-                <Typography sx={{ mt: 0.5, color: "text.secondary", fontSize: 15 }}>{subtitle}</Typography>
+                <Typography sx={{ mt: 0.5, color: "text.secondary" }}>{subtitle}</Typography>
               ) : (
                 <Box sx={{ mt: 0.75 }}>{subtitle}</Box>
               ))}

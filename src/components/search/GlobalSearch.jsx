@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { alpha, useTheme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import {
   Autocomplete, Box, Chip, IconButton, InputAdornment, ListSubheader, Paper, TextField, Typography, useMediaQuery,
 } from "@mui/material";
@@ -19,9 +19,6 @@ const SEARCH_DELAY_MS = 300;
 // how many hits the dropdown shows; the rest are on the /search page
 const DROPDOWN_SIZE = 10;
 const MORE_GROUP = "more";
-
-// white-on-navy styles for the top bar
-const onBar = (theme, opacity) => alpha(theme.palette.common.white, opacity);
 
 const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent);
 
@@ -240,16 +237,16 @@ const GlobalSearch = () => {
             // phones: Esc with the dropdown already closed closes the field too
             if (e.key === "Escape" && phone && !open) collapse();
           }}
-          sx={(t) => ({
+          // a gray well in the white bar that turns white when focused
+          sx={{
             "& .MuiOutlinedInput-root": {
-              color: "common.white",
-              bgcolor: onBar(t, 0.12),
-              transition: "background-color 0.15s",
-              "&:hover, &.Mui-focused": { bgcolor: onBar(t, 0.18) },
-              "& fieldset": { border: "none" },
+              bgcolor: "background.default",
+              transition: "background-color 150ms ease",
+              "&.Mui-focused": { bgcolor: "background.paper" },
             },
-            "& .MuiInputBase-input::placeholder": { color: onBar(t, 0.7), opacity: 1 },
-          })}
+            "& .MuiAutocomplete-inputRoot.MuiInputBase-sizeSmall": { py: "2px" },
+            "& .MuiInputBase-input::placeholder": { color: "text.secondary", opacity: 1 },
+          }}
           slotProps={{
             ...params.slotProps,
             htmlInput: { ...params.slotProps.htmlInput, "aria-label": "Search" },
@@ -257,7 +254,7 @@ const GlobalSearch = () => {
               ...params.slotProps.input,
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchOutlined sx={(t) => ({ color: onBar(t, 0.8) })} />
+                  <SearchOutlined fontSize="small" sx={{ color: "text.secondary" }} />
                 </InputAdornment>
               ),
               // a clear button or the shortcut hint (Autocomplete's own indicators are off)
@@ -272,7 +269,7 @@ const GlobalSearch = () => {
                         setText("");
                         inputRef.current?.focus();
                       }}
-                      sx={(t) => ({ color: onBar(t, 0.8) })}
+                      sx={{ color: "text.secondary" }}
                     >
                       <CloseRounded fontSize="small" />
                     </IconButton>
@@ -280,17 +277,19 @@ const GlobalSearch = () => {
                     <Box
                       component="kbd"
                       aria-hidden="true"
-                      sx={(t) => ({
+                      sx={{
                         display: { xs: "none", md: "block" },
                         px: 0.75,
                         borderRadius: 1,
-                        border: `1px solid ${onBar(t, 0.3)}`,
-                        color: onBar(t, 0.7),
+                        border: 1,
+                        borderColor: "divider",
+                        bgcolor: "background.paper",
+                        color: "text.secondary",
                         fontFamily: "inherit",
                         fontSize: 12,
                         lineHeight: "20px",
                         whiteSpace: "nowrap",
-                      })}
+                      }}
                     >
                       {IS_MAC ? "⌘K" : "Ctrl K"}
                     </Box>

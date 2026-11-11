@@ -5,6 +5,7 @@ import ChatMessageList from "./ChatMessageList";
 import { useAuth } from "../../context/AuthContext";
 import { useProjectChat } from "../../hooks/useProjectChat";
 import { canOpenProjectChat, canWriteChat } from "../../utils/chat";
+import { HEADER_HEIGHT } from "../../theme/layout";
 
 // one project's live chat; remounted per project, so messages and the socket never leak between projects
 const ChatSession = ({ project, workspace, embedded }) => {
@@ -44,7 +45,7 @@ const ChatSession = ({ project, workspace, embedded }) => {
         display: "flex",
         flexDirection: "column",
         gap: 1,
-        ...(embedded ? { height: "100%", minHeight: 0 } : { height: { xs: "auto", md: "calc(100dvh - 315px)" }, minHeight: { md: 420 } }),
+        ...(embedded ? { height: "100%", minHeight: 0 } : { height: { xs: "auto", md: `calc(100dvh - ${HEADER_HEIGHT + 243}px)` }, minHeight: { md: 420 } }),
       }}
     >
       {chat.status !== "connected" && (

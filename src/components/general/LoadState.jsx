@@ -1,5 +1,12 @@
 import { Alert, Box, Button, Skeleton, Stack, Typography } from "@mui/material";
 
+// the empty message fades in where the skeleton was instead of popping; reduced motion shows it at once
+const settleSx = {
+  "@keyframes loadStateSettle": { from: { opacity: 0 }, to: { opacity: 1 } },
+  animation: "loadStateSettle 160ms ease-out",
+  "@media (prefers-reduced-motion: reduce)": { animation: "none" },
+};
+
 // Shows the right state of a loaded section, in this order:
 // loading -> skeleton rows, error -> message + "Try again", empty -> message, otherwise -> children
 const LoadState = ({ loading, error, onRetry, isEmpty, emptyMessage = "Nothing here yet.", rows = 4, children }) => {
@@ -40,12 +47,13 @@ const LoadState = ({ loading, error, onRetry, isEmpty, emptyMessage = "Nothing h
 
   if (isEmpty) {
     return (
-      <Typography sx={{ p: { xs: 3, sm: 5 }, textAlign: "center", color: "text.secondary" }}>
+      <Typography sx={{ p: { xs: 3, sm: 4 }, textAlign: "center", color: "text.secondary", ...settleSx }}>
         {emptyMessage}
       </Typography>
     );
   }
 
+  // returned as is: callers lay the children out themselves (flex columns, tables), so no wrapper here
   return children;
 };
 

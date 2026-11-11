@@ -98,10 +98,6 @@ const App = () => {
                   <Route path="tasks/:taskId" element={<TaskPage />} />
                 </Route>
               </Route>
-              {/* placeholders until these pages exist, so the sidebar links stay inside the shell */}
-              <Route path="/board" element={<div>Board</div>} />
-              <Route path="/sprints" element={<div>Sprints</div>} />
-              <Route path="/reports" element={<div>Reports</div>} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
           </Route>

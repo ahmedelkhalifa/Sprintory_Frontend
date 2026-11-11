@@ -1,54 +1,61 @@
 import { createTheme } from "@mui/material/styles";
 
-// avatar backgrounds (white initials on them), the same in both modes so a person keeps their color
-const AVATAR = { blue: "#2B5A8F", navy: "#1E3A5F", green: "#2E9E6A", amber: "#C98A12", slate: "#5B6B80" };
+// The visual language is the category standard (Jira-like), see PRODUCT.md and DESIGN.md: a white work surface,
+// a light-gray sidebar, hairline borders, 3px corners, and one blue for actions, links, focus and selection.
+
+// avatar backgrounds (white initials on them), the same in both modes so a person keeps their color;
+// each is at least 4.5:1 against white
+const AVATAR = { blue: "#0055CC", navy: "#09326C", green: "#216E4E", amber: "#A54800", slate: "#44546F" };
 
 // The colors of each mode. Components only use these tokens (never hex values), so they follow the mode.
 const PALETTES = {
   light: {
     primary: {
-      main: "#2B5A8F", // Primary Blue: buttons, links, active tabs
-      dark: "#1E3A5F", // Deep Navy: hover
-      light: "#6E93BD", // Muted Blue
+      main: "#0C66E4", // the one blue: primary buttons, links, focus, selection
+      dark: "#0055CC", // hover / pressed
+      light: "#579DFF",
       contrastText: "#FFFFFF",
     },
     secondary: {
-      main: "#6E93BD", // Muted Blue: secondary elements, charts
+      main: "#626F86", // neutral gray: secondary elements, charts
     },
     success: {
-      main: "#2E9E6A", // Green: completed tasks, positive progress
+      main: "#1F845A", // done, positive progress
     },
     info: {
-      main: "#3B7DD8", // bright blue: in-progress indicators
+      main: "#1D7AFC", // in progress
     },
     warning: {
-      main: "#C98A12", // amber (status color, not a brand color)
+      main: "#A54800", // allowed but worth a look
     },
     error: {
-      main: "#D14343", // red (status color, not a brand color)
+      main: "#C9372C", // refused, overdue, destructive
     },
     background: {
-      default: "#F5F7FB", // Cool Light Gray: inner fills (rows, chips) and the auth pages
-      paper: "#FFFFFF", // White: the app's pages, cards, forms, dialogs, sidebar
+      default: "#F7F8F9", // light gray: the sidebar, inner fills (rows, chips) and the auth pages
+      paper: "#FFFFFF", // white: the work surface, cards, dialogs, menus
     },
     text: {
-      primary: "#14233A", // Dark Navy Text: headings, primary text
-      secondary: "#5B6B80", // Slate Gray Text: descriptions
+      primary: "#172B4D",
+      secondary: "#44546F",
+      disabled: "#8590A2",
     },
-    divider: "#E4E8EF", // Cool Gray: borders, dividers
+    divider: "#DFE1E6", // hairlines
 
     // Custom colors MUI doesn't have built in
     navActive: {
-      background: "#E8EFF8", // pale blue
-      text: "#1E3A5F", // dark blue: also strong blue text and tones (role chips, team badges)
-      hover: "#DDE7F4", // a selected item under the pointer
+      background: "#E9F2FF", // the selected navigation item only
+      text: "#0C66E4", // strong blue text (selected item, role badges)
+      hover: "#CCE0FF", // a selected item under the pointer
     },
+    // was a blue tint for AI panels; now a neutral inner panel (the work surface has no tinted panels)
     ai: {
-      background: "#EEF3FA", // light blue tint for AI panels
-      border: "#C9D7E8",
+      background: "#F7F8F9",
+      border: "#DFE1E6",
     },
     topBar: {
-      background: "#1E3A5F", // Deep Navy: the app's top bar (white content on it)
+      background: "#FFFFFF", // the app's top bar, with a hairline under it
+      text: "#44546F", // its icons
     },
     hero: {
       background: "#FFFFFF", // under the auth pages' picture (multiplied: white keeps it as is)
@@ -59,86 +66,250 @@ const PALETTES = {
   dark: {
     // a lighter blue with dark text on it: readable both as text on the dark page and as a button
     primary: {
-      main: "#6E9FE0",
-      dark: "#5687CC",
-      light: "#9CC0EE",
-      contrastText: "#0E1520",
+      main: "#579DFF",
+      dark: "#85B8FF", // hover goes lighter on a dark surface
+      light: "#CCE0FF",
+      contrastText: "#1D2125",
     },
     secondary: {
-      main: "#7FA3CF",
+      main: "#8C9BAB",
     },
     success: {
-      main: "#3FB97F",
+      main: "#4BCE97",
     },
     info: {
-      main: "#5A9BEA",
+      main: "#579DFF",
     },
     warning: {
-      main: "#E0A43A",
+      main: "#F38A3F",
     },
     error: {
-      main: "#E5675F",
+      main: "#F87168",
     },
     background: {
-      default: "#0E1520", // inner fills sit a little darker than the page
-      paper: "#151E2B",
+      default: "#161A1D", // sidebar and inner fills sit a little darker than the page
+      paper: "#1D2125",
     },
     text: {
-      primary: "#E6EDF6",
-      secondary: "#9DAABB",
+      primary: "#C7D1DB",
+      secondary: "#9FADBC",
+      disabled: "#738496",
     },
-    divider: "#263244",
+    divider: "#38414A",
 
     navActive: {
-      background: "#1D3150",
-      text: "#CFE0F6",
-      hover: "#243C60",
+      background: "#1C2B41",
+      text: "#579DFF",
+      hover: "#09326C",
     },
     ai: {
-      background: "#16263A",
-      border: "#2B4363",
+      background: "#22272B",
+      border: "#38414A",
     },
     topBar: {
-      background: "#101A27",
+      background: "#1D2125",
+      text: "#9FADBC",
     },
     hero: {
-      background: "#1D3150", // tints the auth pages' picture dark navy
+      background: "#1C2B41", // tints the auth pages' picture dark navy
     },
     avatar: AVATAR,
   },
 };
 
+const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+
+// raised: a card that lifts (drag, hover); overlay: menus, popovers, dialogs. Cards at rest are flat with a hairline.
+const DEPTH = {
+  light: {
+    raised: "0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31)",
+    overlay: "0 8px 12px rgba(9, 30, 66, 0.15), 0 0 1px rgba(9, 30, 66, 0.31)",
+  },
+  dark: {
+    raised: "0 1px 1px rgba(3, 4, 4, 0.5), 0 0 1px rgba(3, 4, 4, 0.5)",
+    overlay: "0 0 0 1px #38414A, 0 8px 12px rgba(3, 4, 4, 0.36), 0 0 1px rgba(3, 4, 4, 0.5)",
+  },
+};
+
+// the tooltip is the one inverted surface: dark ink in light mode, light ink in dark mode
+const TOOLTIP = { light: "#172B4D", dark: "#B6C2CF" };
+
 // the light / dark theme. `mode` is "light" or "dark" (ColorModeProvider picks it, "system" included)
 export const createAppTheme = (mode) => {
-  // MUI's default shadows, with level 1 softened for cards (border + faint lift)
-  const shadows = createTheme().shadows.slice();
-  shadows[1] = mode === "dark" ? "0 1px 2px rgba(0, 0, 0, 0.4)" : "0 1px 2px rgba(16, 24, 40, 0.04)";
+  const depth = DEPTH[mode];
+  // level 0 none, 1 flat (cards: border only), 2-7 raised, 8+ overlays
+  const shadows = ["none", "none", ...Array(6).fill(depth.raised), ...Array(17).fill(depth.overlay)];
 
   return createTheme({
     palette: { mode, ...PALETTES[mode] },
 
     typography: {
-      fontFamily: "'Inter', 'Roboto', sans-serif",
+      fontFamily: FONT,
+      fontSize: 14,
+      // one product scale: page title, section title, body, meta; pages shouldn't need their own sizes or weights
+      h1: { fontSize: 32, fontWeight: 600, lineHeight: 1.2, letterSpacing: "-0.01em" },
+      h2: { fontSize: 28, fontWeight: 600, lineHeight: 1.2, letterSpacing: "-0.01em" },
+      h3: { fontSize: 24, fontWeight: 600, lineHeight: 1.25, letterSpacing: "-0.01em" },
+      h4: { fontSize: 24, fontWeight: 600, lineHeight: 1.25, letterSpacing: "-0.01em" }, // page titles
+      h5: { fontSize: 20, fontWeight: 600, lineHeight: 1.3 },
+      h6: { fontSize: 16, fontWeight: 600, lineHeight: 1.35 }, // section titles
+      subtitle1: { fontSize: 14, fontWeight: 600, lineHeight: 1.43 },
+      subtitle2: { fontSize: 12, fontWeight: 600, lineHeight: 1.33 },
+      body1: { fontSize: 14, lineHeight: 1.43 },
+      body2: { fontSize: 13, lineHeight: 1.45 },
+      caption: { fontSize: 12, lineHeight: 1.33 },
+      overline: { fontSize: 11, fontWeight: 700, lineHeight: 1.45, letterSpacing: "0.06em" },
+      button: { fontSize: 14, fontWeight: 500, textTransform: "none" },
     },
 
     shape: {
-      borderRadius: 8, // rounded corners for buttons, cards, inputs
+      borderRadius: 3, // sx multipliers scale with it: borderRadius 2 is 6px
     },
 
     shadows,
 
     // Default styles for specific components, applied everywhere
     components: {
-      MuiButton: {
+      MuiCssBaseline: {
+        styleOverrides: (theme) => ({
+          // the browser's own surfaces follow the palette too
+          "::selection": { backgroundColor: theme.palette.navActive.hover, color: theme.palette.text.primary },
+          body: { scrollbarColor: `${theme.palette.divider} transparent` },
+          "input, textarea": { caretColor: theme.palette.primary.main },
+        }),
+      },
+      // no ripples: a focus ring and a slight press instead
+      MuiButtonBase: {
+        defaultProps: { disableRipple: true },
         styleOverrides: {
-          root: { textTransform: "none", fontWeight: 500 }, // no ALL CAPS buttons
+          root: ({ theme }) => ({
+            "&.Mui-focusVisible": { outline: `2px solid ${theme.palette.primary.main}`, outlineOffset: 2 },
+          }),
+        },
+      },
+      MuiButton: {
+        defaultProps: { disableElevation: true },
+        styleOverrides: {
+          root: ({ theme }) => ({
+            minHeight: 32,
+            padding: "4px 12px",
+            whiteSpace: "nowrap",
+            // a slight press, so a click feels answered; MUI's own color transitions are kept
+            transition: `${theme.transitions.create(["background-color", "box-shadow", "border-color", "color"], {
+              duration: theme.transitions.duration.shortest,
+            })}, transform 160ms ease-out`,
+            "&:active": { transform: "scale(0.97)" },
+            "@media (prefers-reduced-motion: reduce)": { "&:active": { transform: "none" } },
+            // the default button: neutral, hairline border (primary stays the filled blue one)
+            "&.MuiButton-outlined.MuiButton-colorPrimary, &.MuiButton-outlined.MuiButton-colorInherit": {
+              color: theme.palette.text.primary,
+              borderColor: theme.palette.divider,
+              backgroundColor: theme.palette.background.paper,
+              "&:hover": { backgroundColor: theme.palette.action.hover, borderColor: theme.palette.text.disabled },
+            },
+          }),
+          sizeSmall: { minHeight: 28, padding: "2px 8px", fontSize: 13 },
+          startIcon: { marginRight: 6 },
+        },
+      },
+      MuiIconButton: {
+        styleOverrides: {
+          root: ({ theme }) => ({ borderRadius: theme.shape.borderRadius }),
+        },
+      },
+      MuiPaper: {
+        styleOverrides: {
+          // MUI lightens dark-mode paper with a gradient; the palette already sets each surface
+          root: { backgroundImage: "none" },
         },
       },
       MuiCard: {
         defaultProps: { elevation: 1 },
         styleOverrides: {
-          // subtle borders instead of heavy shadows
           root: ({ theme }) => ({ border: `1px solid ${theme.palette.divider}` }),
+        },
+      },
+      MuiPopover: {
+        // dropdowns open quickly and close faster
+        defaultProps: { transitionDuration: { enter: 180, exit: 120 } },
+      },
+      MuiMenu: {
+        defaultProps: { transitionDuration: { enter: 180, exit: 120 } },
+        styleOverrides: {
+          list: { paddingTop: 4, paddingBottom: 4 },
+        },
+      },
+      MuiMenuItem: {
+        styleOverrides: {
+          root: { minHeight: 36, fontSize: 14 },
+        },
+      },
+      MuiTooltip: {
+        // a short wait before the first one; MUI then shows the next ones straight away
+        defaultProps: { enterDelay: 300, disableInteractive: true },
+        styleOverrides: {
+          tooltip: ({ theme }) => ({
+            backgroundColor: TOOLTIP[mode],
+            color: theme.palette.background.paper,
+            fontSize: 12,
+            fontWeight: 500,
+            padding: "4px 8px",
+            borderRadius: theme.shape.borderRadius,
+          }),
+        },
+      },
+      MuiChip: {
+        styleOverrides: {
+          // square-ish tags, not pills
+          root: ({ theme }) => ({ borderRadius: theme.shape.borderRadius, fontWeight: 500 }),
+          sizeSmall: { height: 22, fontSize: 12 },
+        },
+      },
+      MuiOutlinedInput: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            backgroundColor: theme.palette.background.paper,
+            "&:hover:not(.Mui-focused):not(.Mui-disabled):not(.Mui-error) .MuiOutlinedInput-notchedOutline": {
+              borderColor: theme.palette.text.disabled,
+            },
+          }),
+          notchedOutline: ({ theme }) => ({ borderColor: theme.palette.divider }),
+        },
+      },
+      MuiLink: {
+        defaultProps: { underline: "hover" },
+      },
+      MuiTabs: {
+        styleOverrides: {
+          root: { minHeight: 40 },
+        },
+      },
+      MuiTab: {
+        styleOverrides: {
+          root: { textTransform: "none", fontWeight: 500, minHeight: 40, fontSize: 14 },
+        },
+      },
+      MuiTableCell: {
+        styleOverrides: {
+          root: ({ theme }) => ({ borderColor: theme.palette.divider, padding: "10px 12px" }),
+          head: ({ theme }) => ({
+            fontSize: 12,
+            fontWeight: 600,
+            color: theme.palette.text.secondary,
+            borderBottomWidth: 2,
+            paddingTop: 8,
+            paddingBottom: 8,
+          }),
+        },
+      },
+      MuiAlert: {
+        styleOverrides: {
+          root: { alignItems: "center" },
+        },
+      },
+      MuiDialogTitle: {
+        styleOverrides: {
+          root: { fontSize: 20, fontWeight: 600 },
         },
       },
       MuiListItemButton: {

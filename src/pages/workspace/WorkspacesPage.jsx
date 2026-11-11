@@ -8,6 +8,7 @@ import { initials } from "../../utils/people";
 import { ROLE_LABEL, isWorkspaceAdmin, isWorkspaceArchived, workspacePath } from "../../utils/workspace";
 import NameDialog from "../../components/workspace/NameDialog";
 import WorkspaceSettingsDialog from "../../components/workspace/WorkspaceSettingsDialog";
+import { PAGE_MAX_WIDTH } from "../../theme/layout";
 
 const WorkspaceCard = ({ workspace, onOpen, onSettings }) => {
   const isAdmin = isWorkspaceAdmin(workspace);
@@ -79,7 +80,7 @@ const WorkspacesPage = () => {
   );
 
   return (
-    <Box sx={{ maxWidth: 1440, mx: "auto", px: { xs: 2, md: 4 } }}>
+    <Box sx={{ maxWidth: PAGE_MAX_WIDTH, mx: "auto", px: { xs: 2, md: 4 } }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
         <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>Workspaces</Typography>
         <Button variant="contained" startIcon={<Add />} onClick={() => setDialogOpen(true)}>

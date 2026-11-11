@@ -19,6 +19,7 @@ import TeamCard from "../../components/teams/TeamCard";
 import TeamDetails from "../../components/teams/TeamDetails";
 import TeamFormDrawer from "../../components/teams/TeamFormDrawer";
 import TeamMemberDrawer from "../../components/teams/TeamMemberDrawer";
+import { PAGE_MAX_WIDTH } from "../../theme/layout";
 
 const PAGE_SIZE = 20;
 const DEBOUNCE_MS = 300;
@@ -286,7 +287,7 @@ const TeamsPage = () => {
   );
 
   return (
-    <Box sx={{ minWidth: 0, maxWidth: 1440, mx: "auto", px: { xs: 2, md: 4 } }}>
+    <Box sx={{ minWidth: 0, maxWidth: PAGE_MAX_WIDTH, mx: "auto", px: { xs: 2, md: 4 } }}>
       <Stack
         direction={{ xs: "column", sm: "row" }}
         sx={{ justifyContent: "space-between", alignItems: { xs: "stretch", sm: "flex-start" }, gap: 2, mb: 3.5 }}

@@ -23,6 +23,7 @@ import { useAsync } from "../../hooks/useAsync";
 import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { errorMessage, isAbort } from "../../utils/apiError";
 import { canOpenProjectChat, chatConversationPath, chatProjectsFromPages, chatsPath } from "../../utils/chat";
+import { HEADER_HEIGHT, PAGE_MAX_WIDTH } from "../../theme/layout";
 import { parseProjectId } from "../../utils/project";
 
 const PAGE_SIZE = 100;
@@ -108,7 +109,7 @@ const WorkspaceChats = ({ workspace }) => {
   };
 
   return (
-    <Box sx={{ maxWidth: 1500, mx: "auto", height: "calc(100dvh - 172px)", minHeight: 440, display: "flex", flexDirection: "column", gap: 2 }}>
+    <Box sx={{ maxWidth: PAGE_MAX_WIDTH, mx: "auto", height: `calc(100dvh - ${HEADER_HEIGHT + 100}px)`, minHeight: 440, display: "flex", flexDirection: "column", gap: 2 }}>
       <Typography variant="h5" sx={{ fontWeight: 700 }}>
         Chats
       </Typography>
