@@ -3,19 +3,14 @@ import { Box, Link, Paper, Skeleton, Typography } from "@mui/material";
 import { ChevronRight } from "@mui/icons-material";
 import ProjectAvatar from "../projects/ProjectAvatar";
 import TemplateChip from "../projects/TemplateChip";
+import StageBar from "../tasks/StageBar";
+import { TASK_STAGES } from "../../constants/tasks";
 import { projectPath, projectTabPath, projectsPath } from "../../utils/project";
 import { sprintDays, sprintDaysText } from "../../utils/myWork";
 import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 
 // two wide cards per row, like Jira's recent projects; the full list is the Projects page
 const MAX_CARDS = 4;
-
-// the bar's stages in board order; to do stays neutral, colour is for work moving and work done
-const STAGES = [
-  { key: "TODO", word: "to do", color: "text.disabled" },
-  { key: "IN_PROGRESS", word: "in progress", color: "info.main" },
-  { key: "DONE", word: "done", color: "success.main" },
-];
 
 const cardSx = {
   display: "flex",
@@ -31,18 +26,12 @@ const cardSx = {
   "@media (hover: hover)": { "&:hover": { borderColor: "text.disabled" } },
 };
 
-// the board's tasks per stage as one stacked bar (the counts are written beside the status line);
-// an empty board keeps a plain gray track, so every card has the same rows
-const StageBar = ({ board }) => (
-  <Box aria-hidden="true" sx={{ display: "flex", gap: "2px", height: 6, bgcolor: board.total ? "transparent" : "action.selected" }}>
-    {STAGES.filter((stage) => board[stage.key] > 0).map((stage) => (
-      <Box key={stage.key} sx={{ flexGrow: board[stage.key], bgcolor: stage.color, borderRadius: "1px" }} />
-    ))}
-  </Box>
-);
-
 const countsText = (board) =>
-  board.total === 0 ? "No tasks yet" : STAGES.map((stage) => `${board[stage.key]} ${stage.word}`).join(" · ");
+  board.total === 0
+    ? "No tasks yet"
+    : Object.values(TASK_STAGES)
+        .map((stage) => `${board[stage.value]} ${stage.label.toLowerCase()}`)
+        .join(" · ");
 
 // what the project's method watches: Scrum the running sprint, Kanban the WIP limits
 const statusLine = ({ board, sprint, sprintsEnabled, wipLimitsEnabled }) => {

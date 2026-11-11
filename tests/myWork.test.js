@@ -4,6 +4,7 @@ import {
   boardSummary,
   openAssigned,
   setupSteps,
+  share,
   sortMyWork,
   sprintDays,
   sprintDaysText,
@@ -66,15 +67,29 @@ test("boardSummary counts tasks per stage and finds columns over their limit", (
     { id: 3, name: "In Progress", category: "IN_PROGRESS", taskCount: 4, wipExceeded: true },
     { id: 4, name: "Done", category: "DONE", taskCount: 6 },
   ];
-  assert.deepEqual(boardSummary(board), { TODO: 4, IN_PROGRESS: 4, DONE: 6, total: 14, overLimit: ["In Progress"] });
+  assert.deepEqual(boardSummary(board), {
+    TODO: 4,
+    IN_PROGRESS: 4,
+    DONE: 6,
+    total: 14,
+    subtasks: 0,
+    overLimit: ["In Progress"],
+  });
+  assert.equal(boardSummary([{ id: 1, category: "TODO", taskCount: 1, subtaskCount: 2 }, { id: 2, subtaskCount: 3 }]).subtasks, 5);
   // no categories (a board from before R16): first column to do, last done
   const old = [
     { id: 1, name: "A", taskCount: 2 },
     { id: 2, name: "B", taskCount: 1 },
     { id: 3, name: "C" },
   ];
-  assert.deepEqual(boardSummary(old), { TODO: 2, IN_PROGRESS: 1, DONE: 0, total: 3, overLimit: [] });
+  assert.deepEqual(boardSummary(old), { TODO: 2, IN_PROGRESS: 1, DONE: 0, total: 3, subtasks: 0, overLimit: [] });
   assert.equal(boardSummary().total, 0);
+});
+
+test("share is a rounded percent, 0 of nothing is 0", () => {
+  assert.equal(share(12, 28), 43);
+  assert.equal(share(28, 28), 100);
+  assert.equal(share(0, 0), 0);
 });
 
 test("sprintPoints uses the commitment, then the selected points, and skips unestimated sprints", () => {

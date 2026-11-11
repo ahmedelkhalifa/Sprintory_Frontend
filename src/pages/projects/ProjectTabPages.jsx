@@ -39,7 +39,7 @@ export const ProjectOverviewPage = () => {
 
   return (
     <Stack spacing={3}>
-      <ProjectStats project={project} />
+      <ProjectStats project={project} taskVersion={page.taskVersion} />
       {charter.readOnlyReason && (
         <Alert severity="info" icon={<LockOutlinedIcon fontSize="inherit" />}>
           {charter.readOnlyReason} You can read the charter.

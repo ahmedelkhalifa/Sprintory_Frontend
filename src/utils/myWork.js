@@ -50,18 +50,23 @@ export const sprintDays = (sprint, today = new Date()) => {
 /**
  * A board at a glance, for the home page's project cards: its top-level tasks per stage (each column's `taskCount`
  * by category) and the names of the columns over their WIP limit.
- * { TODO, IN_PROGRESS, DONE, total, overLimit: [names] }
+ * { TODO, IN_PROGRESS, DONE, total, subtasks, overLimit: [names] }. The counts are project-wide (the backlog too),
+ * top-level tasks only; `subtasks` is the subtasks in all columns.
  */
 export const boardSummary = (columns = []) => {
-  const summary = { TODO: 0, IN_PROGRESS: 0, DONE: 0, total: 0, overLimit: [] };
+  const summary = { TODO: 0, IN_PROGRESS: 0, DONE: 0, total: 0, subtasks: 0, overLimit: [] };
   for (const column of columns) {
     const count = column.taskCount ?? 0;
     summary[columnCategory(column, columns)] += count;
     summary.total += count;
+    summary.subtasks += column.subtaskCount ?? 0;
     if (column.wipExceeded) summary.overLimit.push(column.name);
   }
   return summary;
 };
+
+// part of total as a whole percent; 0 of nothing is 0%
+export const share = (part, total) => (total > 0 ? Math.round((part / total) * 100) : 0);
 
 // a running sprint's points: { done, total } against what it committed to at the start (or what's in it now,
 // for a sprint without a frozen commitment); null when nothing in it is estimated
