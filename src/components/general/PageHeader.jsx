@@ -33,7 +33,8 @@ const PageHeader = ({ title, subtitle, breadcrumb, avatar, actions }) => {
           </Box>
         </Box>
 
-        {actions && <Box sx={{ display: "flex", gap: 1.5, flexShrink: 0 }}>{actions}</Box>}
+        {/* phones: the buttons sit under the title and wrap onto more rows instead of squeezing */}
+        {actions && <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, flexShrink: { sm: 0 } }}>{actions}</Box>}
       </Box>
     </Box>
   );

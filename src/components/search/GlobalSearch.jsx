@@ -244,7 +244,8 @@ const GlobalSearch = () => {
               transition: "background-color 150ms ease",
               "&.Mui-focused": { bgcolor: "background.paper" },
             },
-            "& .MuiAutocomplete-inputRoot.MuiInputBase-sizeSmall": { py: "2px" },
+            // about 36px tall, in the 56px bar
+            "& .MuiAutocomplete-inputRoot.MuiInputBase-sizeSmall": { py: "4px" },
             "& .MuiInputBase-input::placeholder": { color: "text.secondary", opacity: 1 },
           }}
           slotProps={{

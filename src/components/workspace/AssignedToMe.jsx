@@ -56,7 +56,11 @@ const AssignedToMe = ({ items = [], loading, error, onRetry }) => {
           <TableHead>
             <TableRow>
               <TableCell sx={{ ...typeCellSx, pl: { xs: 2, sm: 2.5 } }}>
-                <Box component="span" sx={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
+                {/* "1px", not 1: in sx a number up to 1 means 100%, which made this span page-sized and the page scroll */}
+                <Box
+                  component="span"
+                  sx={{ position: "absolute", width: "1px", height: "1px", overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}
+                >
                   Type
                 </Box>
               </TableCell>

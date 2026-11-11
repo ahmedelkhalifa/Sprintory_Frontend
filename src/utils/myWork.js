@@ -1,5 +1,5 @@
 import { doneColumnIds } from "./board.js";
-import { taskStage } from "./task.js";
+import { columnCategory, taskStage } from "./task.js";
 
 // highest first; a task without a priority counts as MEDIUM (the backend's default)
 export const PRIORITY_ORDER = ["HIGHEST", "HIGH", "MEDIUM", "LOW", "LOWEST"];
@@ -46,6 +46,38 @@ export const sprintDays = (sprint, today = new Date()) => {
   const current = Math.min(Math.max(offset, -1), total);
   return { total, current, overdue: Math.max(0, offset - total + 1) };
 };
+
+/**
+ * A board at a glance, for the home page's project cards: its top-level tasks per stage (each column's `taskCount`
+ * by category) and the names of the columns over their WIP limit.
+ * { TODO, IN_PROGRESS, DONE, total, overLimit: [names] }
+ */
+export const boardSummary = (columns = []) => {
+  const summary = { TODO: 0, IN_PROGRESS: 0, DONE: 0, total: 0, overLimit: [] };
+  for (const column of columns) {
+    const count = column.taskCount ?? 0;
+    summary[columnCategory(column, columns)] += count;
+    summary.total += count;
+    if (column.wipExceeded) summary.overLimit.push(column.name);
+  }
+  return summary;
+};
+
+// a running sprint's points: { done, total } against what it committed to at the start (or what's in it now,
+// for a sprint without a frozen commitment); null when nothing in it is estimated
+export const sprintPoints = (sprint) => {
+  const total = sprint?.committedPoints || sprint?.selectedPoints || 0;
+  if (!total) return null;
+  return { done: sprint.completedPoints ?? 0, total };
+};
+
+// the home page's "Set up your workspace" steps, in order, from the workspace's totals
+export const setupSteps = ({ projects = 0, members = 0, teams = 0, tasks = 0 }) => [
+  { id: "project", label: "Create a project", done: projects > 0 },
+  { id: "invite", label: "Invite people", done: members > 1 },
+  { id: "team", label: "Create a team", done: teams > 0 },
+  { id: "task", label: "Add the first task", done: tasks > 0 },
+];
 
 // "Day 4 of 10 · 7 days left", "Starts tomorrow", or "2 days past the end date"
 export const sprintDaysText = (days) => {

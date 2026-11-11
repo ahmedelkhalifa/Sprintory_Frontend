@@ -212,7 +212,7 @@ const AppShell = () => {
           </IconButton>
 
           <Box sx={{ display: { xs: "none", sm: "flex" }, mr: { sm: 1, md: 3 } }}>
-            <Logo size={20} />
+            <Logo size={20} mark={false} />
           </Box>
 
           <GlobalSearch />
@@ -301,7 +301,7 @@ const AppShell = () => {
         >
           {/* opens over the top bar, so it shows the logo itself */}
           <Box sx={{ display: "flex", alignItems: "center", px: 3, height: HEADER_HEIGHT, flexShrink: 0 }}>
-            <Logo size={20} />
+            <Logo size={20} mark={false} />
           </Box>
           {drawerContent(false)}
         </Drawer>

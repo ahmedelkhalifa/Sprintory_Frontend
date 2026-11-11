@@ -3,7 +3,7 @@ import { Box, Link, Typography } from "@mui/material";
 import SectionCard from "../general/SectionCard";
 import ProjectAvatar from "../projects/ProjectAvatar";
 import { projectTabPath } from "../../utils/project";
-import { sprintDays, sprintDaysText } from "../../utils/myWork";
+import { sprintDays, sprintDaysText, sprintPoints } from "../../utils/myWork";
 import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 
 // at most this many "past the end" cells, so a long-overdue sprint doesn't squeeze its own days
@@ -41,7 +41,20 @@ const DayStrip = ({ days, label }) => {
   );
 };
 
-// each Scrum project's running sprint: how far it is, against its dates. sprints: [{ project, sprint, overdue }]
+// the sprint's done points against its commitment; past 100% (work added after the start) the bar just stays full
+const PointsBar = ({ points }) => (
+  <Box sx={{ mt: 1.25 }}>
+    <Box aria-hidden="true" sx={{ height: 6, borderRadius: "1px", bgcolor: "action.selected", overflow: "hidden" }}>
+      <Box sx={{ height: "100%", width: `${Math.min(points.done / points.total, 1) * 100}%`, bgcolor: "success.main" }} />
+    </Box>
+    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
+      {points.done} of {points.total} points done
+    </Typography>
+  </Box>
+);
+
+// each Scrum project's running sprint: how far it is, against its dates and its points.
+// sprints: [{ project, sprint, overdue }]
 const ActiveSprints = ({ sprints }) => {
   const { workspace } = useWorkspaceAccess();
 
@@ -51,6 +64,7 @@ const ActiveSprints = ({ sprints }) => {
         const days = sprintDays(sprint);
         const late = overdue || days?.overdue > 0;
         const text = late && days?.overdue === 0 ? "Past end date" : sprintDaysText(days);
+        const points = sprintPoints(sprint);
         return (
           <Box key={sprint.id} sx={{ px: { xs: 2, sm: 2.5 }, py: 1.75, "& + &": { borderTop: 1, borderColor: "divider" } }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0 }}>
@@ -80,6 +94,7 @@ const ActiveSprints = ({ sprints }) => {
             >
               {text}
             </Typography>
+            {points && <PointsBar points={points} />}
           </Box>
         );
       })}

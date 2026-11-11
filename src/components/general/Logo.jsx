@@ -3,17 +3,20 @@ import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 
 // The one Sprintory logo, use this everywhere instead of rebuilding it.
 // inverted: white version for dark backgrounds (e.g. the sidebar)
+// mark: false shows the name only (the app shell's top bar)
 // TODO: replace the icon with the real logo SVG when it's ready
-const Logo = ({ size = 28, inverted = false }) => {
+const Logo = ({ size = 28, inverted = false, mark = true }) => {
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-      <BoltRoundedIcon
-        sx={{
-          fontSize: size * 1.3,
-          color: inverted ? "common.white" : "navActive.text",
-          transform: "skewX(-10deg)",
-        }}
-      />
+      {mark && (
+        <BoltRoundedIcon
+          sx={{
+            fontSize: size * 1.3,
+            color: inverted ? "common.white" : "navActive.text",
+            transform: "skewX(-10deg)",
+          }}
+        />
+      )}
       <Typography
         component="span"
         sx={{
