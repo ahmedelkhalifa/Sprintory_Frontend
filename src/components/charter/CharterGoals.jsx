@@ -153,7 +153,7 @@ const GoalRow = ({ goal, index, count, editable, busy, onEdit, onMove, onDelete 
 
 // The charter's goals in their manual order. With `editable`: add, edit, delete, and reorder by dragging (mouse,
 // touch or keyboard: space, arrows, space) or with Move up / down. `onReorder(from, to)` is applied optimistically
-// by CharterTab; `reordering` is true while it's being saved.
+// by useCharter; `reordering` is true while it's being saved.
 const CharterGoals = ({ project, goals, editable, reordering, onReorder, onChanged, onNotice }) => {
   const [dialog, setDialog] = useState(null); // { type: "add" | "edit" | "delete", goal? }
   const remove = useSubmit(CHARTER_ERROR_MESSAGES);

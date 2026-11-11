@@ -2,11 +2,11 @@
 
 Source: `sprintory_backend/docs/project-charter-docs.md`, as of 9 Nov 2026. Shared rules (errors, pagination) are in [README.md](README.md).
 
-A lightweight project charter on the project's **Charter** tab (`.../projects/:projectId/charter`): goals, in / out of scope, the stakeholder register and the goal / scope history. Every project has one, empty at first; the project works fine with it empty.
+A lightweight project charter in the project's **Overview** tab (`.../projects/:projectId`), under the description: goals, in / out of scope, the stakeholder register and the goal / scope history. Every project has one, empty at first; the project works fine with it empty. (It used to be its own Charter tab; an old `.../charter` url now redirects to Overview.)
 
 ## Access
 
-- **Read:** project members only, Viewers included. Anyone else (also a workspace admin outside the project) gets `404`, so the tab is `membersOnly` in [tabList.js](../src/components/projects/overview/tabList.js), like Chat.
+- **Read:** project members only, Viewers included. Anyone else (also a workspace admin outside the project) gets `404`, so the Overview only loads it when `canOpenProjectChat(project)` (the same member check as Chat); others see the description without charter sections.
 - **Edit:** `EDIT_CHARTER` = the Project Manager, and the Product Owner in Scrum. Others get `403 ACCESS_DENIED`.
 - **Read-only:** a `COMPLETED` / `ARCHIVED` project answers `409 CHARTER_READ_ONLY`, an archived workspace `409 WORKSPACE_ARCHIVED`. Reading still works.
 - The frontend shows edit controls from the charter's own `canEdit` (it covers permission, project state and workspace state), plus the project page's `writable`. There are no project state transitions yet (PMP-63), so a locked project only shows up through `canEdit` / `readOnly`.
@@ -34,5 +34,5 @@ A lightweight project charter on the project's **Charter** tab (`.../projects/:p
 
 ## Frontend
 
-- [CharterTab](../src/components/charter/CharterTab.jsx) loads the charter and holds the optimistic goal order; [CharterGoals](../src/components/charter/CharterGoals.jsx) (drag with `@dnd-kit`, keyboard included, or Move up / down), [CharterScope](../src/components/charter/CharterScope.jsx), [CharterStakeholders](../src/components/charter/CharterStakeholders.jsx), [CharterHistory](../src/components/charter/CharterHistory.jsx) (paged, "Load older").
+- [useCharter](../src/components/charter/useCharter.js) loads the charter and holds the optimistic goal order, the history version and the notice; `ProjectOverviewPage` in [ProjectTabPages.jsx](../src/pages/projects/ProjectTabPages.jsx) places the sections: Goals and Scope in the main column under the description, Stakeholders and History full width below. [CharterGoals](../src/components/charter/CharterGoals.jsx) (drag with `@dnd-kit`, keyboard included, or Move up / down), [CharterScope](../src/components/charter/CharterScope.jsx), [CharterStakeholders](../src/components/charter/CharterStakeholders.jsx), [CharterHistory](../src/components/charter/CharterHistory.jsx) (paged, "Load older").
 - A linked stakeholder's name opens [LinkedUserLink](../src/components/charter/LinkedUserLink.jsx): the app has no user profile page yet, so it shows the user's workspace profile (from the member list) and links to the Members page. Replace it with a link once a profile route exists.

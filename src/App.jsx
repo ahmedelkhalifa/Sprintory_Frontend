@@ -20,7 +20,6 @@ import ChatsPage from "./pages/chats/ChatsPage";
 import {
   ProjectBacklogPage,
   ProjectBoardPage,
-  ProjectCharterPage,
   ProjectComingSoonPage,
   ProjectMembersPage,
   ProjectOverviewPage,
@@ -81,7 +80,6 @@ const App = () => {
                       paths match the ids in components/projects/overview/tabList.js */}
                   <Route element={<ProjectPage />}>
                     <Route index element={<ProjectOverviewPage />} />
-                    <Route path="charter" element={<ProjectCharterPage />} />
                     <Route path="members" element={<ProjectMembersPage />} />
                     <Route path="chat" element={<ProjectChatPage />} />
                     <Route path="backlog" element={<ProjectBacklogPage />} />
