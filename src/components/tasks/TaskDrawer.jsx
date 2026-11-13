@@ -32,6 +32,7 @@ import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_TYPES } from "../../constant
 import { findAssignee, needsSubtaskConfirmation, taskChanges, taskPath, taskValues } from "../../utils/task";
 import { isRichTextError, richTextValue } from "../../utils/richText";
 import { TASK_TITLE_MAX, validateTask } from "../../utils/validation";
+import { useLatched } from "../../hooks/useLatched";
 
 // a label above a field that isn't a FormField (the pickers)
 const Field = ({ id, label, children }) => (
@@ -52,6 +53,7 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
   const [errors, setErrors] = useState({});
   // a move to Done the backend refused because subtasks are open: the same changes, waiting for a confirmation
   const [confirmDone, setConfirmDone] = useState(null);
+  const shownConfirmDone = useLatched(confirmDone);
   const save = useSubmit(TASK_ERROR_MESSAGES);
 
   const send = async (changes) => {
@@ -205,10 +207,11 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
         </>
       )}
 
-      {confirmDone && (
+      {shownConfirmDone && (
         <OpenSubtasksDialog
+          open={Boolean(confirmDone)}
           task={task}
-          columnName={columns.find((column) => column.id === confirmDone.statusId)?.name}
+          columnName={columns.find((column) => column.id === shownConfirmDone.statusId)?.name}
           onConfirm={moveToDoneAnyway}
           onClose={() => setConfirmDone(null)}
         />

@@ -9,6 +9,7 @@ import { ROLE_LABEL, isWorkspaceAdmin, isWorkspaceArchived, workspacePath } from
 import NameDialog from "../../components/workspace/NameDialog";
 import WorkspaceSettingsDialog from "../../components/workspace/WorkspaceSettingsDialog";
 import { PAGE_MAX_WIDTH } from "../../theme/layout";
+import { useLatched } from "../../hooks/useLatched";
 
 const WorkspaceCard = ({ workspace, onOpen, onSettings }) => {
   const isAdmin = isWorkspaceAdmin(workspace);
@@ -59,6 +60,7 @@ const WorkspacesPage = () => {
   const { workspaces, loading, error } = useWorkspaces();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [settingsFor, setSettingsFor] = useState(null);
+  const shownSettingsFor = useLatched(settingsFor);
 
   if (error) return <Alert severity="error">Could not load workspaces: {error}</Alert>;
   if (loading) return <CircularProgress />;
@@ -110,9 +112,10 @@ const WorkspacesPage = () => {
           await createWorkspace(name);
         }}
       />
-      {settingsFor && (
+      {shownSettingsFor && (
         <WorkspaceSettingsDialog
-          workspace={settingsFor}
+          open={Boolean(settingsFor)}
+          workspace={shownSettingsFor}
           onClose={() => setSettingsFor(null)}
           onChanged={setSettingsFor}
           onDeleted={() => setSettingsFor(null)}

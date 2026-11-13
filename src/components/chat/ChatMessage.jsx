@@ -6,11 +6,13 @@ import ConfirmDialog from "../general/ConfirmDialog";
 import UserAvatar from "../general/UserAvatar";
 import RichText from "../editor/RichText";
 import { formatDate, timeAgo } from "../../utils/format";
+import { useLatched } from "../../hooks/useLatched";
 
 // One chat message: the author, when, "(edited)", the text (or "Message deleted"), and Edit / Delete when the
 // caller may (`canEdit`, `canDelete`). Deleting asks first; a moderator deletes someone else's message.
 const ChatMessage = ({ message, own, canEdit, canDelete, editing, onEdit, onDelete }) => {
   const [confirming, setConfirming] = useState(false);
+  const shownConfirming = useLatched(confirming || null);
   const author = message.authorName || "Former member";
 
   return (
@@ -69,8 +71,9 @@ const ChatMessage = ({ message, own, canEdit, canDelete, editing, onEdit, onDele
           )}
         </Box>
       )}
-      {confirming && (
+      {shownConfirming && (
         <ConfirmDialog
+          open={confirming}
           title="Delete this message?"
           message={
             own

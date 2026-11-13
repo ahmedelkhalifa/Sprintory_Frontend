@@ -20,6 +20,7 @@ import TeamDetails from "../../components/teams/TeamDetails";
 import TeamFormDrawer from "../../components/teams/TeamFormDrawer";
 import TeamMemberDrawer from "../../components/teams/TeamMemberDrawer";
 import { PAGE_MAX_WIDTH } from "../../theme/layout";
+import { useLatched } from "../../hooks/useLatched";
 
 const PAGE_SIZE = 20;
 const DEBOUNCE_MS = 300;
@@ -62,7 +63,9 @@ const TeamsPage = () => {
   const [formTeam, setFormTeam] = useState(null);
   const [formError, setFormError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const shownDeleteTarget = useLatched(deleteTarget);
   const [removeTarget, setRemoveTarget] = useState(null);
+  const shownRemoveTarget = useLatched(removeTarget);
   const [memberDrawerOpen, setMemberDrawerOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
@@ -430,9 +433,10 @@ const TeamsPage = () => {
       )}
 
       {/* a refusal shows in the snackbar below (runAction) */}
-      {deleteTarget && (
+      {shownDeleteTarget && (
         <ConfirmDialog
-          title={`Delete “${deleteTarget.name}”?`}
+          open={Boolean(deleteTarget)}
+          title={`Delete “${shownDeleteTarget.name}”?`}
           message="This cannot be undone. Workspace members and their project access will remain unchanged."
           confirmLabel="Delete team"
           tone="danger"
@@ -442,9 +446,10 @@ const TeamsPage = () => {
         />
       )}
 
-      {removeTarget && (
+      {shownRemoveTarget && (
         <ConfirmDialog
-          title={`Remove ${memberLabel(removeTarget)}?`}
+          open={Boolean(removeTarget)}
+          title={`Remove ${memberLabel(shownRemoveTarget)}?`}
           message="They leave this team. Their workspace and project access will stay unchanged."
           confirmLabel="Remove"
           tone="danger"

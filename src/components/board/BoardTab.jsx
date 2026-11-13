@@ -22,6 +22,7 @@ import AddColumnButton from "./AddColumnButton";
 import { useColumnConfig } from "./useColumnConfig";
 import { moveOnBoard } from "../../api/tasksApi";
 import { useAsync } from "../../hooks/useAsync";
+import { useLatched } from "../../hooks/useLatched";
 import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { useTaskFilterMatches } from "../../hooks/useTaskFilterMatches";
 import { PERMISSIONS } from "../../constants/projects";
@@ -108,6 +109,9 @@ const BoardTab = ({
   const [dragging, setDragging] = useState(null); // { taskId, fromStatusId }
   const [overStatusId, setOverStatusId] = useState(null);
   const [confirmMove, setConfirmMove] = useState(null); // { move, before }: a move into Done waiting for a yes
+  // the windows render from these (kept a moment after closing, so they can play their close)
+  const shownConfirm = useLatched(confirmMove);
+  const shownEnding = useLatched(ending);
   const sensors = useSensors(
     // a short move before dragging starts, so clicks on a card still open it
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -219,7 +223,7 @@ const BoardTab = ({
     setOptimistic({ source: data, tasks: confirmMove.before });
     setConfirmMove(null);
   };
-  const confirmTask = confirmMove && allTasks.find((task) => task.id === confirmMove.move.taskId);
+  const confirmTask = shownConfirm && allTasks.find((task) => task.id === shownConfirm.move.taskId);
 
   // what a drop landed on: { statusId, overTaskId } (overTaskId null = the column itself), or null
   const dropTarget = (over) => {
@@ -384,18 +388,19 @@ const BoardTab = ({
 
       {confirmTask && (
         <OpenSubtasksDialog
+          open={Boolean(confirmMove)}
           task={confirmTask}
-          columnName={columns.find((column) => column.id === confirmMove.move.statusId)?.name}
+          columnName={columns.find((column) => column.id === shownConfirm.move.statusId)?.name}
           onConfirm={moveAnyway}
           onClose={cancelMove}
         />
       )}
 
-      {ending === "complete" && (
-        <CompleteSprintDialog sprint={sprint} onClose={() => setEnding(null)} onEnded={handleEnded} onGone={handleGone} />
+      {shownEnding === "complete" && sprint && (
+        <CompleteSprintDialog open={ending === "complete"} sprint={sprint} onClose={() => setEnding(null)} onEnded={handleEnded} onGone={handleGone} />
       )}
-      {ending === "cancel" && (
-        <CancelSprintDialog sprint={sprint} onClose={() => setEnding(null)} onEnded={handleEnded} onGone={handleGone} />
+      {shownEnding === "cancel" && sprint && (
+        <CancelSprintDialog open={ending === "cancel"} sprint={sprint} onClose={() => setEnding(null)} onEnded={handleEnded} onGone={handleGone} />
       )}
 
       {columnConfig.dialogs}

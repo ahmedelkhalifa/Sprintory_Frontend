@@ -18,6 +18,7 @@ import UndoDeleteProvider from "../../context/UndoDeleteProvider";
 import { initials } from "../../utils/people";
 import { isWorkspaceAdmin, workspacePath } from "../../utils/workspace";
 import { HEADER_HEIGHT, SHELL_EASE, SIDEBAR_RAIL_WIDTH, SIDEBAR_WIDTH } from "../../theme/layout";
+import { pressable } from "../../theme/motion";
 import NotificationBell from "./NotificationBell";
 import WorkspaceSwitcher from "./WorkspaceSwitcher";
 
@@ -81,7 +82,7 @@ const itemSx = {
   px: 1.5,
   color: "text.secondary",
   whiteSpace: "nowrap",
-  transition: "background-color 120ms ease, color 120ms ease",
+  ...pressable(0.98, "background-color 120ms ease, color 120ms ease"),
   "&.Mui-selected .MuiListItemText-primary": { fontWeight: 600 },
 };
 

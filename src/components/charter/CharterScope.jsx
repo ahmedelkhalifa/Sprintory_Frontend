@@ -70,7 +70,7 @@ const CharterScope = ({ project, charter, editable, onSaved, onNotice }) => {
       toolbar={
         editable &&
         !editing && (
-          <Button variant="outlined" startIcon={<EditOutlinedIcon />} onClick={startEditing}>
+          <Button variant="contained" startIcon={<EditOutlinedIcon />} onClick={startEditing}>
             Edit scope
           </Button>
         )

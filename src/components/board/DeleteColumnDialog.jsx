@@ -12,7 +12,7 @@ import { columnContentsLabel } from "../../utils/board";
 // they don't count for WIP) needs a new place for it: everything moves to the picked column (the default is its left
 // neighbour) and the move goes in each task's history.
 // `onDeleted(target)` gets the column they went to (null when it was empty).
-const DeleteColumnDialog = ({ projectId, column, columns, contents, onDeleted, onClose }) => {
+const DeleteColumnDialog = ({ open = true, projectId, column, columns, contents, onDeleted, onClose }) => {
   const others = columns.filter((c) => c.id !== column.id);
   const index = columns.findIndex((c) => c.id === column.id);
   const [targetId, setTargetId] = useState((columns[index - 1] ?? others[0])?.id ?? "");
@@ -26,7 +26,7 @@ const DeleteColumnDialog = ({ projectId, column, columns, contents, onDeleted, o
   };
 
   return (
-    <Dialog open onClose={submit.submitting ? undefined : onClose} maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={submit.submitting ? undefined : onClose} maxWidth="xs" fullWidth>
       <ToneDialogTitle tone="danger">Delete “{column.name}”?</ToneDialogTitle>
       <DialogContent>
         <Stack spacing={2}>

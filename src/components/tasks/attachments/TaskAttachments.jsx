@@ -31,6 +31,7 @@ import {
   filterAttachments,
 } from "../../../utils/attachment";
 import { validateAttachments } from "../../../utils/validation";
+import { useLatched } from "../../../hooks/useLatched";
 
 // the browser saves a Blob through a temporary link
 const saveFile = (blob, fileName) => {
@@ -62,7 +63,9 @@ const TaskAttachments = ({ project, taskId, canEdit, onChanged }) => {
   const [problem, setProblem] = useState(""); // files refused in the browser, or a failed download
   const [downloadingId, setDownloadingId] = useState(null);
   const [viewing, setViewing] = useState(null);
+  const shownViewing = useLatched(viewing);
   const [deleting, setDeleting] = useState(null);
+  const shownDeleting = useLatched(deleting);
   const upload = useSubmit(TASK_ERROR_MESSAGES);
   const remove = useSubmit(ATTACHMENT_ERROR_MESSAGES);
   const fileInput = useRef(null);
@@ -286,19 +289,21 @@ const TaskAttachments = ({ project, taskId, canEdit, onChanged }) => {
         )}
       </Collapse>
 
-      {viewing && (
+      {shownViewing && (
         <AttachmentViewer
-          attachment={viewing}
-          downloading={downloadingId === viewing.id}
-          onDownload={() => download(viewing)}
+          open={Boolean(viewing)}
+          attachment={shownViewing}
+          downloading={downloadingId === shownViewing.id}
+          onDownload={() => download(shownViewing)}
           onClose={() => setViewing(null)}
         />
       )}
 
-      {deleting && (
+      {shownDeleting && (
         <ConfirmDialog
+          open={Boolean(deleting)}
           title="Delete this attachment?"
-          message={`"${deleting.fileName}" will be removed from this task. This can't be undone.`}
+          message={`"${shownDeleting.fileName}" will be removed from this task. This can't be undone.`}
           confirmLabel="Delete attachment"
           tone="danger"
           loading={remove.submitting}

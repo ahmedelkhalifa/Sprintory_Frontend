@@ -24,6 +24,7 @@ import NameDialog from "../../components/workspace/NameDialog";
 import InviteDialog from "../../components/workspace/InviteDialog";
 import WorkspaceSettingsDialog from "../../components/workspace/WorkspaceSettingsDialog";
 import CreateProjectDialog from "../../components/projects/CreateProjectDialog";
+import { useLatched } from "../../hooks/useLatched";
 
 const columnSx = { display: "flex", flexDirection: "column", gap: 3, minWidth: 0 };
 const TEAMS_SHOWN = 5;
@@ -60,7 +61,9 @@ const WorkspacePage = () => {
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const shownSettingsOpen = useLatched(settingsOpen || null);
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+  const shownProjectDialog = useLatched(projectDialogOpen || null);
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
 
   const teams = useAsync((signal) => loadTeams(workspaceId, signal), [workspaceId], {
@@ -185,8 +188,9 @@ const WorkspacePage = () => {
       </Box>
 
       <InviteDialog open={inviteOpen} workspaceId={workspaceId} onClose={() => setInviteOpen(false)} />
-      {settingsOpen && (
+      {shownSettingsOpen && (
         <WorkspaceSettingsDialog
+          open={settingsOpen}
           workspace={workspace}
           onClose={() => setSettingsOpen(false)}
           onChanged={reloadWorkspace}
@@ -194,7 +198,7 @@ const WorkspacePage = () => {
         />
       )}
       {/* opens the new project once it's created */}
-      {projectDialogOpen && <CreateProjectDialog onClose={() => setProjectDialogOpen(false)} />}
+      {shownProjectDialog && <CreateProjectDialog open={projectDialogOpen} onClose={() => setProjectDialogOpen(false)} />}
       <NameDialog
         open={teamDialogOpen}
         title="Create team"

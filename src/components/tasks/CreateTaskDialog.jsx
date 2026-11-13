@@ -43,7 +43,7 @@ const createBody = (values) => ({
 // "Create task" window from the project page's Quick actions (EDIT_TASKS): title, type, priority, estimate,
 // assignee and description (rich text with @mentions; `description` holds richTextValue's string). Labels and the status are set later in the task's drawer.
 // `onCreated(task)` gets the TaskResponse.
-const CreateTaskDialog = ({ project, onClose, onCreated }) => {
+const CreateTaskDialog = ({ open = true, project, onClose, onCreated }) => {
   const [values, setValues] = useState(INITIAL_VALUES);
   const [errors, setErrors] = useState({});
   const submit = useSubmit(TASK_ERROR_MESSAGES);
@@ -84,7 +84,7 @@ const CreateTaskDialog = ({ project, onClose, onCreated }) => {
   });
 
   return (
-    <Dialog open onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
       <Box component="form" noValidate onSubmit={handleSubmit}>
         <DialogTitle sx={{ fontWeight: 700 }}>Create task</DialogTitle>
         <DialogContent>

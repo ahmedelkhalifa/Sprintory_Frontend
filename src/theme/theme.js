@@ -1,4 +1,19 @@
-import { createTheme } from "@mui/material/styles";
+import { createTheme, keyframes } from "@mui/material/styles";
+import Fade from "@mui/material/Fade";
+import { SHELL_EASE } from "./layout";
+import ZoomFromTrigger from "./ZoomFromTrigger";
+import { DIALOG_EXIT_MS, SPRING, pressable } from "./motion";
+
+// menus open from just under full size (MUI's Grow starts at 75%, which reads as a zoom); the scale's origin
+// is the trigger, which Popover sets on the paper. The fade comes from the Fade transition, also on close.
+const popIn = keyframes`
+  from { transform: scale(0.95); }
+  to { transform: none; }
+`;
+const POPOVER_MOTION = {
+  defaultProps: { slots: { transition: Fade }, transitionDuration: { enter: 180, exit: 120 } },
+  paper: { "@media (prefers-reduced-motion: no-preference)": { animation: `${popIn} 180ms ${SHELL_EASE}` } },
+};
 
 // The visual language is the category standard (Jira-like), see PRODUCT.md and DESIGN.md: a white work surface,
 // a light-gray sidebar, hairline borders, 3px corners, and one blue for actions, links, focus and selection.
@@ -119,15 +134,18 @@ const PALETTES = {
 
 const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
-// raised: a card that lifts (drag, hover); overlay: menus, popovers, dialogs. Cards at rest are flat with a hairline.
+// soft: cards at rest (a hairline plus a wide, faint shadow, so they sit just off the surface; theme.depth.soft);
+// raised: a card that lifts (drag); overlay: menus, popovers, dialogs
 const DEPTH = {
   light: {
     raised: "0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31)",
     overlay: "0 8px 12px rgba(9, 30, 66, 0.15), 0 0 1px rgba(9, 30, 66, 0.31)",
+    soft: "0 1px 2px rgba(9, 30, 66, 0.06), 0 4px 16px rgba(9, 30, 66, 0.06)",
   },
   dark: {
     raised: "0 1px 1px rgba(3, 4, 4, 0.5), 0 0 1px rgba(3, 4, 4, 0.5)",
     overlay: "0 0 0 1px #38414A, 0 8px 12px rgba(3, 4, 4, 0.36), 0 0 1px rgba(3, 4, 4, 0.5)",
+    soft: "0 1px 2px rgba(3, 4, 4, 0.4), 0 4px 16px rgba(3, 4, 4, 0.3)",
   },
 };
 
@@ -137,11 +155,12 @@ const TOOLTIP = { light: "#172B4D", dark: "#B6C2CF" };
 // the light / dark theme. `mode` is "light" or "dark" (ColorModeProvider picks it, "system" included)
 export const createAppTheme = (mode) => {
   const depth = DEPTH[mode];
-  // level 0 none, 1 flat (cards: border only), 2-7 raised, 8+ overlays
-  const shadows = ["none", "none", ...Array(6).fill(depth.raised), ...Array(17).fill(depth.overlay)];
+  // level 0 none, 1 cards at rest (soft), 2-7 raised, 8+ overlays
+  const shadows = ["none", depth.soft, ...Array(6).fill(depth.raised), ...Array(17).fill(depth.overlay)];
 
   return createTheme({
     palette: { mode, ...PALETTES[mode] },
+    depth,
 
     typography: {
       fontFamily: FONT,
@@ -195,11 +214,12 @@ export const createAppTheme = (mode) => {
             padding: "4px 12px",
             whiteSpace: "nowrap",
             // a slight press, so a click feels answered; MUI's own color transitions are kept
-            transition: `${theme.transitions.create(["background-color", "box-shadow", "border-color", "color"], {
-              duration: theme.transitions.duration.shortest,
-            })}, transform 160ms ease-out`,
-            "&:active": { transform: "scale(0.97)" },
-            "@media (prefers-reduced-motion: reduce)": { "&:active": { transform: "none" } },
+            ...pressable(
+              0.97,
+              theme.transitions.create(["background-color", "box-shadow", "border-color", "color"], {
+                duration: theme.transitions.duration.shortest,
+              }),
+            ),
             // the default button: neutral, hairline border (primary stays the filled blue one)
             "&.MuiButton-outlined.MuiButton-colorPrimary, &.MuiButton-outlined.MuiButton-colorInherit": {
               color: theme.palette.text.primary,
@@ -214,7 +234,20 @@ export const createAppTheme = (mode) => {
       },
       MuiIconButton: {
         styleOverrides: {
-          root: ({ theme }) => ({ borderRadius: theme.shape.borderRadius }),
+          // icons are small, so they press a little deeper than buttons
+          root: ({ theme }) => ({ borderRadius: theme.shape.borderRadius, ...pressable(0.92) }),
+        },
+      },
+      MuiToggleButton: {
+        styleOverrides: { root: pressable(0.96) },
+      },
+      MuiSwitch: {
+        styleOverrides: {
+          // the knob slides with a spring instead of MUI's quick linear-ish step
+          switchBase: {
+            transition: `left 150ms ease, transform 300ms ${SPRING.easing}`,
+            "@media (prefers-reduced-motion: reduce)": { transition: "none" },
+          },
         },
       },
       MuiPaper: {
@@ -222,6 +255,15 @@ export const createAppTheme = (mode) => {
           // MUI lightens dark-mode paper with a gradient; the palette already sets each surface
           root: { backgroundImage: "none" },
         },
+        // the app's cards are flat Papers (elevation 0) with a hairline border: they get the soft card shadow too.
+        // The shell's own surfaces (top bar, docked sidebar) and alerts opt out below.
+        variants: [{ props: { elevation: 0 }, style: { boxShadow: depth.soft } }],
+      },
+      MuiAppBar: {
+        styleOverrides: { root: { "&&": { boxShadow: "none" } } },
+      },
+      MuiDrawer: {
+        styleOverrides: { docked: { "& .MuiDrawer-paper": { boxShadow: "none" } } },
       },
       MuiCard: {
         defaultProps: { elevation: 1 },
@@ -231,11 +273,14 @@ export const createAppTheme = (mode) => {
       },
       MuiPopover: {
         // dropdowns open quickly and close faster
-        defaultProps: { transitionDuration: { enter: 180, exit: 120 } },
+        defaultProps: POPOVER_MOTION.defaultProps,
+        styleOverrides: { paper: POPOVER_MOTION.paper },
       },
       MuiMenu: {
-        defaultProps: { transitionDuration: { enter: 180, exit: 120 } },
+        // set here too: Menu hands its own (empty) transition slot to Popover
+        defaultProps: POPOVER_MOTION.defaultProps,
         styleOverrides: {
+          paper: POPOVER_MOTION.paper,
           list: { paddingTop: 4, paddingBottom: 4 },
         },
       },
@@ -261,7 +306,11 @@ export const createAppTheme = (mode) => {
       MuiChip: {
         styleOverrides: {
           // square-ish tags, not pills
-          root: ({ theme }) => ({ borderRadius: theme.shape.borderRadius, fontWeight: 500 }),
+          root: ({ theme }) => ({
+            borderRadius: theme.shape.borderRadius,
+            fontWeight: 500,
+            "&.MuiChip-clickable": pressable(0.96, "background-color 150ms ease, box-shadow 150ms ease"),
+          }),
           sizeSmall: { height: 22, fontSize: 12 },
         },
       },
@@ -282,11 +331,17 @@ export const createAppTheme = (mode) => {
       MuiTabs: {
         styleOverrides: {
           root: { minHeight: 40 },
+          // the underline glides to the new tab on a spring (MUI moves it with left / width, a 3px bar, so cheap)
+          indicator: {
+            transition: `left ${SPRING.duration}ms ${SPRING.easing}, width ${SPRING.duration}ms ${SPRING.easing}`,
+            "@media (prefers-reduced-motion: reduce)": { transition: "none" },
+          },
         },
       },
       MuiTab: {
         styleOverrides: {
-          root: { textTransform: "none", fontWeight: 500, minHeight: 40, fontSize: 14 },
+          // the label's color follows the underline instead of switching at once
+          root: { textTransform: "none", fontWeight: 500, minHeight: 40, fontSize: 14, transition: "color 150ms ease" },
         },
       },
       MuiTableCell: {
@@ -304,8 +359,14 @@ export const createAppTheme = (mode) => {
       },
       MuiAlert: {
         styleOverrides: {
-          root: { alignItems: "center" },
+          // an alert is a Paper too, but a message inside a page, not a card
+          root: { alignItems: "center", "&&": { boxShadow: "none" } },
         },
+      },
+      MuiDialog: {
+        // the paper grows out of the clicked button and goes back into it (ZoomFromTrigger); the fade and
+        // backdrop stay quick
+        defaultProps: { slots: { transition: ZoomFromTrigger }, transitionDuration: { enter: 220, exit: DIALOG_EXIT_MS } },
       },
       MuiDialogTitle: {
         styleOverrides: {
@@ -315,6 +376,8 @@ export const createAppTheme = (mode) => {
       MuiListItemButton: {
         styleOverrides: {
           root: ({ theme }) => ({
+            // nav rows are wide, so a very slight press
+            ...pressable(0.98),
             // active navigation item
             "&.Mui-selected": {
               backgroundColor: theme.palette.navActive.background,

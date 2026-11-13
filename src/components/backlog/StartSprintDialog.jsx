@@ -18,7 +18,7 @@ const dateInput = (days = 0) => {
 
 // "Start sprint" window: confirm the dates and goal; the sprint becomes active and shows on the board.
 // The backend needs a goal and at least one task (sprints-docs §2), so both are checked here first.
-const StartSprintDialog = ({ sprint, onClose, onStarted }) => {
+const StartSprintDialog = ({ open = true, sprint, onClose, onStarted }) => {
   const [values, setValues] = useState({
     startDate: sprint.startDate || dateInput(),
     // both ends count as sprint days
@@ -55,7 +55,7 @@ const StartSprintDialog = ({ sprint, onClose, onStarted }) => {
   };
 
   return (
-    <Dialog open onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
       <Box component="form" noValidate onSubmit={handleSubmit}>
         <DialogTitle sx={{ fontWeight: 700, pb: 0.5 }}>Start {sprint.name}</DialogTitle>
         <DialogContent>

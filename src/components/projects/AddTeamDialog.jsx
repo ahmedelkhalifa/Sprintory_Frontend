@@ -32,7 +32,7 @@ const ERRORS = {
 };
 
 // "Add team" window: pick one team of the workspace; everyone in it right now joins the project.
-const AddTeamDialog = ({ project, onClose, onAdded }) => {
+const AddTeamDialog = ({ open = true, project, onClose, onAdded }) => {
   const teams = usePagedList(
     (params, signal) => listTeams(project.workspaceId, params, signal),
     [project.workspaceId],
@@ -49,7 +49,7 @@ const AddTeamDialog = ({ project, onClose, onAdded }) => {
   const query = teams.search.trim();
 
   return (
-    <Dialog open onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontWeight: 700, pb: 0.5 }}>Add a team to {project.name}</DialogTitle>
       <DialogContent>
         <Stack spacing={1.5} sx={{ pt: 1 }}>

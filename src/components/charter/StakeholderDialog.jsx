@@ -53,7 +53,7 @@ const LevelField = ({ id, label, value, onChange }) => (
 
 // Add a stakeholder (`stakeholder` null) or edit one: a register entry for anyone with a stake in the project.
 // They don't need an account (a sponsor or client may never log in); a workspace member can be linked optionally.
-const StakeholderDialog = ({ projectId, workspaceId, stakeholder = null, onSaved, onClose }) => {
+const StakeholderDialog = ({ open = true, projectId, workspaceId, stakeholder = null, onSaved, onClose }) => {
   const adding = stakeholder === null;
   const [values, setValues] = useState(stakeholderValues(stakeholder));
   const [errors, setErrors] = useState({});
@@ -84,7 +84,7 @@ const StakeholderDialog = ({ projectId, workspaceId, stakeholder = null, onSaved
   };
 
   return (
-    <Dialog open onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
       <Box component="form" noValidate onSubmit={handleSubmit}>
         <DialogTitle sx={{ fontWeight: 700 }}>{adding ? "Add stakeholder" : "Edit stakeholder"}</DialogTitle>
         <DialogContent>

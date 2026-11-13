@@ -43,7 +43,7 @@ const daysText = (days) => (days === 1 ? "1 day left" : `${days} days left`);
 // (EARLY_CLOSE_CONFIRMATION_REQUIRED, the dates changed
 // meanwhile) the warning shows and the next press confirms. `onEnded(result)` gets { sprint, carriedOver, toSprint };
 // `onGone(text)` is for a sprint someone else ended meanwhile.
-const CompleteSprintDialog = ({ sprint, onClose, onEnded, onGone }) => {
+const CompleteSprintDialog = ({ open = true, sprint, onClose, onEnded, onGone }) => {
   const preview = useClosePreview(sprint.id, onGone);
   const [values, setValues] = useState({ goalAchieved: "", goalNote: "", destination: "backlog", plannedSprintId: "" });
   const [errors, setErrors] = useState({});
@@ -91,7 +91,7 @@ const CompleteSprintDialog = ({ sprint, onClose, onEnded, onGone }) => {
   };
 
   return (
-    <Dialog open onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
       <Box component="form" noValidate onSubmit={handleSubmit}>
         <DialogTitle sx={{ fontWeight: 700, pb: 0.5, overflowWrap: "anywhere" }}>Complete sprint: {sprint.name}</DialogTitle>
         <DialogContent>

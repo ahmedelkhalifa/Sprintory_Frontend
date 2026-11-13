@@ -1,4 +1,5 @@
 import { useEffect, useImperativeHandle, useRef, useState } from "react";
+import { useLatched } from "../../hooks/useLatched";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import { alpha } from "@mui/material/styles";
 import {
@@ -38,7 +39,7 @@ const TOOLS = [
 ];
 
 // "Insert link": http, https and mailto only (the backend refuses the rest); an empty address removes the link
-const LinkDialog = ({ initial, onApply, onClose }) => {
+const LinkDialog = ({ open = true, initial, onApply, onClose }) => {
   const [href, setHref] = useState(initial);
   const [error, setError] = useState("");
 
@@ -52,7 +53,7 @@ const LinkDialog = ({ initial, onApply, onClose }) => {
   };
 
   return (
-    <Dialog open onClose={onClose} maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
       <DialogTitle>Insert link</DialogTitle>
       <DialogContent>
         <TextField
@@ -110,6 +111,7 @@ const RichTextEditor = ({
   ariaLabel = "Text",
 }) => {
   const [link, setLink] = useState(null); // the link dialog's starting address while it is open
+  const shownLink = useLatched(link); // kept a moment after closing, so the window can play its close
   // the editor is created once (per project): it calls the latest callbacks through this ref
   const callbacks = useRef({ onChange, onSubmit });
   useEffect(() => {
@@ -230,7 +232,7 @@ const RichTextEditor = ({
       >
         <EditorContent editor={editor} />
       </Box>
-      {link !== null && <LinkDialog initial={link} onApply={applyLink} onClose={() => setLink(null)} />}
+      {shownLink !== null && <LinkDialog open={link !== null} initial={shownLink} onApply={applyLink} onClose={() => setLink(null)} />}
     </Paper>
   );
 };

@@ -9,7 +9,7 @@ const ProjectDescriptionCard = ({ project, canEdit, onEdit }) => (
     title="Description"
     toolbar={
       canEdit && (
-        <Button variant="outlined" startIcon={<EditOutlinedIcon />} onClick={onEdit}>
+        <Button variant="contained" startIcon={<EditOutlinedIcon />} onClick={onEdit}>
           Edit
         </Button>
       )

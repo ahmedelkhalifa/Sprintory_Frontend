@@ -28,6 +28,7 @@ import { rankInBacklog } from "../../api/tasksApi";
 import { deleteSprint, moveToSprint } from "../../api/sprintsApi";
 import { useAsync } from "../../hooks/useAsync";
 import { useSubmit } from "../../hooks/useSubmit";
+import { useLatched } from "../../hooks/useLatched";
 import { useTaskFilterMatches } from "../../hooks/useTaskFilterMatches";
 import { PERMISSIONS } from "../../constants/projects";
 import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
@@ -82,6 +83,7 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
   const [openTaskId, setOpenTaskId] = useState(null);
   // which window is open: create-sprint / edit-sprint / start-sprint / delete-sprint (+ sprint)
   const [dialog, setDialog] = useState(null);
+  const shownDialog = useLatched(dialog);
   // { text, severity }: "warning" for a move the user may not make, "error" for one the backend refused
   const [notice, setNotice] = useState(null);
   const [dragging, setDragging] = useState(null); // { taskId, fromSprintId }
@@ -390,23 +392,31 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
         />
       )}
 
-      {(dialog?.type === "create-sprint" || dialog?.type === "edit-sprint") && (
+      {/* rendered from `shownDialog` (kept a moment after closing, so the window can play its close) */}
+      {(shownDialog?.type === "create-sprint" || shownDialog?.type === "edit-sprint") && (
         <SprintDialog
+          open={dialog?.type === shownDialog.type}
           projectId={project.id}
-          sprint={dialog.sprint}
+          sprint={shownDialog.sprint}
           members={data.members}
           onClose={closeDialog}
           onSaved={afterChange}
         />
       )}
-      {dialog?.type === "start-sprint" && (
-        <StartSprintDialog sprint={dialog.sprint} onClose={closeDialog} onStarted={afterChange} />
+      {shownDialog?.type === "start-sprint" && (
+        <StartSprintDialog
+          open={dialog?.type === "start-sprint"}
+          sprint={shownDialog.sprint}
+          onClose={closeDialog}
+          onStarted={afterChange}
+        />
       )}
-      {dialog?.type === "delete-sprint" && (
+      {shownDialog?.type === "delete-sprint" && (
         <ConfirmDialog
-          title={`Delete ${dialog.sprint.name}?`}
+          open={dialog?.type === "delete-sprint"}
+          title={`Delete ${shownDialog.sprint.name}?`}
           message={
-            dialog.sprint.tasks.length > 0
+            shownDialog.sprint.tasks.length > 0
               ? "Its tasks go back to their places in the backlog. The tasks themselves are kept."
               : "This empty sprint will be removed."
           }

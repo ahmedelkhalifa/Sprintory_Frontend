@@ -15,6 +15,7 @@ import EditProjectDialog from "../../components/projects/EditProjectDialog";
 import ProjectStatusDialog from "../../components/projects/ProjectStatusDialog";
 import { listProjects } from "../../api/projectsApi";
 import { usePagedList } from "../../hooks/usePagedList";
+import { useLatched } from "../../hooks/useLatched";
 import { useMembersPreview, useProjectTabCounts } from "../../hooks/useProjectsOverview";
 import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { isWorkspaceArchived } from "../../utils/workspace";
@@ -38,6 +39,8 @@ const ProjectsPage = () => {
   const [tab, setTab] = useState(ALL_PROJECTS);
   // which window is open: { type: "create" } or { type: "edit" | "archive" | "restore" | "delete", project }
   const [dialog, setDialog] = useState(null);
+  // the windows render from this (kept a moment after closing, so they can play their close)
+  const shown = useLatched(dialog);
   // bumped after every change, so the tab counts are fetched again
   const [version, setVersion] = useState(0);
   const readOnly = isWorkspaceArchived(workspace);
@@ -122,10 +125,18 @@ const ProjectsPage = () => {
         </LoadState>
       </SectionCard>
 
-      {dialog?.type === "create" && <CreateProjectDialog onClose={closeDialog} />}
-      {dialog?.type === "edit" && <EditProjectDialog project={dialog.project} onClose={closeDialog} onSaved={afterChange} />}
-      {["archive", "restore", "delete"].includes(dialog?.type) && (
-        <ProjectStatusDialog action={dialog.type} project={dialog.project} onClose={closeDialog} onDone={afterChange} />
+      {shown?.type === "create" && <CreateProjectDialog open={dialog?.type === "create"} onClose={closeDialog} />}
+      {shown?.type === "edit" && (
+        <EditProjectDialog open={dialog?.type === "edit"} project={shown.project} onClose={closeDialog} onSaved={afterChange} />
+      )}
+      {["archive", "restore", "delete"].includes(shown?.type) && (
+        <ProjectStatusDialog
+          open={dialog?.type === shown.type}
+          action={shown.type}
+          project={shown.project}
+          onClose={closeDialog}
+          onDone={afterChange}
+        />
       )}
     </PageLayout>
   );

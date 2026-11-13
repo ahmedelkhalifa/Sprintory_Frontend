@@ -15,7 +15,7 @@ const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
 
 // "Create project" window: name, key, template and an optional description. The key is suggested from the name
 // until the user types their own. The creator becomes the project's Project Manager, and on success we open it.
-const CreateProjectDialog = ({ onClose }) => {
+const CreateProjectDialog = ({ open = true, onClose }) => {
   const navigate = useNavigate();
   const { workspace } = useWorkspaceAccess();
   const [values, setValues] = useState({ name: "", key: "", description: "" });
@@ -67,7 +67,7 @@ const CreateProjectDialog = ({ onClose }) => {
   };
 
   return (
-    <Dialog open onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
       <Box component="form" noValidate onSubmit={handleSubmit}>
         <DialogTitle sx={{ fontWeight: 700, pb: 0.5 }}>Create project</DialogTitle>
         <DialogContent>

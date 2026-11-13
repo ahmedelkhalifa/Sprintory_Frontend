@@ -15,6 +15,7 @@ import { errorMessage } from "../../utils/apiError";
 import { deletedComment, mergeComments } from "../../utils/comment";
 import { formatDate, timeAgo } from "../../utils/format";
 import { isRichTextError, richTextValue } from "../../utils/richText";
+import { useLatched } from "../../hooks/useLatched";
 
 const PAGE_SIZE = 20;
 // "Comment not found." after someone else deleted it meanwhile
@@ -155,6 +156,7 @@ const TaskComments = ({ project, taskId, members, canComment }) => {
   const [local, setLocal] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const shownDeleting = useLatched(deleting);
   const remove = useSubmit(COMMENT_MESSAGES);
 
   if (!first.data) return <LoadState loading={!first.error} error={first.error} onRetry={first.reload} rows={2} />;
@@ -254,8 +256,9 @@ const TaskComments = ({ project, taskId, members, canComment }) => {
 
       {canComment && <CommentForm projectId={project.id} saveLabel="Comment" onSave={post} />}
 
-      {deleting && (
+      {shownDeleting && (
         <ConfirmDialog
+          open={Boolean(deleting)}
           title="Delete this comment?"
           message="It will show as “Comment deleted” for everyone."
           confirmLabel="Delete comment"

@@ -7,5 +7,5 @@ export const SIDEBAR_RAIL_WIDTH = 64;
 // widest a page's content gets; below it, content fills the space (and grows when the sidebar collapses)
 export const PAGE_MAX_WIDTH = 1600;
 
-// strong ease-out for the shell's own motion (the sidebar opening and closing)
+// strong ease-out for the app's motion (the sidebar opening and closing, menus opening)
 export const SHELL_EASE = "cubic-bezier(0.23, 1, 0.32, 1)";
