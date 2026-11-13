@@ -43,6 +43,7 @@ import {
   projectLabels,
 } from "../../utils/task";
 import { EMPTY_TASK_FILTERS, hasTaskFilters } from "../../utils/taskFilters";
+import { LOADING_DELAY_SX, reveal, revealChildren } from "../../theme/motion";
 
 // why a drop was refused, by the permission it needed
 const NOT_ALLOWED = {
@@ -161,7 +162,7 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
 
   if (!state) {
     return (
-      <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2, ...LOADING_DELAY_SX }}>
         <LoadState loading={!backlogState.error} error={backlogState.error} onRetry={backlogState.reload} rows={6} />
       </Paper>
     );
@@ -259,34 +260,37 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
     if (ok) afterChange();
   };
 
+  // the filters come in first, then each sprint box and the backlog, one after another (once, when it arrives)
   return (
     <Box>
-      <TaskFilterBar
-        filters={filters}
-        onChange={onFiltersChange}
-        members={data.members}
-        columns={data.columns}
-        labels={projectLabels(state.tasks)}
-        match={match}
-        shown={keep(state.tasks).length}
-        total={state.tasks.length}
-        actions={
-          (canPlan || (canEditTasks && onCreateTask)) && (
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-              {canPlan && (
-                <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setDialog({ type: "create-sprint" })}>
-                  Create sprint
-                </Button>
-              )}
-              {canEditTasks && onCreateTask && (
-                <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
-                  Create task
-                </Button>
-              )}
-            </Box>
-          )
-        }
-      />
+      <Box sx={reveal(0)}>
+        <TaskFilterBar
+          filters={filters}
+          onChange={onFiltersChange}
+          members={data.members}
+          columns={data.columns}
+          labels={projectLabels(state.tasks)}
+          match={match}
+          shown={keep(state.tasks).length}
+          total={state.tasks.length}
+          actions={
+            (canPlan || (canEditTasks && onCreateTask)) && (
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                {canPlan && (
+                  <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setDialog({ type: "create-sprint" })}>
+                    Create sprint
+                  </Button>
+                )}
+                {canEditTasks && onCreateTask && (
+                  <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
+                    Create task
+                  </Button>
+                )}
+              </Box>
+            )
+          }
+        />
+      </Box>
 
       <DndContext
         sensors={sensors}
@@ -296,7 +300,7 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <Stack spacing={2.5}>
+        <Stack spacing={2.5} sx={revealChildren(1)}>
           {view.sprints.map((sprint) => (
             <TaskList
               key={sprint.id}

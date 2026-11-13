@@ -11,6 +11,7 @@ import { SPRINT_STATUS, TASK_ERROR_MESSAGES } from "../../constants/tasks";
 import { formatDate } from "../../utils/format";
 import { can } from "../../utils/project";
 import { formatEstimate } from "../../utils/task";
+import { LOADING_DELAY_SX, revealChildren } from "../../theme/motion";
 
 const plural = (count, noun) => `${count} ${noun}${count === 1 ? "" : "s"}`;
 
@@ -88,7 +89,7 @@ const SprintsTab = ({ project, onOpenBacklog }) => {
 
   if (!state.data) {
     return (
-      <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2, ...LOADING_DELAY_SX }}>
         <LoadState loading={!state.error} error={state.error} onRetry={state.reload} rows={4} />
       </Paper>
     );
@@ -99,8 +100,9 @@ const SprintsTab = ({ project, onOpenBacklog }) => {
   const planned = sprints.filter((sprint) => sprint.status === "PLANNED");
   const inActive = active && new Set(active.taskIds);
 
+  // the current sprint, then the planned ones (once, when they arrive)
   return (
-    <Stack spacing={4}>
+    <Stack spacing={4} sx={revealChildren(0)}>
       <Section title="Current sprint">
         {active ? (
           <CurrentSprint

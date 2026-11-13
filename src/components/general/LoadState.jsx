@@ -1,4 +1,5 @@
 import { Alert, Box, Button, Skeleton, Stack, Typography } from "@mui/material";
+import { LOADING_DELAY_SX } from "../../theme/motion";
 
 // the empty message fades in where the skeleton was instead of popping; reduced motion shows it at once
 const settleSx = {
@@ -12,7 +13,8 @@ const settleSx = {
 const LoadState = ({ loading, error, onRetry, isEmpty, emptyMessage = "Nothing here yet.", rows = 4, children }) => {
   if (loading) {
     return (
-      <Stack spacing={1.5} sx={{ p: { xs: 2, sm: 3 } }} aria-busy="true">
+      // shows only if loading takes more than 200ms (a quick load never flashes it)
+      <Stack spacing={1.5} sx={{ p: { xs: 2, sm: 3 }, ...LOADING_DELAY_SX }} aria-busy="true">
         {Array.from({ length: rows }, (_, i) => (
           <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 2 }}>
             <Skeleton variant="rounded" width={40} height={40} />

@@ -22,6 +22,7 @@ import { canOpenProjectChat } from "../../utils/chat";
 import { projectSettingsPath } from "../../utils/project";
 import { useProjectAccess, useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { useProjectPage } from "../../hooks/useProjectPage";
+import { LOADING_DELAY_SX, reveal, revealChildren } from "../../theme/motion";
 
 // The project page's tabs, one route each (see App.jsx), rendered inside ProjectPage's layout.
 // Only the tab's own content mounts and unmounts when the tab changes; what they share comes from useProjectPage().
@@ -36,89 +37,98 @@ export const ProjectOverviewPage = () => {
   const member = canOpenProjectChat(project);
   const charter = useCharter(project, { writable: page.writable, enabled: member });
   const { charter: data, goals, editable } = charter;
+  // ready once the charter has loaded or failed (or straight away for someone who can't see it)
+  const charterReady = !member || Boolean(data) || Boolean(charter.state.error);
 
   return (
     <Stack spacing={3}>
       <ProjectStats project={project} taskVersion={page.taskVersion} />
-      {charter.readOnlyReason && (
-        <Alert severity="info" icon={<LockOutlinedIcon fontSize="inherit" />}>
-          {charter.readOnlyReason} You can read the charter.
-        </Alert>
-      )}
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 2fr) minmax(0, 1fr)" },
-          gap: 3,
-          alignItems: "start",
-        }}
-      >
-        <Stack spacing={3} sx={{ minWidth: 0 }}>
-          <ProjectDescriptionCard
-            project={project}
-            canEdit={page.canEdit}
-            onEdit={() => page.openDialog({ type: "edit" })}
-          />
-          {member && !data && (
-            <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2 }}>
-              <LoadState
-                loading={!charter.state.error}
-                error={charter.state.error}
-                onRetry={charter.state.reload}
-                rows={4}
-              />
-            </Paper>
-          )}
-          {data && (
-            <>
-              <CharterGoals
-                project={project}
-                goals={goals}
-                editable={editable}
-                reordering={charter.reordering}
-                onReorder={charter.reorder}
-                onChanged={charter.afterChange}
-                onNotice={charter.showNotice}
-              />
-              <CharterScope
-                project={project}
-                charter={data}
-                editable={editable}
-                onSaved={charter.afterChange}
-                onNotice={charter.showNotice}
-              />
-            </>
-          )}
-        </Stack>
-        <Stack spacing={3}>
-          <ProjectDetailsCard
-            project={project}
-            workspace={workspace}
-            canEdit={page.canEdit}
-            onEdit={() => page.openDialog({ type: "edit" })}
-          />
-          <ProjectMembersCard
-            project={project}
-            preview={page.preview}
-            loading={!page.preview}
-            canManage={page.canManage}
-            onSeeAll={() => page.goToSettings("people")}
-            onAdd={() => page.openDialog({ type: "add-people" })}
-          />
-        </Stack>
-      </Box>
-
-      {data && (
+      {/* the rest waits for the charter (members only), so the description, goals and scope arrive together
+          instead of the column growing under the reader; a slow charter shows a skeleton after 200ms */}
+      {!charterReady ? (
+        <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2, ...LOADING_DELAY_SX }}>
+          <LoadState loading rows={4} />
+        </Paper>
+      ) : (
         <>
-          <CharterStakeholders
-            project={project}
-            workspace={workspace}
-            stakeholders={data.stakeholders ?? []}
-            editable={editable}
-            onChanged={charter.state.reload}
-            onNotice={charter.showNotice}
-          />
-          <CharterHistory project={project} goals={goals} version={charter.historyVersion} />
+          {charter.readOnlyReason && (
+            <Alert severity="info" icon={<LockOutlinedIcon fontSize="inherit" />} sx={reveal(1)}>
+              {charter.readOnlyReason} You can read the charter.
+            </Alert>
+          )}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 2fr) minmax(0, 1fr)" },
+              gap: 3,
+              alignItems: "start",
+            }}
+          >
+            {/* the cards come in one after another, the main column a step ahead of the side one */}
+            <Stack spacing={3} sx={{ minWidth: 0, ...revealChildren(1) }}>
+              <ProjectDescriptionCard
+                project={project}
+                canEdit={page.canEdit}
+                onEdit={() => page.openDialog({ type: "edit" })}
+              />
+              {/* the charter couldn't load: its error and Try again, under the description */}
+              {member && !data && (
+                <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2 }}>
+                  <LoadState error={charter.state.error} onRetry={charter.state.reload} />
+                </Paper>
+              )}
+              {data && (
+                <CharterGoals
+                  project={project}
+                  goals={goals}
+                  editable={editable}
+                  reordering={charter.reordering}
+                  onReorder={charter.reorder}
+                  onChanged={charter.afterChange}
+                  onNotice={charter.showNotice}
+                />
+              )}
+              {data && (
+                <CharterScope
+                  project={project}
+                  charter={data}
+                  editable={editable}
+                  onSaved={charter.afterChange}
+                  onNotice={charter.showNotice}
+                />
+              )}
+            </Stack>
+            <Stack spacing={3} sx={revealChildren(2)}>
+              <ProjectDetailsCard
+                project={project}
+                workspace={workspace}
+                canEdit={page.canEdit}
+                onEdit={() => page.openDialog({ type: "edit" })}
+              />
+              <ProjectMembersCard
+                project={project}
+                preview={page.preview}
+                loading={!page.preview}
+                canManage={page.canManage}
+                onSeeAll={() => page.goToSettings("people")}
+                onAdd={() => page.openDialog({ type: "add-people" })}
+              />
+            </Stack>
+          </Box>
+
+          {data && (
+            <Stack spacing={3} sx={revealChildren(4)}>
+              <CharterStakeholders
+                project={project}
+                workspace={workspace}
+                stakeholders={data.stakeholders ?? []}
+                editable={editable}
+                onChanged={charter.state.reload}
+                onNotice={charter.showNotice}
+              />
+              <CharterHistory project={project} goals={goals} version={charter.historyVersion} />
+            </Stack>
+          )}
         </>
       )}
 

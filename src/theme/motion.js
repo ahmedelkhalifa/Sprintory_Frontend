@@ -62,6 +62,42 @@ export const slideIn = (dx) => ({
   "@media (prefers-reduced-motion: reduce)": { animation: `${fadeInKeyframes} 150ms ${EASE_OUT}` },
 });
 
+// Loaded content arriving in blocks, one after another: each block fades in and rises 6px, 40ms after the one
+// before. Only for whole sections (a column, a sprint box, a card), never for every row. It plays when the block
+// mounts, so a reload that keeps the content on screen doesn't replay it. `backwards` holds the block hidden
+// during its delay and leaves nothing behind once it's done. Reduced motion: a plain fade, all at once.
+const riseInKeyframes = keyframes`
+  from { opacity: 0; transform: translateY(6px); }
+`;
+const STAGGER_STEP = 40;
+const REVEAL_MS = 250;
+const REDUCED_FADE = { animation: `${fadeInKeyframes} 150ms ${EASE_OUT}` };
+const riseIn = (delay) => `${riseInKeyframes} ${REVEAL_MS}ms ${EASE_OUT} ${delay}ms backwards`;
+
+// one block, `order` places it in the sequence (0 = first)
+export const reveal = (order = 0) => ({
+  "@media (prefers-reduced-motion: no-preference)": { animation: riseIn(order * STAGGER_STEP) },
+  "@media (prefers-reduced-motion: reduce)": REDUCED_FADE,
+});
+
+// a container whose direct children are the blocks, starting at `start` in the sequence; after `max` blocks the
+// rest come in together, so a long list doesn't trail behind
+export const revealChildren = (start = 0, max = 6) => {
+  const delays = {};
+  for (let n = 2; n <= max; n += 1) {
+    delays[`& > :nth-child(${n})`] = { animationDelay: `${(start + n - 1) * STAGGER_STEP}ms` };
+  }
+  delays[`& > :nth-child(n + ${max + 1})`] = { animationDelay: `${(start + max) * STAGGER_STEP}ms` };
+  return {
+    "@media (prefers-reduced-motion: no-preference)": { "& > *": { animation: riseIn(start * STAGGER_STEP) }, ...delays },
+    "@media (prefers-reduced-motion: reduce)": { "& > *": REDUCED_FADE },
+  };
+};
+
+// a loading placeholder (skeleton) only shows if loading takes more than 200ms, so a quick load goes straight
+// from nothing to the content instead of flashing a skeleton first
+export const LOADING_DELAY_SX = { animation: `${fadeInKeyframes} 150ms ${EASE_OUT} 200ms backwards` };
+
 export const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 

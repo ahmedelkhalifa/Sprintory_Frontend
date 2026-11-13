@@ -4,6 +4,7 @@ import { useAsync } from "../../../hooks/useAsync";
 import { boardSummary, share } from "../../../utils/myWork";
 import StageBar from "../../tasks/StageBar";
 import { TASK_STAGES } from "../../../constants/tasks";
+import { LOADING_DELAY_SX, revealChildren } from "../../../theme/motion";
 
 const cardSx = {
   display: "flex",
@@ -71,9 +72,16 @@ const ProjectStats = ({ project, taskVersion }) => {
       );
     }
     return (
-      <Box sx={gridSx}>
+      <Box sx={{ ...gridSx, ...LOADING_DELAY_SX }}>
+        {/* the real card with placeholder text, so nothing under it moves when the numbers arrive */}
         {[0, 1, 2, 3].map((i) => (
-          <Skeleton key={i} variant="rounded" height={118} />
+          <StatCard
+            key={i}
+            label={<Skeleton width="45%" />}
+            value={<Skeleton width={56} />}
+            caption={<Skeleton width="65%" />}
+            bar={<Skeleton variant="rounded" height={6} />}
+          />
         ))}
       </Box>
     );
@@ -82,8 +90,9 @@ const ProjectStats = ({ project, taskVersion }) => {
   const board = boardSummary(state.data.columns);
   const empty = board.total === 0;
 
+  // the four cards come in one after another, left to right
   return (
-    <Box sx={gridSx}>
+    <Box sx={{ ...gridSx, ...revealChildren(0) }}>
       <StatCard
         label="Total tasks"
         value={board.total}

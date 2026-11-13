@@ -33,6 +33,7 @@ import { boardMove, groupByColumn, wipWarningText } from "../../utils/board";
 import { sprintEndedText, sprintPath } from "../../utils/sprint";
 import { needsSubtaskConfirmation, projectLabels, taskStage } from "../../utils/task";
 import { EMPTY_TASK_FILTERS } from "../../utils/taskFilters";
+import { LOADING_DELAY_SX, reveal, revealChildren } from "../../theme/motion";
 
 // Scrum without an active sprint: nothing to work on yet, the sprint is started from the backlog.
 // `onOpenSettings` (people who configure the board) links to the columns in Settings, which work without a sprint
@@ -151,7 +152,7 @@ const BoardTab = ({
 
   if (!data) {
     return (
-      <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2, ...LOADING_DELAY_SX }}>
         <LoadState loading={!boardState.error} error={boardState.error} onRetry={boardState.reload} rows={6} />
       </Paper>
     );
@@ -288,48 +289,51 @@ const BoardTab = ({
     reload();
   };
 
+  // the header and filters come in first, then the columns from left to right (once, when the board arrives)
   return (
     <Box>
-      {sprint && (
-        <SprintBoardHeader
-          sprint={sprint}
-          tasks={tasks}
+      <Box sx={reveal(0)}>
+        {sprint && (
+          <SprintBoardHeader
+            sprint={sprint}
+            tasks={tasks}
+            columns={columns}
+            overdue={data.board.activeSprint?.overdue}
+            canComplete={canComplete}
+            canCancel={canCancel}
+            onCompleteSprint={() => setEnding("complete")}
+            onCancelSprint={() => setEnding("cancel")}
+          />
+        )}
+
+        <TaskFilterBar
+          filters={filters}
+          onChange={onFiltersChange}
+          members={members}
           columns={columns}
-          overdue={data.board.activeSprint?.overdue}
-          canComplete={canComplete}
-          canCancel={canCancel}
-          onCompleteSprint={() => setEnding("complete")}
-          onCancelSprint={() => setEnding("cancel")}
+          labels={projectLabels(allTasks)}
+          match={match}
+          shown={visible.length}
+          total={tasks.length}
+          // Kanban has no backlog page: new tasks start in the board's first column. The button (on the filter
+          // row's right, like the Backlog's) opens the full window, the bar below adds one by title
+          actions={
+            !scrum &&
+            canMove &&
+            onCreateTask && (
+              <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
+                Create task
+              </Button>
+            )
+          }
         />
-      )}
 
-      <TaskFilterBar
-        filters={filters}
-        onChange={onFiltersChange}
-        members={members}
-        columns={columns}
-        labels={projectLabels(allTasks)}
-        match={match}
-        shown={visible.length}
-        total={tasks.length}
-        // Kanban has no backlog page: new tasks start in the board's first column. The button (on the filter
-        // row's right, like the Backlog's) opens the full window, the bar below adds one by title
-        actions={
-          !scrum &&
-          canMove &&
-          onCreateTask && (
-            <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
-              Create task
-            </Button>
-          )
-        }
-      />
-
-      {!scrum && canMove && (
-        <Paper elevation={0} sx={{ mb: 2.5, border: 1, borderColor: "divider", borderRadius: 2, boxShadow: 1 }}>
-          <QuickAddTask projectId={project.id} onCreated={reload} />
-        </Paper>
-      )}
+        {!scrum && canMove && (
+          <Paper elevation={0} sx={{ mb: 2.5, border: 1, borderColor: "divider", borderRadius: 2, boxShadow: 1 }}>
+            <QuickAddTask projectId={project.id} onCreated={reload} />
+          </Paper>
+        )}
+      </Box>
 
       <DndContext
         sensors={sensors}
@@ -340,7 +344,7 @@ const BoardTab = ({
         onDragCancel={handleDragCancel}
       >
         {/* the columns keep their width and the board scrolls sideways when they don't fit */}
-        <Box sx={{ display: "flex", alignItems: "stretch", gap: 2, overflowX: "auto", pb: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "stretch", gap: 2, overflowX: "auto", pb: 1, ...revealChildren(1) }}>
           {shownBoard.map((column, index) => (
             <BoardColumn
               key={column.id}
