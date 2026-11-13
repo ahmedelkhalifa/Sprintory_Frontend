@@ -4,6 +4,7 @@ import { Box, Paper, Typography } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
 import { listId, rowId } from "../tasks/dnd";
+import { hoverTransition } from "../../theme/motion";
 
 // Card for one list (a sprint or the backlog): a tinted header, an optional white `toolbar` (e.g. quick add),
 // then the white rows, which accept dropped tasks. `highlight` marks it as the place a dragged task will land.
@@ -32,7 +33,7 @@ const TaskList = ({
         boxShadow: highlight ? `0 0 0 3px ${alpha(theme.palette.primary.main, 0.15)}` : 1,
         borderRadius: 2,
         overflow: "hidden",
-        transition: "border-color 0.15s, box-shadow 0.15s",
+        transition: hoverTransition("border-color", "box-shadow"),
       })}
     >
       {/* a faint slate tint from the text color, so it stays neutral next to the white rows */}
@@ -56,7 +57,7 @@ const TaskList = ({
                   borderColor: highlight ? "primary.main" : "divider",
                   borderRadius: 1.5,
                   bgcolor: highlight ? "action.hover" : "transparent",
-                  transition: "border-color 0.15s, background-color 0.15s",
+                  transition: hoverTransition("border-color", "background-color"),
                 }}
               >
                 <InboxOutlinedIcon sx={{ fontSize: 32, color: "text.disabled" }} />

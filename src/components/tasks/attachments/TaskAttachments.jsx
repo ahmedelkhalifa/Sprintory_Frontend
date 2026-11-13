@@ -32,6 +32,7 @@ import {
 } from "../../../utils/attachment";
 import { validateAttachments } from "../../../utils/validation";
 import { useLatched } from "../../../hooks/useLatched";
+import { EASE_OUT, HOVER_MS, pressable } from "../../../theme/motion";
 
 // the browser saves a Blob through a temporary link
 const saveFile = (blob, fileName) => {
@@ -160,7 +161,7 @@ const TaskAttachments = ({ project, taskId, canEdit, onChanged }) => {
             onClick={() => setOpen((prev) => !prev)}
             sx={{ ml: -0.5 }}
           >
-            <ExpandMoreIcon fontSize="small" sx={{ transform: open ? "none" : "rotate(-90deg)", transition: "transform 150ms" }} />
+            <ExpandMoreIcon fontSize="small" sx={{ transform: open ? "none" : "rotate(-90deg)", transition: `transform ${HOVER_MS}ms ${EASE_OUT}` }} />
           </IconButton>
           <Typography sx={{ fontWeight: 600 }}>Attachments</Typography>
           {attachments.length > 0 && (
@@ -256,6 +257,7 @@ const TaskAttachments = ({ project, taskId, canEdit, onChanged }) => {
                 borderStyle: "dashed",
                 borderColor: "divider",
                 borderRadius: 2,
+                ...pressable(0.98),
               }}
             >
               <Typography variant="body2">

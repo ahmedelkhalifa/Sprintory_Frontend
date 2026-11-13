@@ -51,6 +51,7 @@ import {
 import { validateTask } from "../../utils/validation";
 import { isWorkspaceArchived } from "../../utils/workspace";
 import { useLatched } from "../../hooks/useLatched";
+import { LOADING_DELAY_SX, revealChildren } from "../../theme/motion";
 
 // The loaded task and its fields. Every change is saved at once, like in Jira: one field at a time (useFieldSave
 // with validateTask and taskChanges: only what changed, clear flags for emptied fields). Under the description
@@ -148,12 +149,14 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
         </Alert>
       )}
 
+      {/* the main column arrives, then the side one */}
       <Box
         sx={{
           display: "grid",
           gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 1fr) 380px" },
           gap: 4,
           alignItems: "start",
+          ...revealChildren(0),
         }}
       >
         {/* left: the title, the description, the attachments, the subtasks and the activity */}
@@ -376,7 +379,7 @@ const TaskPage = () => {
           canEdit={canEdit}
         />
       ) : (
-        <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2 }}>
+        <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2, ...LOADING_DELAY_SX }}>
           <LoadState loading={!state.error} error={state.error} onRetry={state.reload} rows={6} />
         </Paper>
       )}

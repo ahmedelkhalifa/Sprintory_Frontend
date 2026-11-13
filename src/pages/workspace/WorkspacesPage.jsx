@@ -10,12 +10,14 @@ import NameDialog from "../../components/workspace/NameDialog";
 import WorkspaceSettingsDialog from "../../components/workspace/WorkspaceSettingsDialog";
 import { PAGE_MAX_WIDTH } from "../../theme/layout";
 import { useLatched } from "../../hooks/useLatched";
+import { pressableCard, revealChildren } from "../../theme/motion";
 
 const WorkspaceCard = ({ workspace, onOpen, onSettings }) => {
   const isAdmin = isWorkspaceAdmin(workspace);
 
   return (
-    <Card variant="outlined" sx={{ position: "relative" }}>
+    // the whole card presses with its main area (not with the settings button)
+    <Card variant="outlined" sx={{ position: "relative", ...pressableCard(".MuiCardActionArea-root") }}>
       <CardActionArea onClick={onOpen} sx={{ p: 2.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, pr: isAdmin ? 5 : 0 }}>
           <Box
@@ -69,7 +71,15 @@ const WorkspacesPage = () => {
   const archived = workspaces.filter(isWorkspaceArchived);
 
   const grid = (list) => (
-    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", xl: "repeat(3, 1fr)" }, gap: 2 }}>
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", xl: "repeat(3, 1fr)" },
+        gap: 2,
+        // the cards come in one after another
+        ...revealChildren(0),
+      }}
+    >
       {list.map((w) => (
         <WorkspaceCard
           key={w.id}

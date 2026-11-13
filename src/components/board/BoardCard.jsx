@@ -11,10 +11,12 @@ import { carriedOverLabel } from "../../utils/sprint";
 import { formatEstimate, subtaskProgress } from "../../utils/task";
 import { memberLabel } from "../../utils/people";
 import { rowId } from "../tasks/dnd";
+import { hoverTransition, lifted } from "../../theme/motion";
 
 // the visible card: used in the columns and as the picture that follows the pointer while dragging.
 // `task` comes from describeTasks (utils/task.js), so it has its `assignee`
-export const BoardCardContent = ({ task, raised = false, draggable = false }) => {
+// `raised`: the dragged copy (`lift` false for a keyboard drag, which doesn't animate)
+export const BoardCardContent = ({ task, raised = false, lift = true, draggable = false }) => {
   const type = TASK_TYPES[task.type] ?? TASK_TYPES.TASK;
   const priority = TASK_PRIORITIES[task.priority] ?? TASK_PRIORITIES.MEDIUM;
   const estimate = formatEstimate(task.estimate);
@@ -31,10 +33,11 @@ export const BoardCardContent = ({ task, raised = false, draggable = false }) =>
         border: 1,
         borderColor: raised ? "primary.light" : "divider",
         borderRadius: 1.5,
-        boxShadow: raised ? 4 : 1,
+        boxShadow: 1,
         cursor: draggable ? "grab" : "pointer",
-        transition: "box-shadow 0.15s, border-color 0.15s",
+        transition: hoverTransition("border-color"),
         "&:hover": { borderColor: "primary.light" },
+        ...(raised && lifted(1.03, lift)),
       }}
     >
       <Typography

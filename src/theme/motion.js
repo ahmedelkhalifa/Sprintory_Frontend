@@ -35,14 +35,32 @@ export const EASE_IN_OUT = "cubic-bezier(0.65, 0, 0.35, 1)";
 
 // how long a dialog takes to close (its fade and its way back into the button)
 export const DIALOG_EXIT_MS = 220;
+// how long a drawer takes to slide back out (useLatched's default keeps it mounted long enough)
+export const SHEET_EXIT_MS = DIALOG_EXIT_MS;
+// how long a snackbar takes to leave (it arrives on SPRING)
+export const SNACKBAR_EXIT_MS = 150;
+
+// How hover / selection colors change, the same everywhere: `hoverTransition("border-color", "background-color")`
+// for an sx `transition` (backgrounds, borders, text, a revealed control's opacity).
+export const HOVER_MS = 150;
+export const hoverTransition = (...properties) => properties.map((p) => `${p} ${HOVER_MS}ms ease`).join(", ");
 
 // Press feedback for anything clickable, Apple-style, as sx / style-override styles: the press shows at once
 // (80ms) and the release springs back with a hint of give. `colors` is the control's own color transition, kept
 // next to the transform (a `transition` in sx would otherwise drop the spring). Reduced motion: no scale.
-export const pressable = (scale, colors = "background-color 150ms ease") => ({
+// The scale: 0.97 buttons, 0.92 icon buttons, 0.96 small controls, 0.98 rows and cards.
+export const pressable = (scale, colors = hoverTransition("background-color")) => ({
   transition: `${colors}, transform ${SPRING_BOUNCY.duration}ms ${SPRING_BOUNCY.easing}`,
   "&:active": { transform: `scale(${scale})`, transition: `${colors}, transform 80ms ${EASE_OUT}` },
   "@media (prefers-reduced-motion: reduce)": { "&:active": { transform: "none" } },
+});
+
+// The same press for a card whose clickable part is inside it (`pressed`, a selector of a direct child), so the
+// whole card presses with it, but not when one of its other buttons (a "..." menu) is pressed.
+export const pressableCard = (pressed, scale = 0.98, colors = hoverTransition("border-color")) => ({
+  transition: `${colors}, transform ${SPRING_BOUNCY.duration}ms ${SPRING_BOUNCY.easing}`,
+  [`&:has(> ${pressed}:active)`]: { transform: `scale(${scale})`, transition: `${colors}, transform 80ms ${EASE_OUT}` },
+  "@media (prefers-reduced-motion: reduce)": { [`&:has(> ${pressed}:active)`]: { transform: "none" } },
 });
 
 // New content arriving when it mounts (a project tab): it slides in `dx` px from the side it came from and fades
@@ -93,6 +111,38 @@ export const revealChildren = (start = 0, max = 6) => {
     "@media (prefers-reduced-motion: reduce)": { "& > *": REDUCED_FADE },
   };
 };
+
+// The copy that follows the pointer while dragging (a board card, a backlog row): picked up, it grows a little
+// and its shadow deepens, like lifting a card off the table. The shadow is a layer that fades in (opacity, not an
+// animated box-shadow). `animate` is false for a keyboard drag, which just shows it lifted. Reduced motion: the
+// shadow only, no scale.
+const liftKeyframes = keyframes`
+  from { transform: none; }
+`;
+const LIFT_MS = 150;
+export const lifted = (scale, animate = true) => ({
+  position: "relative",
+  transform: `scale(${scale})`,
+  cursor: "grabbing",
+  "&::after": {
+    content: '""',
+    position: "absolute",
+    inset: 0,
+    borderRadius: "inherit",
+    boxShadow: 4,
+    pointerEvents: "none",
+  },
+  ...(animate && {
+    "@media (prefers-reduced-motion: no-preference)": {
+      animation: `${liftKeyframes} ${LIFT_MS}ms ${EASE_OUT}`,
+      "&::after": { animation: `${fadeInKeyframes} ${LIFT_MS}ms ${EASE_OUT}` },
+    },
+  }),
+  "@media (prefers-reduced-motion: reduce)": { transform: "none" },
+});
+
+// a small thing settling in where a placeholder was (an empty message): a short fade, also with reduced motion
+export const FADE_IN_SX = REDUCED_FADE;
 
 // a loading placeholder (skeleton) only shows if loading takes more than 200ms, so a quick load goes straight
 // from nothing to the content instead of flashing a skeleton first

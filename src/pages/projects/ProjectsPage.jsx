@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Button } from "@mui/material";
+import { Alert, Box, Button } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import PageLayout from "../../components/layouts/PageLayout";
 import PageHeader from "../../components/general/PageHeader";
@@ -20,6 +20,7 @@ import { useMembersPreview, useProjectTabCounts } from "../../hooks/useProjectsO
 import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { isWorkspaceArchived } from "../../utils/workspace";
 import { PROJECT_STATUS } from "../../constants/projects";
+import { reveal } from "../../theme/motion";
 
 const PROJECTS_PER_PAGE = 10;
 
@@ -102,26 +103,29 @@ const ProjectsPage = () => {
           isEmpty={list.items.length === 0}
           emptyMessage={query ? `No projects match "${query}".` : EMPTY_MESSAGES[tab]}
         >
-          <ProjectsTable
-            projects={list.items}
-            previews={previews}
-            renderActions={
-              readOnly
-                ? undefined
-                : (project) => (
-                    <ProjectActionsMenu project={project} onAction={(type, target) => setDialog({ type, project: target })} />
-                  )
-            }
-          />
-          <Pager
-            page={list.page}
-            size={list.size}
-            total={list.total}
-            totalPages={list.totalPages}
-            shown={list.items.length}
-            noun="project"
-            onPageChange={list.setPage}
-          />
+          {/* the results arrive as one block, after each load (search, page, status tab) */}
+          <Box sx={reveal(0)}>
+            <ProjectsTable
+              projects={list.items}
+              previews={previews}
+              renderActions={
+                readOnly
+                  ? undefined
+                  : (project) => (
+                      <ProjectActionsMenu project={project} onAction={(type, target) => setDialog({ type, project: target })} />
+                    )
+              }
+            />
+            <Pager
+              page={list.page}
+              size={list.size}
+              total={list.total}
+              totalPages={list.totalPages}
+              shown={list.items.length}
+              noun="project"
+              onPageChange={list.setPage}
+            />
+          </Box>
         </LoadState>
       </SectionCard>
 

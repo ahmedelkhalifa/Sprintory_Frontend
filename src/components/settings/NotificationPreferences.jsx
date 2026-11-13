@@ -9,6 +9,7 @@ import { NOTIFICATION_CATEGORIES } from "../../constants/notifications";
 import { useAsync } from "../../hooks/useAsync";
 import { useSubmit } from "../../hooks/useSubmit";
 import { preferenceDefaults, preferencesAtDefaults } from "../../utils/notification";
+import { reveal } from "../../theme/motion";
 
 const CHANNELS = [
   { key: "inApp", label: "In-app" },
@@ -61,7 +62,7 @@ const NotificationPreferences = () => {
         isEmpty={!preferences.length}
         rows={3}
       >
-        <TableContainer sx={{ px: { xs: 0, sm: 1 }, pb: 1 }}>
+        <TableContainer sx={{ px: { xs: 0, sm: 1 }, pb: 1, ...reveal(0) }}>
           <Table size="small" aria-label="Notification settings">
             <TableHead>
               <TableRow>

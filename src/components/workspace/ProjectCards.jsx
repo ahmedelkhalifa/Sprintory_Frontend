@@ -8,6 +8,7 @@ import { TASK_STAGES } from "../../constants/tasks";
 import { projectPath, projectTabPath, projectsPath } from "../../utils/project";
 import { sprintDays, sprintDaysText } from "../../utils/myWork";
 import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
+import { hoverTransition, LOADING_DELAY_SX } from "../../theme/motion";
 
 // two wide cards per row, like Jira's recent projects; the full list is the Projects page
 const MAX_CARDS = 4;
@@ -22,7 +23,7 @@ const cardSx = {
   border: 1,
   borderColor: "divider",
   borderRadius: 2,
-  transition: "border-color 120ms ease-out",
+  transition: hoverTransition("border-color"),
   "@media (hover: hover)": { "&:hover": { borderColor: "text.disabled" } },
 };
 
@@ -113,14 +114,14 @@ const emptyText = (workspaceTotal) =>
 
 // the projects the caller works in (from useMyWork), the home page's project list.
 // workspaceTotal: how many projects the workspace has, for the empty text
-const ProjectCards = ({ projects, loading, workspaceTotal }) => {
+const ProjectCards = ({ projects, loading, workspaceTotal, sx }) => {
   const { workspace } = useWorkspaceAccess();
   // a failed load already shows its error and retry in Assigned to me, from the same request
   if (!loading && !projects) return null;
   const empty = !loading && projects.length === 0;
 
   return (
-    <Box component="section" aria-labelledby="your-projects">
+    <Box component="section" aria-labelledby="your-projects" sx={sx}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, mb: 1.5 }}>
         <Typography id="your-projects" variant="h6" component="h2">
           Your projects
@@ -145,7 +146,7 @@ const ProjectCards = ({ projects, loading, workspaceTotal }) => {
           sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))" }, gap: 2 }}
         >
           {loading
-            ? [0, 1].map((i) => <Skeleton key={i} variant="rounded" height={118} />)
+            ? [0, 1].map((i) => <Skeleton key={i} variant="rounded" height={118} sx={LOADING_DELAY_SX} />)
             : projects.slice(0, MAX_CARDS).map((summary) => (
                 <ProjectCard key={summary.project.id} summary={summary} workspace={workspace} />
               ))}

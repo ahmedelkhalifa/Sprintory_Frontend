@@ -1,6 +1,7 @@
 import { Box, ButtonBase, FormLabel, Typography } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { TEMPLATES } from "../../constants/projects";
+import { hoverTransition, pressable } from "../../theme/motion";
 
 // Scrum / Kanban choice as two cards (a radio group). The template can't be changed after creation.
 const TemplatePicker = ({ value, onChange }) => {
@@ -30,7 +31,7 @@ const TemplatePicker = ({ value, onChange }) => {
                 border: "2px solid",
                 borderColor: selected ? "primary.main" : "divider",
                 bgcolor: selected ? "navActive.background" : "background.paper",
-                transition: "border-color 0.15s, background-color 0.15s",
+                ...pressable(0.98, hoverTransition("border-color", "background-color")),
                 "&:hover": { borderColor: selected ? "primary.main" : "primary.light" },
                 "&.Mui-focusVisible": { borderColor: "primary.main" },
               }}

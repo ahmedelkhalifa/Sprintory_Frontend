@@ -5,6 +5,7 @@ import { CheckRounded, UnfoldMoreRounded } from "@mui/icons-material";
 import { useWorkspaces } from "../../context/WorkspaceContext";
 import { initials } from "../../utils/people";
 import { ROLE_LABEL, workspacePath } from "../../utils/workspace";
+import { hoverTransition, pressable } from "../../theme/motion";
 
 const badgeSx = (size) => ({
   width: size,
@@ -53,7 +54,7 @@ const WorkspaceSwitcher = ({ compact = false }) => {
             bgcolor: compact ? "transparent" : "background.paper",
             border: 1,
             borderColor: compact ? "transparent" : "divider",
-            transition: "border-color 150ms ease",
+            ...pressable(0.98, hoverTransition("border-color")),
             "&:hover, &[aria-expanded='true']": { borderColor: "primary.main" },
           }}
         >

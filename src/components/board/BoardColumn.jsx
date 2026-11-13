@@ -5,6 +5,7 @@ import { alpha } from "@mui/material/styles";
 import ToneChip from "../general/ToneChip";
 import { overWip } from "../../utils/board";
 import { columnListId, rowId } from "../tasks/dnd";
+import { hoverTransition } from "../../theme/motion";
 
 // the width of one column; the board scrolls sideways when they don't fit
 export const COLUMN_WIDTH = 280;
@@ -37,7 +38,7 @@ const BoardColumn = ({ column, total, highlight, emptyText, showWip = false, men
         overflow: "hidden",
         // the cards sit on the same faint slate as the backlog's headers, so white cards stand out
         bgcolor: alpha(theme.palette.text.primary, 0.03),
-        transition: "border-color 0.15s, box-shadow 0.15s",
+        transition: hoverTransition("border-color", "box-shadow"),
       })}
     >
       <Box
@@ -51,7 +52,7 @@ const BoardColumn = ({ column, total, highlight, emptyText, showWip = false, men
           borderColor: "divider",
           // over its limit, the whole header warns, not just the number
           bgcolor: over ? (theme) => alpha(theme.palette.error.main, 0.08) : "transparent",
-          transition: "background-color 0.15s",
+          transition: hoverTransition("background-color"),
         }}
       >
         <Typography component="h3" noWrap sx={{ fontWeight: 700, fontSize: 14, flexGrow: 1, textTransform: "uppercase", letterSpacing: 0.3 }}>

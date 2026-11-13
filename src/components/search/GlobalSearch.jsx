@@ -13,6 +13,7 @@ import { useSearchScope } from "../../hooks/useSearchScope";
 import {
   EVERYWHERE, MIN_QUERY_LENGTH, SEARCH_TYPE_LABEL, groupResults, searchPagePath, searchQuery, searchResultPath,
 } from "../../utils/search";
+import { hoverTransition } from "../../theme/motion";
 
 // typing waits this long before asking the backend
 const SEARCH_DELAY_MS = 300;
@@ -241,7 +242,7 @@ const GlobalSearch = () => {
           sx={{
             "& .MuiOutlinedInput-root": {
               bgcolor: "background.default",
-              transition: "background-color 150ms ease",
+              transition: hoverTransition("background-color"),
               "&.Mui-focused": { bgcolor: "background.paper" },
             },
             // about 36px tall, in the 56px bar

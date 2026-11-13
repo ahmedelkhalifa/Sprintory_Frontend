@@ -11,7 +11,7 @@ import TaskDrawer from "../tasks/TaskDrawer";
 import OpenSubtasksDialog from "../tasks/OpenSubtasksDialog";
 import NoWorkAccess from "../tasks/NoWorkAccess";
 import TaskFilterBar from "../tasks/filters/TaskFilterBar";
-import { collisionDetection, isBelow } from "../tasks/dnd";
+import { collisionDetection, isBelow, dropAnimationFor, DND_MEASURING } from "../tasks/dnd";
 import { loadWork } from "../tasks/loadWork";
 import BoardColumn from "./BoardColumn";
 import BoardCard, { BoardCardContent } from "./BoardCard";
@@ -107,7 +107,9 @@ const BoardTab = ({
   const [openTaskId, setOpenTaskId] = useState(null);
   const [ending, setEnding] = useState(null); // the open window that ends the sprint: "complete" | "cancel"
   const [notice, setNotice] = useState(null); // { text, severity }
-  const [dragging, setDragging] = useState(null); // { taskId, fromStatusId }
+  // how the copy lands when it's dropped (set when a drag starts: keyboard drags don't animate)
+  const [dropAnimation, setDropAnimation] = useState(null);
+  const [dragging, setDragging] = useState(null); // { taskId, fromStatusId, byKeyboard }
   const [overStatusId, setOverStatusId] = useState(null);
   const [confirmMove, setConfirmMove] = useState(null); // { move, before }: a move into Done waiting for a yes
   // the windows render from these (kept a moment after closing, so they can play their close)
@@ -235,9 +237,12 @@ const BoardTab = ({
     return task ? { statusId: task.statusId, overTaskId: task.id } : null;
   };
 
-  const handleDragStart = ({ active }) => {
+  const handleDragStart = ({ active, activatorEvent }) => {
     const task = lookup(active.data.current.taskId);
-    setDragging(task && { taskId: task.id, fromStatusId: task.statusId });
+    // a keyboard drag doesn't animate its pickup
+    const byKeyboard = activatorEvent instanceof KeyboardEvent;
+    setDropAnimation(dropAnimationFor(byKeyboard));
+    setDragging(task && { taskId: task.id, fromStatusId: task.statusId, byKeyboard });
   };
 
   const handleDragOver = ({ over }) => setOverStatusId(dropTarget(over)?.statusId ?? null);
@@ -338,6 +343,7 @@ const BoardTab = ({
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
+        measuring={DND_MEASURING}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
@@ -371,24 +377,22 @@ const BoardTab = ({
         </Box>
 
         {/* the card that follows the pointer while dragging */}
-        <DragOverlay dropAnimation={null}>{draggedTask && <BoardCardContent task={draggedTask} raised draggable />}</DragOverlay>
+        <DragOverlay dropAnimation={dropAnimation}>{draggedTask && <BoardCardContent task={draggedTask} raised lift={!dragging.byKeyboard} draggable />}</DragOverlay>
       </DndContext>
 
-      {openTaskId !== null && (
-        <TaskDrawer
-          project={project}
-          taskId={openTaskId}
-          columns={columns}
-          members={members}
-          labels={projectLabels(allTasks)}
-          canEdit={writable && can(project, PERMISSIONS.EDIT_TASKS)}
-          onClose={() => setOpenTaskId(null)}
-          onChanged={(saved) => {
-            reload();
-            warnOverWip(saved);
-          }}
-        />
-      )}
+      <TaskDrawer
+        project={project}
+        taskId={openTaskId}
+        columns={columns}
+        members={members}
+        labels={projectLabels(allTasks)}
+        canEdit={writable && can(project, PERMISSIONS.EDIT_TASKS)}
+        onClose={() => setOpenTaskId(null)}
+        onChanged={(saved) => {
+          reload();
+          warnOverWip(saved);
+        }}
+      />
 
       {confirmTask && (
         <OpenSubtasksDialog

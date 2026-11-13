@@ -7,6 +7,7 @@ import UserAvatar from "../general/UserAvatar";
 import RichText from "../editor/RichText";
 import { formatDate, timeAgo } from "../../utils/format";
 import { useLatched } from "../../hooks/useLatched";
+import { hoverTransition } from "../../theme/motion";
 
 // One chat message: the author, when, "(edited)", the text (or "Message deleted"), and Edit / Delete when the
 // caller may (`canEdit`, `canDelete`). Deleting asks first; a moderator deletes someone else's message.
@@ -54,7 +55,7 @@ const ChatMessage = ({ message, own, canEdit, canDelete, editing, onEdit, onDele
       </Box>
       {!message.deleted && (canEdit || canDelete) && (
         // shown on hover with a mouse, always on touch screens
-        <Box className="chat-actions" sx={{ display: "flex", opacity: { xs: 1, md: editing ? 1 : 0 }, transition: "opacity .15s" }}>
+        <Box className="chat-actions" sx={{ display: "flex", opacity: { xs: 1, md: editing ? 1 : 0 }, transition: hoverTransition("opacity") }}>
           {canEdit && (
             <Tooltip title="Edit">
               <IconButton size="small" aria-label="Edit message" onClick={() => onEdit(message)}>

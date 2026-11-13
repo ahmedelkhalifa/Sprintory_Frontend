@@ -1,7 +1,7 @@
 import { Link as RouterLink } from "react-router-dom";
 import { Box, ButtonBase } from "@mui/material";
 import { HEADER_HEIGHT } from "../../../theme/layout";
-import { pressable } from "../../../theme/motion";
+import { hoverTransition, pressable } from "../../../theme/motion";
 
 // The Settings tab's section menu: a vertical list beside the content on wide screens (sticky under the top bar),
 // one horizontally scrolling row above it on phones. The selected item looks like the sidebar's.
@@ -43,7 +43,7 @@ const SettingsNav = ({ sections, current, pathFor }) => (
             whiteSpace: "nowrap",
             color: selected ? "navActive.text" : "text.secondary",
             bgcolor: selected ? "navActive.background" : "transparent",
-            ...pressable(0.98, "background-color 120ms ease-out, color 120ms ease-out"),
+            ...pressable(0.98, hoverTransition("background-color", "color")),
             "@media (hover: hover)": {
               "&:hover": {
                 bgcolor: selected ? "navActive.hover" : "action.hover",

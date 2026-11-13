@@ -2,7 +2,7 @@ import { Box, Chip, Divider, Paper, Typography } from "@mui/material";
 
 // Bordered white section of a page: a title with an optional count (or a custom `header`, e.g. tabs),
 // an optional toolbar on the right (e.g. a search field), then the content. Flat: a hairline, no shadow.
-const SectionCard = ({ title, count, header, toolbar, children }) => {
+const SectionCard = ({ title, count, header, toolbar, sx, children }) => {
   return (
     <Paper
       elevation={0}
@@ -11,6 +11,7 @@ const SectionCard = ({ title, count, header, toolbar, children }) => {
         borderColor: "divider",
         borderRadius: 2, // 2 x theme.shape.borderRadius = 6px
         overflow: "hidden",
+        ...sx,
       }}
     >
       <Box

@@ -1,12 +1,8 @@
 import { Alert, Box, Button, Skeleton, Stack, Typography } from "@mui/material";
-import { LOADING_DELAY_SX } from "../../theme/motion";
+import { FADE_IN_SX, LOADING_DELAY_SX } from "../../theme/motion";
 
-// the empty message fades in where the skeleton was instead of popping; reduced motion shows it at once
-const settleSx = {
-  "@keyframes loadStateSettle": { from: { opacity: 0 }, to: { opacity: 1 } },
-  animation: "loadStateSettle 160ms ease-out",
-  "@media (prefers-reduced-motion: reduce)": { animation: "none" },
-};
+// the empty message fades in where the skeleton was instead of popping
+const settleSx = FADE_IN_SX;
 
 // Shows the right state of a loaded section, in this order:
 // loading -> skeleton rows, error -> message + "Try again", empty -> message, otherwise -> children

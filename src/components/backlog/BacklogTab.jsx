@@ -22,7 +22,7 @@ import QuickAddTask from "../tasks/QuickAddTask";
 import TaskDrawer from "../tasks/TaskDrawer";
 import NoWorkAccess from "../tasks/NoWorkAccess";
 import TaskFilterBar from "../tasks/filters/TaskFilterBar";
-import { collisionDetection, dropTarget, isBelow } from "../tasks/dnd";
+import { collisionDetection, dropTarget, isBelow, dropAnimationFor, DND_MEASURING } from "../tasks/dnd";
 import { loadWork } from "../tasks/loadWork";
 import { rankInBacklog } from "../../api/tasksApi";
 import { deleteSprint, moveToSprint } from "../../api/sprintsApi";
@@ -87,7 +87,9 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
   const shownDialog = useLatched(dialog);
   // { text, severity }: "warning" for a move the user may not make, "error" for one the backend refused
   const [notice, setNotice] = useState(null);
-  const [dragging, setDragging] = useState(null); // { taskId, fromSprintId }
+  // how the copy lands when it's dropped (set when a drag starts: keyboard drags don't animate)
+  const [dropAnimation, setDropAnimation] = useState(null);
+  const [dragging, setDragging] = useState(null); // { taskId, fromSprintId, byKeyboard }
   const [overSprintId, setOverSprintId] = useState(undefined); // list under the pointer (null = backlog)
   const removeSprint = useSubmit(TASK_ERROR_MESSAGES);
   const sensors = useSensors(
@@ -190,9 +192,12 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
 
   const lookup = (taskId) => findTask(view, taskId);
 
-  const handleDragStart = ({ active }) => {
+  const handleDragStart = ({ active, activatorEvent }) => {
     const from = lookup(active.data.current.taskId);
-    setDragging(from && { taskId: from.task.id, fromSprintId: from.sprintId });
+    // a keyboard drag doesn't animate its pickup
+    const byKeyboard = activatorEvent instanceof KeyboardEvent;
+    setDropAnimation(dropAnimationFor(byKeyboard));
+    setDragging(from && { taskId: from.task.id, fromSprintId: from.sprintId, byKeyboard });
   };
 
   const handleDragOver = ({ over }) => setOverSprintId(dropTarget(over, lookup)?.sprintId);
@@ -295,6 +300,7 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
+        measuring={DND_MEASURING}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
@@ -380,21 +386,19 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
         </Stack>
 
         {/* the row that follows the pointer while dragging */}
-        <DragOverlay dropAnimation={null}>{draggedTask && <TaskRowContent task={draggedTask} raised />}</DragOverlay>
+        <DragOverlay dropAnimation={dropAnimation}>{draggedTask && <TaskRowContent task={draggedTask} raised lift={!dragging.byKeyboard} />}</DragOverlay>
       </DndContext>
 
-      {openTaskId !== null && (
-        <TaskDrawer
-          project={project}
-          taskId={openTaskId}
-          columns={data.columns}
-          members={data.members}
-          labels={projectLabels(state.tasks)}
-          canEdit={canEditTasks}
-          onClose={() => setOpenTaskId(null)}
-          onChanged={reload}
-        />
-      )}
+      <TaskDrawer
+        project={project}
+        taskId={openTaskId}
+        columns={data.columns}
+        members={data.members}
+        labels={projectLabels(state.tasks)}
+        canEdit={canEditTasks}
+        onClose={() => setOpenTaskId(null)}
+        onChanged={reload}
+      />
 
       {/* rendered from `shownDialog` (kept a moment after closing, so the window can play its close) */}
       {(shownDialog?.type === "create-sprint" || shownDialog?.type === "edit-sprint") && (

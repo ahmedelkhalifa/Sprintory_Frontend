@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
-import { Alert, Box, Button, Chip, Link, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, Link, Paper, Typography } from "@mui/material";
 import { Add, PersonAddAltOutlined, SettingsOutlined } from "@mui/icons-material";
 import { listWorkspaceMembers } from "../../api/workspacesApi";
 import { createTeam, listTeamMembers, listTeams } from "../../api/teamsApi";
 import { listProjects } from "../../api/projectsApi";
+import { listNotifications } from "../../api/notificationsApi";
 import { useAuth } from "../../context/AuthContext";
 import { useAsync } from "../../hooks/useAsync";
 import { useMyWork } from "../../hooks/useMyWork";
@@ -14,6 +15,7 @@ import { projectTabPath } from "../../utils/project";
 import { setupSteps } from "../../utils/myWork";
 import PageLayout from "../../components/layouts/PageLayout";
 import PageHeader from "../../components/general/PageHeader";
+import LoadState from "../../components/general/LoadState";
 import TeamsPanel from "../../components/workspace/TeamsPanel";
 import AssignedToMe from "../../components/workspace/AssignedToMe";
 import ActiveSprints from "../../components/workspace/ActiveSprints";
@@ -25,9 +27,11 @@ import InviteDialog from "../../components/workspace/InviteDialog";
 import WorkspaceSettingsDialog from "../../components/workspace/WorkspaceSettingsDialog";
 import CreateProjectDialog from "../../components/projects/CreateProjectDialog";
 import { useLatched } from "../../hooks/useLatched";
+import { LOADING_DELAY_SX, reveal, revealChildren } from "../../theme/motion";
 
 const columnSx = { display: "flex", flexDirection: "column", gap: 3, minWidth: 0 };
 const TEAMS_SHOWN = 5;
+const UPDATES_SHOWN = 8;
 
 // the first teams with a member count and a few members for the avatars.
 // TODO: one request per team; ask the backend to include these in the list response
@@ -70,7 +74,11 @@ const WorkspacePage = () => {
     fallback: "Couldn't load the teams. Please try again.",
   });
   // the counts are extras: without them the header and section titles just leave the numbers out
-  const { data: counts } = useAsync((signal) => loadCounts(workspaceId, signal), [workspaceId]);
+  const countsState = useAsync((signal) => loadCounts(workspaceId, signal), [workspaceId]);
+  const counts = countsState.data;
+  const feed = useAsync((signal) => listNotifications({ workspaceId, size: UPDATES_SHOWN }, signal), [workspaceId], {
+    fallback: "Couldn't load the updates. Please try again.",
+  });
   const work = useMyWork(workspaceId, user?.id);
   // without a user id the hook never starts, which isn't loading
   const workLoading = Boolean(user?.id) && work.loading;
@@ -89,6 +97,15 @@ const WorkspacePage = () => {
       teams: teams.data.total,
       tasks: myProjects.reduce((sum, summary) => sum + summary.board.total, 0),
     });
+  // The sections wait for every first load (loaded or failed), then come in one after another, top to bottom, so
+  // nothing arrives out of order or pushes the page down (the setup checklist used to appear last, above all).
+  // Only the first load: later reloads (a new team) update in place.
+  const allLoaded = !workLoading && !teams.loading && !feed.loading && !(isAdmin && !archived && countsState.loading);
+  const [ready, setReady] = useState(false);
+  if (allLoaded && !ready) setReady(true);
+  // the order: the checklist (when shown), Your projects, then the main column a step ahead of the side one
+  const first = steps ? 1 : 0;
+
   const firstProject = myProjects?.[0]?.project;
   const setupActions = {
     project: { label: "Create project", onClick: () => setProjectDialogOpen(true) },
@@ -152,40 +169,47 @@ const WorkspacePage = () => {
         <Alert severity="info" sx={{ mb: 3 }}>This workspace is archived and read-only.</Alert>
       )}
 
-      <Box sx={columnSx}>
-        {steps && <GettingStarted workspaceId={workspaceId} steps={steps} actions={setupActions} />}
-        {/* the full, searchable list is the Projects page ("View all projects") */}
-        <ProjectCards projects={myProjects} loading={workLoading} workspaceTotal={counts?.projects} />
+      {!ready ? (
+        // a slow load shows a skeleton after 200ms
+        <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2, ...LOADING_DELAY_SX }}>
+          <LoadState loading rows={5} />
+        </Paper>
+      ) : (
+        <Box sx={columnSx}>
+          {steps && <GettingStarted workspaceId={workspaceId} steps={steps} actions={setupActions} sx={reveal(0)} />}
+          {/* the full, searchable list is the Projects page ("View all projects") */}
+          <ProjectCards projects={myProjects} loading={workLoading} workspaceTotal={counts?.projects} sx={reveal(first)} />
 
-        {/* main: what I own and what happened; side: what's running and who's here */}
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 2fr) minmax(320px, 1fr)" },
-            gap: 3,
-            alignItems: "start",
-          }}
-        >
-          <Box sx={columnSx}>
-            <AssignedToMe items={work.data?.items} loading={workLoading} error={work.error} onRetry={work.reload} />
-            <RecentUpdates workspaceId={workspaceId} />
-          </Box>
+          {/* main: what I own and what happened; side: what's running and who's here */}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 2fr) minmax(320px, 1fr)" },
+              gap: 3,
+              alignItems: "start",
+            }}
+          >
+            <Box sx={{ ...columnSx, ...revealChildren(first + 1) }}>
+              <AssignedToMe items={work.data?.items} loading={workLoading} error={work.error} onRetry={work.reload} />
+              <RecentUpdates feed={feed} />
+            </Box>
 
-          <Box sx={columnSx}>
-            {/* only when some Scrum project runs a sprint */}
-            {work.data?.sprints.length > 0 && <ActiveSprints sprints={work.data.sprints} />}
-            <TeamsPanel
-              teams={teams.data}
-              loading={teams.loading && !teams.data}
-              error={teams.error}
-              onRetry={teams.reload}
-              teamsPath={`${workspacePath(workspace)}/teams`}
-              canCreate={isAdmin && !archived}
-              onCreate={() => setTeamDialogOpen(true)}
-            />
+            <Box sx={{ ...columnSx, ...revealChildren(first + 2) }}>
+              {/* only when some Scrum project runs a sprint */}
+              {work.data?.sprints.length > 0 && <ActiveSprints sprints={work.data.sprints} />}
+              <TeamsPanel
+                teams={teams.data}
+                loading={teams.loading && !teams.data}
+                error={teams.error}
+                onRetry={teams.reload}
+                teamsPath={`${workspacePath(workspace)}/teams`}
+                canCreate={isAdmin && !archived}
+                onCreate={() => setTeamDialogOpen(true)}
+              />
+            </Box>
           </Box>
         </Box>
-      </Box>
+      )}
 
       <InviteDialog open={inviteOpen} workspaceId={workspaceId} onClose={() => setInviteOpen(false)} />
       {shownSettingsOpen && (

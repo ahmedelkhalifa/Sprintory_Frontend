@@ -31,7 +31,7 @@ const saveHidden = (workspaceId) => {
 
 // "Set up your workspace" for an admin of a new workspace: each step ticks itself off from the workspace's data.
 // steps: [{ id, label, done }]; actions: { [id]: { label, onClick } | { label, to } } for the open steps
-const GettingStarted = ({ workspaceId, steps, actions }) => {
+const GettingStarted = ({ workspaceId, steps, actions, sx }) => {
   const [hidden, setHidden] = useState(() => readHidden(workspaceId));
   const doneCount = steps.filter((step) => step.done).length;
   if (hidden || doneCount === steps.length) return null;
@@ -43,6 +43,7 @@ const GettingStarted = ({ workspaceId, steps, actions }) => {
 
   return (
     <SectionCard
+      sx={sx}
       title="Set up your workspace"
       toolbar={
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>

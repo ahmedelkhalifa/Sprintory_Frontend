@@ -42,7 +42,6 @@ const TeamsPanel = ({ teams, loading, error, onRetry, teamsPath, canCreate, onCr
                 py: 1.25,
                 borderBottom: 1,
                 borderColor: "divider",
-                transition: "background-color 120ms ease",
               }}
             >
               <Box sx={{ flexGrow: 1, minWidth: 0 }}>

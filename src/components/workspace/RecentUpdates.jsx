@@ -4,12 +4,8 @@ import { NotificationsNoneOutlined } from "@mui/icons-material";
 import SectionCard from "../general/SectionCard";
 import LoadState from "../general/LoadState";
 import UserAvatar from "../general/UserAvatar";
-import { listNotifications } from "../../api/notificationsApi";
-import { useAsync } from "../../hooks/useAsync";
 import { useOpenNotification } from "../../hooks/useOpenNotification";
 import { timeAgo } from "../../utils/format";
-
-const SHOWN = 8;
 
 // who did it: the actor's initials, or a bell for notices without one
 const ActorAvatar = ({ actor }) =>
@@ -21,11 +17,9 @@ const ActorAvatar = ({ actor }) =>
     </Avatar>
   );
 
-// the caller's latest notifications in this workspace (the bell has all of them); a click opens it like the bell does
-const RecentUpdates = ({ workspaceId }) => {
-  const feed = useAsync((signal) => listNotifications({ workspaceId, size: SHOWN }, signal), [workspaceId], {
-    fallback: "Couldn't load the updates. Please try again.",
-  });
+// the caller's latest notifications in this workspace (the bell has all of them), loaded by the page (`feed`, a
+// useAsync state); a click opens one like the bell does
+const RecentUpdates = ({ feed }) => {
   const { opening, itemErrors, open } = useOpenNotification();
   // ids opened from here, read since the list loaded
   const [readHere, setReadHere] = useState(() => new Set());
@@ -59,7 +53,6 @@ const RecentUpdates = ({ workspaceId }) => {
                   borderBottom: 1,
                   borderColor: "divider",
                   "&:last-of-type": { borderBottom: 0 },
-                  transition: "background-color 120ms ease",
                 }}
               >
                 <ActorAvatar actor={n.actor} />

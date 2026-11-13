@@ -2,7 +2,8 @@ import { createTheme, keyframes } from "@mui/material/styles";
 import Fade from "@mui/material/Fade";
 import { SHELL_EASE } from "./layout";
 import ZoomFromTrigger from "./ZoomFromTrigger";
-import { DIALOG_EXIT_MS, SPRING, pressable } from "./motion";
+import RiseIn from "./RiseIn";
+import { DIALOG_EXIT_MS, EASE_IN_OUT, SHEET_EXIT_MS, SNACKBAR_EXIT_MS, SPRING, hoverTransition, pressable } from "./motion";
 
 // menus open from just under full size (MUI's Grow starts at 75%, which reads as a zoom); the scale's origin
 // is the trigger, which Popover sets on the paper. The fade comes from the Fade transition, also on close.
@@ -213,13 +214,8 @@ export const createAppTheme = (mode) => {
             minHeight: 32,
             padding: "4px 12px",
             whiteSpace: "nowrap",
-            // a slight press, so a click feels answered; MUI's own color transitions are kept
-            ...pressable(
-              0.97,
-              theme.transitions.create(["background-color", "box-shadow", "border-color", "color"], {
-                duration: theme.transitions.duration.shortest,
-              }),
-            ),
+            // a slight press, so a click feels answered; colors change on the app's one hover timing
+            ...pressable(0.97, hoverTransition("background-color", "box-shadow", "border-color", "color")),
             // the default button: neutral, hairline border (primary stays the filled blue one)
             "&.MuiButton-outlined.MuiButton-colorPrimary, &.MuiButton-outlined.MuiButton-colorInherit": {
               color: theme.palette.text.primary,
@@ -245,7 +241,7 @@ export const createAppTheme = (mode) => {
         styleOverrides: {
           // the knob slides with a spring instead of MUI's quick linear-ish step
           switchBase: {
-            transition: `left 150ms ease, transform 300ms ${SPRING.easing}`,
+            transition: `${hoverTransition("left")}, transform 300ms ${SPRING.easing}`,
             "@media (prefers-reduced-motion: reduce)": { transition: "none" },
           },
         },
@@ -263,7 +259,18 @@ export const createAppTheme = (mode) => {
         styleOverrides: { root: { "&&": { boxShadow: "none" } } },
       },
       MuiDrawer: {
-        styleOverrides: { docked: { "& .MuiDrawer-paper": { boxShadow: "none" } } },
+        // a drawer over the page (task drawer, Teams drawers, the phone menu) slides in like an iOS sheet: on the
+        // spring, then back out faster; the backdrop fades on the same timing. Docked sidebars don't slide.
+        defaultProps: {
+          transitionDuration: { enter: SPRING.duration, exit: SHEET_EXIT_MS },
+          // `appear`: a drawer that mounts already open (the Teams drawers) slides in too; MUI skips that by default
+          slotProps: { transition: { appear: true, easing: { enter: SPRING.easing, exit: EASE_IN_OUT } } },
+        },
+        styleOverrides: {
+          docked: { "& .MuiDrawer-paper": { boxShadow: "none" } },
+          // reduced motion: no slide (Slide sets its transition inline), only the backdrop's fade
+          modal: { "@media (prefers-reduced-motion: reduce)": { "& .MuiDrawer-paper": { transition: "none !important" } } },
+        },
       },
       MuiCard: {
         defaultProps: { elevation: 1 },
@@ -309,7 +316,7 @@ export const createAppTheme = (mode) => {
           root: ({ theme }) => ({
             borderRadius: theme.shape.borderRadius,
             fontWeight: 500,
-            "&.MuiChip-clickable": pressable(0.96, "background-color 150ms ease, box-shadow 150ms ease"),
+            "&.MuiChip-clickable": pressable(0.96, hoverTransition("background-color", "box-shadow")),
           }),
           sizeSmall: { height: 22, fontSize: 12 },
         },
@@ -341,7 +348,7 @@ export const createAppTheme = (mode) => {
       MuiTab: {
         styleOverrides: {
           // the label's color follows the underline instead of switching at once
-          root: { textTransform: "none", fontWeight: 500, minHeight: 40, fontSize: 14, transition: "color 150ms ease" },
+          root: { textTransform: "none", fontWeight: 500, minHeight: 40, fontSize: 14, transition: hoverTransition("color") },
         },
       },
       MuiTableCell: {
@@ -362,6 +369,10 @@ export const createAppTheme = (mode) => {
           // an alert is a Paper too, but a message inside a page, not a card
           root: { alignItems: "center", "&&": { boxShadow: "none" } },
         },
+      },
+      MuiSnackbar: {
+        // messages rise in from the bottom edge on the spring and drop back out faster (RiseIn)
+        defaultProps: { slots: { transition: RiseIn }, transitionDuration: { enter: SPRING.duration, exit: SNACKBAR_EXIT_MS } },
       },
       MuiDialog: {
         // the paper grows out of the clicked button and goes back into it (ZoomFromTrigger); the fade and

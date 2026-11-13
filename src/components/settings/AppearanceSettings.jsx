@@ -2,6 +2,7 @@ import { Box, Radio, RadioGroup, Typography } from "@mui/material";
 import { DarkModeOutlined, LightModeOutlined, SettingsBrightnessOutlined } from "@mui/icons-material";
 import SectionCard from "../general/SectionCard";
 import { useColorMode } from "../../context/ColorModeContext";
+import { hoverTransition, pressable } from "../../theme/motion";
 
 const OPTIONS = [
   { value: "light", label: "Light", description: "Light backgrounds with dark text.", Icon: LightModeOutlined },
@@ -50,7 +51,7 @@ const AppearanceSettings = () => {
                   borderRadius: 2,
                   bgcolor: selected ? "navActive.background" : "transparent",
                   cursor: "pointer",
-                  transition: "border-color 0.15s, background-color 0.15s",
+                  ...pressable(0.98, hoverTransition("border-color", "background-color")),
                   "&:hover": { borderColor: selected ? "primary.main" : "text.disabled" },
                 }}
               >
