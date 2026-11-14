@@ -1,7 +1,18 @@
+import { useEffect } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { Box, CircularProgress } from "@mui/material";
 import { invitePath, pendingInvite } from "../../utils/invitation";
+
+// the landing page is public/welcome/index.html, served as a plain file, so it needs a full page load
+const LANDING_PATH = "/welcome/index.html";
+
+const LandingRedirect = () => {
+  useEffect(() => {
+    window.location.replace(LANDING_PATH);
+  }, []);
+  return null;
+};
 
 const ProtectedRoute = () => {
   const { user, loading } = useAuth();
@@ -16,6 +27,8 @@ const ProtectedRoute = () => {
   }
 
   if (!user) {
+    // a signed-out visitor at the site root gets the landing page (a static page outside the app)
+    if (location.pathname === "/") return <LandingRedirect />;
     // remember where they were going so login can send them back
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
