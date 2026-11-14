@@ -24,7 +24,7 @@ const ProjectDetailsCard = ({ project, workspace, canEdit, onEdit }) => (
     title="Project details"
     action={
       canEdit && (
-        <Button size="small" variant="outlined" color="inherit" onClick={onEdit} sx={{ borderColor: "divider" }}>
+        <Button size="small" variant="contained" onClick={onEdit}>
           Edit
         </Button>
       )

@@ -8,12 +8,16 @@ import { initials } from "../../utils/people";
 import { ROLE_LABEL, isWorkspaceAdmin, isWorkspaceArchived, workspacePath } from "../../utils/workspace";
 import NameDialog from "../../components/workspace/NameDialog";
 import WorkspaceSettingsDialog from "../../components/workspace/WorkspaceSettingsDialog";
+import { PAGE_MAX_WIDTH } from "../../theme/layout";
+import { useLatched } from "../../hooks/useLatched";
+import { pressableCard, revealChildren } from "../../theme/motion";
 
 const WorkspaceCard = ({ workspace, onOpen, onSettings }) => {
   const isAdmin = isWorkspaceAdmin(workspace);
 
   return (
-    <Card variant="outlined" sx={{ position: "relative" }}>
+    // the whole card presses with its main area (not with the settings button)
+    <Card variant="outlined" sx={{ position: "relative", ...pressableCard(".MuiCardActionArea-root") }}>
       <CardActionArea onClick={onOpen} sx={{ p: 2.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, pr: isAdmin ? 5 : 0 }}>
           <Box
@@ -58,6 +62,7 @@ const WorkspacesPage = () => {
   const { workspaces, loading, error } = useWorkspaces();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [settingsFor, setSettingsFor] = useState(null);
+  const shownSettingsFor = useLatched(settingsFor);
 
   if (error) return <Alert severity="error">Could not load workspaces: {error}</Alert>;
   if (loading) return <CircularProgress />;
@@ -66,7 +71,15 @@ const WorkspacesPage = () => {
   const archived = workspaces.filter(isWorkspaceArchived);
 
   const grid = (list) => (
-    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", xl: "repeat(3, 1fr)" }, gap: 2 }}>
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", xl: "repeat(3, 1fr)" },
+        gap: 2,
+        // the cards come in one after another
+        ...revealChildren(0),
+      }}
+    >
       {list.map((w) => (
         <WorkspaceCard
           key={w.id}
@@ -79,7 +92,7 @@ const WorkspacesPage = () => {
   );
 
   return (
-    <Box sx={{ maxWidth: 1440, mx: "auto", px: { xs: 2, md: 4 } }}>
+    <Box sx={{ maxWidth: PAGE_MAX_WIDTH, mx: "auto", px: { xs: 2, md: 4 } }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
         <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>Workspaces</Typography>
         <Button variant="contained" startIcon={<Add />} onClick={() => setDialogOpen(true)}>
@@ -109,9 +122,10 @@ const WorkspacesPage = () => {
           await createWorkspace(name);
         }}
       />
-      {settingsFor && (
+      {shownSettingsFor && (
         <WorkspaceSettingsDialog
-          workspace={settingsFor}
+          open={Boolean(settingsFor)}
+          workspace={shownSettingsFor}
           onClose={() => setSettingsFor(null)}
           onChanged={setSettingsFor}
           onDeleted={() => setSettingsFor(null)}

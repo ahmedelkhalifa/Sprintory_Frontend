@@ -8,6 +8,7 @@ import {
   parseProjectId,
   projectPath,
   projectRoleLabel,
+  projectSettingsPath,
   projectsPath,
   projectTabOf,
   projectTabPath,
@@ -50,6 +51,12 @@ test("project urls live under their workspace", () => {
   assert.equal(projectPath(workspace, { id: 21, workspaceId: 3 }), "/workspaces/acme-engineering/projects/21");
   assert.equal(projectTabPath(workspace, { id: 21 }, "overview"), "/workspaces/acme-engineering/projects/21");
   assert.equal(projectTabPath(workspace, { id: 21 }, "board"), "/workspaces/acme-engineering/projects/21/board");
+  assert.equal(projectSettingsPath(workspace, { id: 21 }), "/workspaces/acme-engineering/projects/21/settings");
+  assert.equal(projectSettingsPath(workspace, { id: 21 }, "general"), "/workspaces/acme-engineering/projects/21/settings");
+  assert.equal(
+    projectSettingsPath(workspace, { id: 21 }, "people"),
+    "/workspaces/acme-engineering/projects/21/settings/people",
+  );
   assert.equal(parseProjectId("21"), 21);
   assert.equal(parseProjectId("abc"), null);
 });

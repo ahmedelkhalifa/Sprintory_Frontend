@@ -8,7 +8,7 @@ import { charterFieldErrors, goalRequest, goalValues, validateGoal } from "../..
 
 // Add a goal (`goal` null, it goes last) or edit one: a required title and an optional success measure
 // ("Reduce onboarding time" → "Under 1 day"). `onSaved(goal)` runs once the backend took it.
-const GoalDialog = ({ projectId, goal = null, onSaved, onClose }) => {
+const GoalDialog = ({ open = true, projectId, goal = null, onSaved, onClose }) => {
   const adding = goal === null;
   const [values, setValues] = useState(goalValues(goal));
   const [errors, setErrors] = useState({});
@@ -41,7 +41,7 @@ const GoalDialog = ({ projectId, goal = null, onSaved, onClose }) => {
   const titleLength = values.title.trim().length;
 
   return (
-    <Dialog open onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
       <Box component="form" noValidate onSubmit={handleSubmit}>
         <DialogTitle sx={{ fontWeight: 700 }}>{adding ? "Add goal" : "Edit goal"}</DialogTitle>
         <DialogContent>

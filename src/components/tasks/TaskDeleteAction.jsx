@@ -7,6 +7,7 @@ import { useUndoDelete } from "../../context/UndoDeleteContext";
 import { useSubmit } from "../../hooks/useSubmit";
 import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
 import { deleteTaskMessage } from "../../utils/task";
+import { useLatched } from "../../hooks/useLatched";
 
 // Deleting a task or subtask, the same everywhere: the trigger, the red "Delete this task?" window, the request,
 // then the Undo snackbar (UndoDeleteProvider). `trigger` "menu" is a "⋯" button with Delete in its menu (task page,
@@ -15,6 +16,7 @@ import { deleteTaskMessage } from "../../utils/task";
 const TaskDeleteAction = ({ projectId, task, trigger = "menu", small = false, disabled = false, onDeleted }) => {
   const [menu, setMenu] = useState(null);
   const [confirming, setConfirming] = useState(false);
+  const shownConfirming = useLatched(confirming || null);
   const remove = useSubmit(TASK_ERROR_MESSAGES);
   const undo = useUndoDelete();
   const noun = task.parentTaskId != null ? "subtask" : "task";
@@ -56,8 +58,9 @@ const TaskDeleteAction = ({ projectId, task, trigger = "menu", small = false, di
         </>
       )}
 
-      {confirming && (
+      {shownConfirming && (
         <ConfirmDialog
+          open={confirming}
           title={`Delete this ${noun}?`}
           message={deleteTaskMessage(task)}
           confirmLabel={`Delete ${noun}`}

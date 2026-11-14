@@ -1,7 +1,7 @@
 import { Link as RouterLink } from "react-router-dom";
 import { Box, Tab, Tabs } from "@mui/material";
 
-// Overview / Members / Backlog / Board / Sprints / Reports / Files / Settings. Each tab is a link to its own url,
+// Overview / Chat / Backlog / Board / Sprints / Reports / Files / Settings. Each tab is a link to its own url,
 // so the browser's back button and a refresh keep the tab. `tabs` come from tabsFor(template),
 // `pathFor(id)` builds a tab's url.
 const ProjectTabs = ({ value, tabs, pathFor }) => {

@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 .env
+
+# the taste skill's working files (deal history, checker shots, gate state) for the landing page
+.taste-skill

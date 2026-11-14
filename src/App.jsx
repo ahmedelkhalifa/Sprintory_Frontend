@@ -20,9 +20,7 @@ import ChatsPage from "./pages/chats/ChatsPage";
 import {
   ProjectBacklogPage,
   ProjectBoardPage,
-  ProjectCharterPage,
   ProjectComingSoonPage,
-  ProjectMembersPage,
   ProjectOverviewPage,
   ProjectSettingsPage,
   ProjectSprintsPage,
@@ -81,8 +79,6 @@ const App = () => {
                       paths match the ids in components/projects/overview/tabList.js */}
                   <Route element={<ProjectPage />}>
                     <Route index element={<ProjectOverviewPage />} />
-                    <Route path="charter" element={<ProjectCharterPage />} />
-                    <Route path="members" element={<ProjectMembersPage />} />
                     <Route path="chat" element={<ProjectChatPage />} />
                     <Route path="backlog" element={<ProjectBacklogPage />} />
                     <Route path="board" element={<ProjectBoardPage />} />
@@ -90,7 +86,7 @@ const App = () => {
                     <Route path="sprints/:sprintId" element={<ProjectSprintSummaryPage />} />
                     <Route path="reports" element={<ProjectComingSoonPage tab="reports" />} />
                     <Route path="files" element={<ProjectComingSoonPage tab="files" />} />
-                    <Route path="settings" element={<ProjectSettingsPage />} />
+                    <Route path="settings/:section?" element={<ProjectSettingsPage />} />
                     {/* anything else: ProjectPage redirects to Overview */}
                     <Route path="*" element={null} />
                   </Route>
@@ -98,10 +94,6 @@ const App = () => {
                   <Route path="tasks/:taskId" element={<TaskPage />} />
                 </Route>
               </Route>
-              {/* placeholders until these pages exist, so the sidebar links stay inside the shell */}
-              <Route path="/board" element={<div>Board</div>} />
-              <Route path="/sprints" element={<div>Sprints</div>} />
-              <Route path="/reports" element={<div>Reports</div>} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
           </Route>

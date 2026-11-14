@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Box, ButtonBase, Card, IconButton, Menu, MenuItem, Typography } from "@mui/material";
 import { DeleteOutlineRounded, EditOutlined, MoreHorizRounded } from "@mui/icons-material";
 import { TeamIcon } from "./TeamVisuals";
+import { pressableCard } from "../../theme/motion";
 
 // one team in the teams list; the "..." menu only shows for admins of an active workspace
 const TeamCard = ({ team, selected, canManage, onSelect, onEdit, onDelete }) => {
@@ -23,6 +24,8 @@ const TeamCard = ({ team, selected, canManage, onSelect, onEdit, onDelete }) => 
         bgcolor: "background.paper",
         boxShadow: "none",
         borderRadius: 2,
+        // the whole card presses with its main button (not with its "..." menu)
+        ...pressableCard(".MuiButtonBase-root:first-child"),
       }}
     >
       <ButtonBase

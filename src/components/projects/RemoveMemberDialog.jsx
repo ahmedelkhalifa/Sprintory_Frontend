@@ -7,7 +7,7 @@ import { memberLabel } from "../../utils/people";
 
 // "Remove … from the project?" confirmation. They keep their workspace and team memberships.
 // The last Project Manager can't be removed: the backend answers LAST_PROJECT_MANAGER, shown in the window.
-const RemoveMemberDialog = ({ project, member, onClose, onRemoved }) => {
+const RemoveMemberDialog = ({ open = true, project, member, onClose, onRemoved }) => {
   const submit = useSubmit(PROJECT_ERROR_MESSAGES);
   const name = memberLabel(member);
 
@@ -18,6 +18,7 @@ const RemoveMemberDialog = ({ project, member, onClose, onRemoved }) => {
 
   return (
     <ConfirmDialog
+      open={open}
       title={`Remove ${name}?`}
       message={`${name} loses access to ${project.name} right away. They stay in the workspace and in their teams.`}
       confirmLabel="Remove"

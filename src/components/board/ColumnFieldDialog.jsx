@@ -7,7 +7,7 @@ import { COLUMN_ERROR_MESSAGES } from "../../constants/tasks";
 // A one-field dialog for a column (the WIP limit): `validate(value)` returns an error text (empty = fine);
 // `onSubmit(value)` gets the trimmed value and saves it (a promise). It closes once that worked, and shows the
 // backend's message under the field when it didn't.
-const ColumnFieldDialog = ({ title, label, initialValue, type = "text", helperText, validate, onSubmit, onClose }) => {
+const ColumnFieldDialog = ({ open = true, title, label, initialValue, type = "text", helperText, validate, onSubmit, onClose }) => {
   const [value, setValue] = useState(String(initialValue ?? ""));
   const [error, setError] = useState("");
   const inputRef = useRef(null);
@@ -27,7 +27,7 @@ const ColumnFieldDialog = ({ title, label, initialValue, type = "text", helperTe
 
   return (
     <Dialog
-      open
+      open={open}
       onClose={submit.submitting ? undefined : onClose}
       fullWidth
       maxWidth="xs"

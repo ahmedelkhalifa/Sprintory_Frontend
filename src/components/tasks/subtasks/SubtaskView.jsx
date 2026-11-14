@@ -18,6 +18,7 @@ import { updateSubtask } from "../../../api/tasksApi";
 import { useFieldSave } from "../../../hooks/useFieldSave";
 import { findAssignee, formatMinutes, subtaskChanges, subtaskValues, taskPath } from "../../../utils/task";
 import { validateSubtask } from "../../../utils/validation";
+import { revealChildren } from "../../../theme/motion";
 
 // A subtask's own page, opened from its parent's list (like a Jira child issue): only what a subtask has, i.e. its
 // title, description, status, assignee and time estimate in minutes, each saved on its own (useFieldSave) with the
@@ -62,12 +63,14 @@ const SubtaskView = ({ workspace, project, initialTask, parent, columns, members
         </Alert>
       )}
 
+      {/* the main column arrives, then the side one */}
       <Box
         sx={{
           display: "grid",
           gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 1fr) 380px" },
           gap: 4,
           alignItems: "start",
+          ...revealChildren(0),
         }}
       >
         {/* left: where it belongs, the title, the description, the attachments and the activity */}

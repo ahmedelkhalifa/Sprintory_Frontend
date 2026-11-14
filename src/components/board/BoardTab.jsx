@@ -11,7 +11,7 @@ import TaskDrawer from "../tasks/TaskDrawer";
 import OpenSubtasksDialog from "../tasks/OpenSubtasksDialog";
 import NoWorkAccess from "../tasks/NoWorkAccess";
 import TaskFilterBar from "../tasks/filters/TaskFilterBar";
-import { collisionDetection, isBelow } from "../tasks/dnd";
+import { collisionDetection, isBelow, dropAnimationFor, DND_MEASURING } from "../tasks/dnd";
 import { loadWork } from "../tasks/loadWork";
 import BoardColumn from "./BoardColumn";
 import BoardCard, { BoardCardContent } from "./BoardCard";
@@ -22,6 +22,7 @@ import AddColumnButton from "./AddColumnButton";
 import { useColumnConfig } from "./useColumnConfig";
 import { moveOnBoard } from "../../api/tasksApi";
 import { useAsync } from "../../hooks/useAsync";
+import { useLatched } from "../../hooks/useLatched";
 import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { useTaskFilterMatches } from "../../hooks/useTaskFilterMatches";
 import { PERMISSIONS } from "../../constants/projects";
@@ -32,6 +33,7 @@ import { boardMove, groupByColumn, wipWarningText } from "../../utils/board";
 import { sprintEndedText, sprintPath } from "../../utils/sprint";
 import { needsSubtaskConfirmation, projectLabels, taskStage } from "../../utils/task";
 import { EMPTY_TASK_FILTERS } from "../../utils/taskFilters";
+import { LOADING_DELAY_SX, reveal, revealChildren } from "../../theme/motion";
 
 // Scrum without an active sprint: nothing to work on yet, the sprint is started from the backlog.
 // `onOpenSettings` (people who configure the board) links to the columns in Settings, which work without a sprint
@@ -68,7 +70,7 @@ const NoActiveSprint = ({ onOpenBacklog, onOpenSettings }) => (
 // `onCreateTask` opens that window, for the Kanban board's button on top (its quick bar stays).
 // `filters` come from the filter bar (shared with the Backlog): the backend says which tasks match, the board shows
 // only those, while the counts, WIP limits, sprint progress and drop positions keep using every task.
-// `onOpenSettings` opens the Settings tab, whose "Board columns" section also works without an active sprint.
+// `onOpenSettings` opens Settings → Board columns, which also works without an active sprint.
 const BoardTab = ({
   project,
   writable,
@@ -105,9 +107,14 @@ const BoardTab = ({
   const [openTaskId, setOpenTaskId] = useState(null);
   const [ending, setEnding] = useState(null); // the open window that ends the sprint: "complete" | "cancel"
   const [notice, setNotice] = useState(null); // { text, severity }
-  const [dragging, setDragging] = useState(null); // { taskId, fromStatusId }
+  // how the copy lands when it's dropped (set when a drag starts: keyboard drags don't animate)
+  const [dropAnimation, setDropAnimation] = useState(null);
+  const [dragging, setDragging] = useState(null); // { taskId, fromStatusId, byKeyboard }
   const [overStatusId, setOverStatusId] = useState(null);
   const [confirmMove, setConfirmMove] = useState(null); // { move, before }: a move into Done waiting for a yes
+  // the windows render from these (kept a moment after closing, so they can play their close)
+  const shownConfirm = useLatched(confirmMove);
+  const shownEnding = useLatched(ending);
   const sensors = useSensors(
     // a short move before dragging starts, so clicks on a card still open it
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -147,7 +154,7 @@ const BoardTab = ({
 
   if (!data) {
     return (
-      <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2, ...LOADING_DELAY_SX }}>
         <LoadState loading={!boardState.error} error={boardState.error} onRetry={boardState.reload} rows={6} />
       </Paper>
     );
@@ -219,7 +226,7 @@ const BoardTab = ({
     setOptimistic({ source: data, tasks: confirmMove.before });
     setConfirmMove(null);
   };
-  const confirmTask = confirmMove && allTasks.find((task) => task.id === confirmMove.move.taskId);
+  const confirmTask = shownConfirm && allTasks.find((task) => task.id === shownConfirm.move.taskId);
 
   // what a drop landed on: { statusId, overTaskId } (overTaskId null = the column itself), or null
   const dropTarget = (over) => {
@@ -230,9 +237,12 @@ const BoardTab = ({
     return task ? { statusId: task.statusId, overTaskId: task.id } : null;
   };
 
-  const handleDragStart = ({ active }) => {
+  const handleDragStart = ({ active, activatorEvent }) => {
     const task = lookup(active.data.current.taskId);
-    setDragging(task && { taskId: task.id, fromStatusId: task.statusId });
+    // a keyboard drag doesn't animate its pickup
+    const byKeyboard = activatorEvent instanceof KeyboardEvent;
+    setDropAnimation(dropAnimationFor(byKeyboard));
+    setDragging(task && { taskId: task.id, fromStatusId: task.statusId, byKeyboard });
   };
 
   const handleDragOver = ({ over }) => setOverStatusId(dropTarget(over)?.statusId ?? null);
@@ -284,59 +294,63 @@ const BoardTab = ({
     reload();
   };
 
+  // the header and filters come in first, then the columns from left to right (once, when the board arrives)
   return (
     <Box>
-      {sprint && (
-        <SprintBoardHeader
-          sprint={sprint}
-          tasks={tasks}
+      <Box sx={reveal(0)}>
+        {sprint && (
+          <SprintBoardHeader
+            sprint={sprint}
+            tasks={tasks}
+            columns={columns}
+            overdue={data.board.activeSprint?.overdue}
+            canComplete={canComplete}
+            canCancel={canCancel}
+            onCompleteSprint={() => setEnding("complete")}
+            onCancelSprint={() => setEnding("cancel")}
+          />
+        )}
+
+        <TaskFilterBar
+          filters={filters}
+          onChange={onFiltersChange}
+          members={members}
           columns={columns}
-          overdue={data.board.activeSprint?.overdue}
-          canComplete={canComplete}
-          canCancel={canCancel}
-          onCompleteSprint={() => setEnding("complete")}
-          onCancelSprint={() => setEnding("cancel")}
+          labels={projectLabels(allTasks)}
+          match={match}
+          shown={visible.length}
+          total={tasks.length}
+          // Kanban has no backlog page: new tasks start in the board's first column. The button (on the filter
+          // row's right, like the Backlog's) opens the full window, the bar below adds one by title
+          actions={
+            !scrum &&
+            canMove &&
+            onCreateTask && (
+              <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
+                Create task
+              </Button>
+            )
+          }
         />
-      )}
 
-      <TaskFilterBar
-        filters={filters}
-        onChange={onFiltersChange}
-        members={members}
-        columns={columns}
-        labels={projectLabels(allTasks)}
-        match={match}
-        shown={visible.length}
-        total={tasks.length}
-        // Kanban has no backlog page: new tasks start in the board's first column. The button (on the filter
-        // row's right, like the Backlog's) opens the full window, the bar below adds one by title
-        actions={
-          !scrum &&
-          canMove &&
-          onCreateTask && (
-            <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
-              Create task
-            </Button>
-          )
-        }
-      />
-
-      {!scrum && canMove && (
-        <Paper elevation={0} sx={{ mb: 2.5, border: 1, borderColor: "divider", borderRadius: 2, boxShadow: 1 }}>
-          <QuickAddTask projectId={project.id} onCreated={reload} />
-        </Paper>
-      )}
+        {!scrum && canMove && (
+          <Paper elevation={0} sx={{ mb: 2.5, border: 1, borderColor: "divider", borderRadius: 2, boxShadow: 1 }}>
+            <QuickAddTask projectId={project.id} onCreated={reload} />
+          </Paper>
+        )}
+      </Box>
 
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
+        measuring={DND_MEASURING}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
         {/* the columns keep their width and the board scrolls sideways when they don't fit */}
-        <Box sx={{ display: "flex", alignItems: "stretch", gap: 2, overflowX: "auto", pb: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "stretch", gap: 2, overflowX: "auto", pb: 1, ...revealChildren(1) }}>
           {shownBoard.map((column, index) => (
             <BoardColumn
               key={column.id}
@@ -363,39 +377,38 @@ const BoardTab = ({
         </Box>
 
         {/* the card that follows the pointer while dragging */}
-        <DragOverlay dropAnimation={null}>{draggedTask && <BoardCardContent task={draggedTask} raised draggable />}</DragOverlay>
+        <DragOverlay dropAnimation={dropAnimation}>{draggedTask && <BoardCardContent task={draggedTask} raised lift={!dragging.byKeyboard} draggable />}</DragOverlay>
       </DndContext>
 
-      {openTaskId !== null && (
-        <TaskDrawer
-          project={project}
-          taskId={openTaskId}
-          columns={columns}
-          members={members}
-          labels={projectLabels(allTasks)}
-          canEdit={writable && can(project, PERMISSIONS.EDIT_TASKS)}
-          onClose={() => setOpenTaskId(null)}
-          onChanged={(saved) => {
-            reload();
-            warnOverWip(saved);
-          }}
-        />
-      )}
+      <TaskDrawer
+        project={project}
+        taskId={openTaskId}
+        columns={columns}
+        members={members}
+        labels={projectLabels(allTasks)}
+        canEdit={writable && can(project, PERMISSIONS.EDIT_TASKS)}
+        onClose={() => setOpenTaskId(null)}
+        onChanged={(saved) => {
+          reload();
+          warnOverWip(saved);
+        }}
+      />
 
       {confirmTask && (
         <OpenSubtasksDialog
+          open={Boolean(confirmMove)}
           task={confirmTask}
-          columnName={columns.find((column) => column.id === confirmMove.move.statusId)?.name}
+          columnName={columns.find((column) => column.id === shownConfirm.move.statusId)?.name}
           onConfirm={moveAnyway}
           onClose={cancelMove}
         />
       )}
 
-      {ending === "complete" && (
-        <CompleteSprintDialog sprint={sprint} onClose={() => setEnding(null)} onEnded={handleEnded} onGone={handleGone} />
+      {shownEnding === "complete" && sprint && (
+        <CompleteSprintDialog open={ending === "complete"} sprint={sprint} onClose={() => setEnding(null)} onEnded={handleEnded} onGone={handleGone} />
       )}
-      {ending === "cancel" && (
-        <CancelSprintDialog sprint={sprint} onClose={() => setEnding(null)} onEnded={handleEnded} onGone={handleGone} />
+      {shownEnding === "cancel" && sprint && (
+        <CancelSprintDialog open={ending === "cancel"} sprint={sprint} onClose={() => setEnding(null)} onEnded={handleEnded} onGone={handleGone} />
       )}
 
       {columnConfig.dialogs}

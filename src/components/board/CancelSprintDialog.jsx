@@ -18,7 +18,7 @@ const MESSAGES = { ...TASK_ERROR_MESSAGES, CONFLICT: "This sprint has already en
 // became obsolete. A reason is required; there is no destination, unfinished work always goes back to the top of the
 // backlog. The preview's numbers are shown when they load, but cancelling doesn't wait for them.
 // `onEnded(result)` gets { sprint, carriedOver, toSprint: null }; `onGone(text)` is for a sprint someone else ended.
-const CancelSprintDialog = ({ sprint, onClose, onEnded, onGone }) => {
+const CancelSprintDialog = ({ open = true, sprint, onClose, onEnded, onGone }) => {
   const preview = useClosePreview(sprint.id, onGone);
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
@@ -47,7 +47,7 @@ const CancelSprintDialog = ({ sprint, onClose, onEnded, onGone }) => {
   };
 
   return (
-    <Dialog open onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
       <Box component="form" noValidate onSubmit={handleSubmit}>
         <ToneDialogTitle tone="danger" Icon={EventBusyOutlinedIcon}>
           Cancel “{sprint.name}”?

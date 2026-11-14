@@ -27,10 +27,11 @@ export const TASK_PRIORITIES = {
 
 // a task's status is a board column; its stage is the column's category (R16), which picks the chip color.
 // Also the categories a column can have
+// `bar`: the stage's fill in count bars (StageBar, the project stats), where to do stays lighter than its text
 export const TASK_STAGES = {
-  TODO: { value: "TODO", label: "To do", tone: "text.secondary" },
-  IN_PROGRESS: { value: "IN_PROGRESS", label: "In progress", tone: "info.main" },
-  DONE: { value: "DONE", label: "Done", tone: "success.main" },
+  TODO: { value: "TODO", label: "To do", tone: "text.secondary", bar: "text.disabled" },
+  IN_PROGRESS: { value: "IN_PROGRESS", label: "In progress", tone: "info.main", bar: "info.main" },
+  DONE: { value: "DONE", label: "Done", tone: "success.main", bar: "success.main" },
 };
 
 export const SPRINT_STATUS = {

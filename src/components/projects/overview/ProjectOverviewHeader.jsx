@@ -16,8 +16,8 @@ const Meta = ({ children }) => (
   </Typography>
 );
 
-// Top of the project page: back link, project avatar, name, description, template / key / created,
-// and on the right the action menus and the members' avatars.
+// Top of the project page: back link, project avatar, name, template / key / created, and on the right the
+// members' avatars and the action menus. The description is in the Overview tab.
 // `actions` are the Quick actions + Project settings buttons; `preview` is a PageResponse of the first members.
 const ProjectOverviewHeader = ({ project, preview, actions }) => {
   const { workspace } = useWorkspaceAccess();
@@ -29,7 +29,7 @@ const ProjectOverviewHeader = ({ project, preview, actions }) => {
   ].filter(Boolean);
 
   return (
-    <Box sx={{ mb: 3 }}>
+    <Box sx={{ mb: 2 }}>
       <Link
         component={RouterLink}
         to={projectsPath(workspace)}
@@ -43,30 +43,21 @@ const ProjectOverviewHeader = ({ project, preview, actions }) => {
 
       <Box
         sx={{
-          mt: 2,
+          mt: 1.5,
           display: "flex",
           flexDirection: { xs: "column", md: "row" },
-          alignItems: { md: "flex-start" },
+          alignItems: { md: "center" },
           justifyContent: "space-between",
-          gap: 2.5,
+          gap: 2,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, minWidth: 0 }}>
-          <ProjectAvatar project={project} size={72} sx={{ borderRadius: 2.5, fontSize: 24, flexShrink: 0 }} />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, minWidth: 0 }}>
+          <ProjectAvatar project={project} size={48} sx={{ borderRadius: 2, fontSize: 18, flexShrink: 0 }} />
           <Box sx={{ minWidth: 0 }}>
-            <Typography
-              variant="h4"
-              component="h1"
-              sx={{ fontWeight: 700, letterSpacing: "-0.02em", fontSize: { xs: 24, sm: 30 }, overflowWrap: "anywhere" }}
-            >
+            <Typography variant="h4" component="h1" sx={{ overflowWrap: "anywhere" }}>
               {project.name}
             </Typography>
-            {project.description && (
-              <Typography color="text.secondary" sx={{ mt: 0.5 }}>
-                {project.description}
-              </Typography>
-            )}
-            <Box sx={{ mt: 1.25, display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 1.5, rowGap: 1 }}>
+            <Box sx={{ mt: 0.75, display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 1.5, rowGap: 1 }}>
               {meta.flatMap((item, i) =>
                 i === 0 ? [item] : [<Divider key={`divider-${i}`} orientation="vertical" flexItem />, item],
               )}
@@ -74,27 +65,20 @@ const ProjectOverviewHeader = ({ project, preview, actions }) => {
           </Box>
         </Box>
 
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: { xs: "flex-start", md: "flex-end" },
-            gap: 2,
-            flexShrink: 0,
-          }}
-        >
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>{actions}</Box>
+        {/* the members' faces sit on the same row as the menus, so the header stays one line tall */}
+        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.5, flexShrink: 0 }}>
           {preview && preview.totalElements > 0 && (
             <AvatarGroup
               max={4}
               total={preview.totalElements}
-              sx={{ "& .MuiAvatar-root": { width: 36, height: 36, fontSize: 13, borderColor: "background.default" } }}
+              sx={{ mr: 0.5, "& .MuiAvatar-root": { width: 32, height: 32, fontSize: 12, borderColor: "background.paper" } }}
             >
               {preview.content.slice(0, 3).map((member) => (
-                <UserAvatar key={member.userId} user={member} size={36} />
+                <UserAvatar key={member.userId} user={member} size={32} />
               ))}
             </AvatarGroup>
           )}
+          {actions}
         </Box>
       </Box>
     </Box>

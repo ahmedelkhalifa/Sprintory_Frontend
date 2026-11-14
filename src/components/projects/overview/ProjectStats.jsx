@@ -1,77 +1,122 @@
-import { Box, Typography } from "@mui/material";
-import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
-import TaskAltOutlinedIcon from "@mui/icons-material/TaskAltOutlined";
-import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
-import PauseCircleOutlinedIcon from "@mui/icons-material/PauseCircleOutlined";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import StatCard, { Ring, Sparkline } from "./StatCard";
-import { placeholderStats } from "../../../placeholders/projectOverview";
+import { Box, Button, Paper, Skeleton, Typography } from "@mui/material";
+import { getBoard } from "../../../api/projectsApi";
+import { useAsync } from "../../../hooks/useAsync";
+import { boardSummary, share } from "../../../utils/myWork";
+import StageBar from "../../tasks/StageBar";
+import { TASK_STAGES } from "../../../constants/tasks";
+import { LOADING_DELAY_SX, revealChildren } from "../../../theme/motion";
 
-const percent = (part, total) => (total === 0 ? 0 : Math.round((part / total) * 100));
+const cardSx = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 0.5,
+  minWidth: 0,
+  px: { xs: 2, sm: 2.5 },
+  py: 2,
+  border: 1,
+  borderColor: "divider",
+  borderRadius: 2,
+};
 
-const Percent = ({ value, tone = "text.secondary" }) => (
-  <Typography variant="body2" sx={{ color: tone, fontWeight: 600 }}>
-    {value}%
-  </Typography>
+const gridSx = {
+  display: "grid",
+  gridTemplateColumns: { xs: "minmax(0, 1fr)", sm: "repeat(2, minmax(0, 1fr))", lg: "repeat(4, minmax(0, 1fr))" },
+  gap: 2,
+};
+
+// one stage's share of all tasks, as a thin bar in the stage's colour over a gray track
+const ShareBar = ({ value, color }) => (
+  <Box aria-hidden="true" sx={{ height: 6, borderRadius: "1px", bgcolor: "action.selected", overflow: "hidden" }}>
+    <Box sx={{ height: "100%", width: `${value}%`, bgcolor: color }} />
+  </Box>
 );
 
-// The four task statistics of a project.
-// TEMP: placeholder numbers until the backend has tasks (see src/placeholders/projectOverview.js).
-const ProjectStats = ({ project }) => {
-  const stats = placeholderStats(project);
-  const cards = [
-    {
-      label: "Total tasks",
-      value: stats.total,
-      Icon: AssignmentOutlinedIcon,
-      tone: "primary.main",
-      caption: (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.25, color: "success.main" }}>
-          <TrendingUpIcon sx={{ fontSize: 16 }} />
-          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            {stats.totalChange}%
-          </Typography>
-        </Box>
-      ),
-      chart: <Sparkline points={stats.trend} tone="success.main" />,
-    },
-    {
-      label: "Completed",
-      value: stats.completed,
-      Icon: TaskAltOutlinedIcon,
-      tone: "success.main",
-      caption: <Percent value={percent(stats.completed, stats.total)} />,
-      chart: <Ring value={percent(stats.completed, stats.total)} tone="success.main" />,
-    },
-    {
-      label: "In progress",
-      value: stats.inProgress,
-      Icon: ScheduleOutlinedIcon,
-      tone: "primary.main",
-      caption: <Percent value={percent(stats.inProgress, stats.total)} />,
-      chart: <Ring value={percent(stats.inProgress, stats.total)} tone="primary.main" />,
-    },
-    {
-      label: "On hold",
-      value: stats.onHold,
-      Icon: PauseCircleOutlinedIcon,
-      tone: "warning.main",
-      caption: <Percent value={percent(stats.onHold, stats.total)} />,
-      chart: <Ring value={percent(stats.onHold, stats.total)} tone="warning.main" />,
-    },
-  ];
+const StatCard = ({ label, value, caption, bar }) => (
+  <Paper elevation={0} sx={cardSx}>
+    <Typography variant="body2" color="text.secondary" noWrap>
+      {label}
+    </Typography>
+    <Typography variant="h4" component="p">
+      {value}
+    </Typography>
+    <Typography variant="body2" color="text.secondary" noWrap sx={{ mb: 1 }}>
+      {caption}
+    </Typography>
+    <Box sx={{ mt: "auto" }}>{bar}</Box>
+  </Paper>
+);
 
-  return (
-    <Box>
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(4, 1fr)" }, gap: 2 }}>
-        {cards.map((card) => (
-          <StatCard key={card.label} {...card} />
+// The project's task counts: total, then to do / in progress / done by the board columns' categories.
+// From the board's per-column counts, which are project-wide (the Scrum backlog too) and top-level tasks only.
+// `taskVersion` changes after a task is created from Quick actions or restored, so the numbers load again.
+const ProjectStats = ({ project, taskVersion }) => {
+  const state = useAsync((signal) => getBoard(project.id, signal), [project.id, taskVersion], {
+    fallback: "Couldn't load the task counts.",
+  });
+
+  // during a reload the previous numbers stay
+  if (!state.data) {
+    if (state.error) {
+      return (
+        <Paper
+          elevation={0}
+          sx={{ ...cardSx, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 2 }}
+        >
+          <Typography variant="body2" color="text.secondary">
+            {state.error}
+          </Typography>
+          <Button variant="outlined" size="small" onClick={state.reload}>
+            Retry
+          </Button>
+        </Paper>
+      );
+    }
+    return (
+      <Box sx={{ ...gridSx, ...LOADING_DELAY_SX }}>
+        {/* the real card with placeholder text, so nothing under it moves when the numbers arrive */}
+        {[0, 1, 2, 3].map((i) => (
+          <StatCard
+            key={i}
+            label={<Skeleton width="45%" />}
+            value={<Skeleton width={56} />}
+            caption={<Skeleton width="65%" />}
+            bar={<Skeleton variant="rounded" height={6} />}
+          />
         ))}
       </Box>
-      {/* made-up numbers, so nobody mistakes them for real work */}
-      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-        Sample numbers until tasks are available.
-      </Typography>
+    );
+  }
+
+  const board = boardSummary(state.data.columns);
+  const empty = board.total === 0;
+
+  // the four cards come in one after another, left to right
+  return (
+    <Box sx={{ ...gridSx, ...revealChildren(0) }}>
+      <StatCard
+        label="Total tasks"
+        value={board.total}
+        caption={
+          empty
+            ? "No tasks yet"
+            : board.subtasks > 0
+              ? `Plus ${board.subtasks} ${board.subtasks === 1 ? "subtask" : "subtasks"}`
+              : "Across all columns"
+        }
+        bar={<StageBar board={board} />}
+      />
+      {Object.values(TASK_STAGES).map((stage) => {
+        const percent = share(board[stage.value], board.total);
+        return (
+          <StatCard
+            key={stage.value}
+            label={stage.label}
+            value={board[stage.value]}
+            caption={empty ? "No tasks yet" : `${percent}% of all tasks`}
+            bar={<ShareBar value={percent} color={stage.bar} />}
+          />
+        );
+      })}
     </Box>
   );
 };

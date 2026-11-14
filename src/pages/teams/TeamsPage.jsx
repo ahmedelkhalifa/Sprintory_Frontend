@@ -19,6 +19,9 @@ import TeamCard from "../../components/teams/TeamCard";
 import TeamDetails from "../../components/teams/TeamDetails";
 import TeamFormDrawer from "../../components/teams/TeamFormDrawer";
 import TeamMemberDrawer from "../../components/teams/TeamMemberDrawer";
+import { PAGE_MAX_WIDTH } from "../../theme/layout";
+import { useLatched } from "../../hooks/useLatched";
+import { revealChildren } from "../../theme/motion";
 
 const PAGE_SIZE = 20;
 const DEBOUNCE_MS = 300;
@@ -61,8 +64,12 @@ const TeamsPage = () => {
   const [formTeam, setFormTeam] = useState(null);
   const [formError, setFormError] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const shownDeleteTarget = useLatched(deleteTarget);
   const [removeTarget, setRemoveTarget] = useState(null);
+  const shownRemoveTarget = useLatched(removeTarget);
   const [memberDrawerOpen, setMemberDrawerOpen] = useState(false);
+  // kept a moment after closing, so the drawer can slide out
+  const keepForm = useLatched(formOpen || null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [actionError, setActionError] = useState("");
@@ -137,6 +144,8 @@ const TeamsPage = () => {
   const memberKey = JSON.stringify([activeId, memberQuery, memberReload]);
   const memberPage = memberResult.key === memberKey ? memberResult.data : EMPTY_PAGE;
   const membersLoading = Boolean(activeId && (memberResult.key !== memberKey || memberResult.index !== memberIndex));
+  // kept a moment after closing, so the drawer can slide out
+  const keepMemberDrawer = useLatched((memberDrawerOpen && Boolean(activeId)) || null);
 
   const selectTeam = (id, openDrawer = false) => {
     setSelectedId(id);
@@ -286,7 +295,7 @@ const TeamsPage = () => {
   );
 
   return (
-    <Box sx={{ minWidth: 0, maxWidth: 1440, mx: "auto", px: { xs: 2, md: 4 } }}>
+    <Box sx={{ minWidth: 0, maxWidth: PAGE_MAX_WIDTH, mx: "auto", px: { xs: 2, md: 4 } }}>
       <Stack
         direction={{ xs: "column", sm: "row" }}
         sx={{ justifyContent: "space-between", alignItems: { xs: "stretch", sm: "flex-start" }, gap: 2, mb: 3.5 }}
@@ -359,7 +368,8 @@ const TeamsPage = () => {
             {loadingTeams && <CircularProgress size={20} />}
           </Stack>
 
-          <Stack sx={{ gap: 1.4 }}>
+          {/* the cards come in one after another; after a search only the new ones do */}
+          <Stack sx={{ gap: 1.4, ...revealChildren(0) }}>
             {teams.map((team) => (
               <TeamCard
                 key={team.id}
@@ -414,12 +424,12 @@ const TeamsPage = () => {
       )}
 
       {/* mounted only while open so the form starts fresh each time */}
-      {formOpen && (
-        <TeamFormDrawer open team={formTeam} busy={busy} error={formError} onClose={() => setFormOpen(false)} onSave={saveTeam} />
+      {keepForm && (
+        <TeamFormDrawer open={formOpen} team={formTeam} busy={busy} error={formError} onClose={() => setFormOpen(false)} onSave={saveTeam} />
       )}
-      {memberDrawerOpen && Boolean(activeId) && (
+      {keepMemberDrawer && (
         <TeamMemberDrawer
-          open
+          open={memberDrawerOpen && Boolean(activeId)}
           workspaceId={workspaceId}
           currentMembers={memberPage.content}
           busy={busy}
@@ -429,9 +439,10 @@ const TeamsPage = () => {
       )}
 
       {/* a refusal shows in the snackbar below (runAction) */}
-      {deleteTarget && (
+      {shownDeleteTarget && (
         <ConfirmDialog
-          title={`Delete “${deleteTarget.name}”?`}
+          open={Boolean(deleteTarget)}
+          title={`Delete “${shownDeleteTarget.name}”?`}
           message="This cannot be undone. Workspace members and their project access will remain unchanged."
           confirmLabel="Delete team"
           tone="danger"
@@ -441,9 +452,10 @@ const TeamsPage = () => {
         />
       )}
 
-      {removeTarget && (
+      {shownRemoveTarget && (
         <ConfirmDialog
-          title={`Remove ${memberLabel(removeTarget)}?`}
+          open={Boolean(removeTarget)}
+          title={`Remove ${memberLabel(shownRemoveTarget)}?`}
           message="They leave this team. Their workspace and project access will stay unchanged."
           confirmLabel="Remove"
           tone="danger"

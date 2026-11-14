@@ -1,7 +1,5 @@
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
-import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
-import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import ViewListOutlinedIcon from "@mui/icons-material/ViewListOutlined";
 import ViewColumnOutlinedIcon from "@mui/icons-material/ViewColumnOutlined";
 import TimerOutlinedIcon from "@mui/icons-material/TimerOutlined";
@@ -12,10 +10,8 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 // The project page's tabs. `scrumOnly` tabs don't exist in Kanban projects (no backlog, no sprints).
 // Each id is also the tab's url segment (projectTabPath); their routes are in App.jsx.
 const TABS = [
+  // also the project charter (PMP-117), for members only
   { id: "overview", label: "Overview", Icon: HomeOutlinedIcon },
-  // the project charter (PMP-117): members only, like the chat; its stakeholder contacts are private to them
-  { id: "charter", label: "Charter", Icon: AssignmentOutlinedIcon, membersOnly: true },
-  { id: "members", label: "Members", Icon: GroupOutlinedIcon },
   // members only (Viewers included): a workspace admin outside the project can't open its chat
   { id: "chat", label: "Chat", Icon: ChatBubbleOutlineIcon, membersOnly: true },
   { id: "backlog", label: "Backlog", Icon: ViewListOutlinedIcon, scrumOnly: true },
@@ -23,6 +19,7 @@ const TABS = [
   { id: "sprints", label: "Sprints", Icon: TimerOutlinedIcon, scrumOnly: true },
   { id: "reports", label: "Reports", Icon: BarChartOutlinedIcon },
   { id: "files", label: "Files", Icon: FolderOpenOutlinedIcon },
+  // also the members ("People and access"), at settings/people
   { id: "settings", label: "Settings", Icon: SettingsOutlinedIcon },
 ];
 

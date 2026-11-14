@@ -37,7 +37,7 @@ const ERRORS = {
 // Product Owner, Scrum Master, Developer, Viewer; Kanban: Project Manager, Member, Viewer). The new set replaces
 // the old one in this project only. Viewer is exclusive, and the last role can't be unticked.
 // The backend refuses removing the last Project Manager (LAST_PROJECT_MANAGER), shown in the window.
-const ProjectRolesDialog = ({ project, member, onClose, onSaved }) => {
+const ProjectRolesDialog = ({ open = true, project, member, onClose, onSaved }) => {
   const template = project.template;
   const [roles, setRoles] = useState(() => sortProjectRoles(member.roles, template));
   // the refusal shown when the user unticks the last role
@@ -65,7 +65,7 @@ const ProjectRolesDialog = ({ project, member, onClose, onSaved }) => {
   };
 
   return (
-    <Dialog open onClose={submit.submitting ? undefined : onClose} maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={submit.submitting ? undefined : onClose} maxWidth="xs" fullWidth>
       <DialogTitle sx={{ fontWeight: 700 }}>
         Roles of {name}
         <Typography variant="body2" color="text.secondary">

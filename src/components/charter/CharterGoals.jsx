@@ -23,6 +23,7 @@ import ConfirmDialog from "../general/ConfirmDialog";
 import GoalDialog from "./GoalDialog";
 import { deleteCharterGoal } from "../../api/charterApi";
 import { useSubmit } from "../../hooks/useSubmit";
+import { useLatched } from "../../hooks/useLatched";
 import { CHARTER_ERROR_MESSAGES } from "../../constants/charter";
 
 const dragId = (goal) => `goal-${goal.id}`;
@@ -153,9 +154,10 @@ const GoalRow = ({ goal, index, count, editable, busy, onEdit, onMove, onDelete 
 
 // The charter's goals in their manual order. With `editable`: add, edit, delete, and reorder by dragging (mouse,
 // touch or keyboard: space, arrows, space) or with Move up / down. `onReorder(from, to)` is applied optimistically
-// by CharterTab; `reordering` is true while it's being saved.
+// by useCharter; `reordering` is true while it's being saved.
 const CharterGoals = ({ project, goals, editable, reordering, onReorder, onChanged, onNotice }) => {
   const [dialog, setDialog] = useState(null); // { type: "add" | "edit" | "delete", goal? }
+  const shown = useLatched(dialog);
   const remove = useSubmit(CHARTER_ERROR_MESSAGES);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -191,7 +193,7 @@ const CharterGoals = ({ project, goals, editable, reordering, onReorder, onChang
       count={goals.length}
       toolbar={
         editable && (
-          <Button variant="outlined" startIcon={<AddRoundedIcon />} onClick={() => setDialog({ type: "add" })}>
+          <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={() => setDialog({ type: "add" })}>
             Add goal
           </Button>
         )
@@ -228,19 +230,22 @@ const CharterGoals = ({ project, goals, editable, reordering, onReorder, onChang
         </DndContext>
       )}
 
-      {(dialog?.type === "add" || dialog?.type === "edit") && (
+      {/* rendered from `shown` (kept a moment after closing, so the window can play its close) */}
+      {(shown?.type === "add" || shown?.type === "edit") && (
         <GoalDialog
+          open={dialog?.type === shown.type}
           projectId={project.id}
-          goal={dialog.goal ?? null}
+          goal={shown.goal ?? null}
           onClose={close}
-          onSaved={() => saved(dialog.type === "add" ? "Goal added." : "Goal saved.")}
+          onSaved={() => saved(shown.type === "add" ? "Goal added." : "Goal saved.")}
         />
       )}
-      {dialog?.type === "delete" && (
+      {shown?.type === "delete" && (
         <ConfirmDialog
+          open={dialog?.type === "delete"}
           tone="danger"
           title="Delete goal?"
-          message={`“${dialog.goal.title}” will be removed from the charter. The charter history keeps a record of it.`}
+          message={`“${shown.goal.title}” will be removed from the charter. The charter history keeps a record of it.`}
           confirmLabel="Delete"
           loading={remove.submitting}
           error={remove.error}

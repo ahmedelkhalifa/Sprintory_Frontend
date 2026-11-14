@@ -23,6 +23,7 @@ import StakeholderDialog from "./StakeholderDialog";
 import LinkedUserLink from "./LinkedUserLink";
 import { deleteStakeholder } from "../../api/charterApi";
 import { useSubmit } from "../../hooks/useSubmit";
+import { useLatched } from "../../hooks/useLatched";
 import { CHARTER_ERROR_MESSAGES, STAKEHOLDER_LEVEL_LABEL, STAKEHOLDER_LEVEL_TONE } from "../../constants/charter";
 import { safeHref } from "../../utils/richText";
 
@@ -58,6 +59,7 @@ const Email = ({ value }) => {
 // open (the backend's 404 for everyone else); nothing here goes into a shared store. `editable` shows the actions.
 const CharterStakeholders = ({ project, workspace, stakeholders, editable, onChanged, onNotice }) => {
   const [dialog, setDialog] = useState(null); // { type: "add" | "edit" | "delete", stakeholder? }
+  const shown = useLatched(dialog);
   const remove = useSubmit(CHARTER_ERROR_MESSAGES);
 
   const close = () => {
@@ -82,7 +84,7 @@ const CharterStakeholders = ({ project, workspace, stakeholders, editable, onCha
       count={stakeholders.length}
       toolbar={
         editable && (
-          <Button variant="outlined" startIcon={<AddRoundedIcon />} onClick={() => setDialog({ type: "add" })}>
+          <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={() => setDialog({ type: "add" })}>
             Add stakeholder
           </Button>
         )
@@ -212,20 +214,23 @@ const CharterStakeholders = ({ project, workspace, stakeholders, editable, onCha
         </TableContainer>
       )}
 
-      {(dialog?.type === "add" || dialog?.type === "edit") && (
+      {/* rendered from `shown` (kept a moment after closing, so the window can play its close) */}
+      {(shown?.type === "add" || shown?.type === "edit") && (
         <StakeholderDialog
+          open={dialog?.type === shown.type}
           projectId={project.id}
           workspaceId={workspace.id}
-          stakeholder={dialog.stakeholder ?? null}
+          stakeholder={shown.stakeholder ?? null}
           onClose={close}
-          onSaved={(result) => saved(dialog.type === "add" ? `${result.name} was added to the stakeholders.` : "Stakeholder saved.")}
+          onSaved={(result) => saved(shown.type === "add" ? `${result.name} was added to the stakeholders.` : "Stakeholder saved.")}
         />
       )}
-      {dialog?.type === "delete" && (
+      {shown?.type === "delete" && (
         <ConfirmDialog
+          open={dialog?.type === "delete"}
           tone="danger"
           title="Remove stakeholder?"
-          message={`${dialog.stakeholder.name} will be removed from the stakeholder register. This can't be undone.`}
+          message={`${shown.stakeholder.name} will be removed from the stakeholder register. This can't be undone.`}
           confirmLabel="Remove"
           loading={remove.submitting}
           error={remove.error}

@@ -31,7 +31,7 @@ const ACTIONS = {
 };
 
 // Confirmation for archive / restore / delete of one project
-const ProjectStatusDialog = ({ action, project, onClose, onDone }) => {
+const ProjectStatusDialog = ({ open = true, action, project, onClose, onDone }) => {
   const submit = useSubmit(PROJECT_ERROR_MESSAGES);
   const { title, message, confirmLabel, tone, Icon, run } = ACTIONS[action];
 
@@ -42,6 +42,7 @@ const ProjectStatusDialog = ({ action, project, onClose, onDone }) => {
 
   return (
     <ConfirmDialog
+      open={open}
       title={title(project.name)}
       message={message}
       confirmLabel={confirmLabel}

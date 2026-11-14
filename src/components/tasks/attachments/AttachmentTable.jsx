@@ -23,6 +23,7 @@ import AttachmentIcon from "./AttachmentIcon";
 import AttachmentImage from "./AttachmentImage";
 import { formatFileSize, sortAttachments } from "../../../utils/attachment";
 import { formatDate } from "../../../utils/format";
+import { pressable } from "../../../theme/motion";
 
 const THUMBNAIL = 32;
 
@@ -119,7 +120,7 @@ const AttachmentTable = ({ attachments, canEdit, downloadingId, onView, onDownlo
               <TableCell sx={{ ...cellSx, pl: 0 }}>
                 <ButtonBase
                   onClick={() => (attachment.image ? onView(attachment) : onDownload(attachment))}
-                  sx={{ display: "flex", justifyContent: "flex-start", gap: 1.5, width: "100%", borderRadius: 1, textAlign: "left" }}
+                  sx={{ display: "flex", justifyContent: "flex-start", gap: 1.5, width: "100%", borderRadius: 1, textAlign: "left", ...pressable(0.98) }}
                 >
                   <Box
                     sx={{

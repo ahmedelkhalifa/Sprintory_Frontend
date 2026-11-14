@@ -22,12 +22,13 @@ import QuickAddTask from "../tasks/QuickAddTask";
 import TaskDrawer from "../tasks/TaskDrawer";
 import NoWorkAccess from "../tasks/NoWorkAccess";
 import TaskFilterBar from "../tasks/filters/TaskFilterBar";
-import { collisionDetection, dropTarget, isBelow } from "../tasks/dnd";
+import { collisionDetection, dropTarget, isBelow, dropAnimationFor, DND_MEASURING } from "../tasks/dnd";
 import { loadWork } from "../tasks/loadWork";
 import { rankInBacklog } from "../../api/tasksApi";
 import { deleteSprint, moveToSprint } from "../../api/sprintsApi";
 import { useAsync } from "../../hooks/useAsync";
 import { useSubmit } from "../../hooks/useSubmit";
+import { useLatched } from "../../hooks/useLatched";
 import { useTaskFilterMatches } from "../../hooks/useTaskFilterMatches";
 import { PERMISSIONS } from "../../constants/projects";
 import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
@@ -42,6 +43,7 @@ import {
   projectLabels,
 } from "../../utils/task";
 import { EMPTY_TASK_FILTERS, hasTaskFilters } from "../../utils/taskFilters";
+import { LOADING_DELAY_SX, reveal, revealChildren } from "../../theme/motion";
 
 // why a drop was refused, by the permission it needed
 const NOT_ALLOWED = {
@@ -82,9 +84,12 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
   const [openTaskId, setOpenTaskId] = useState(null);
   // which window is open: create-sprint / edit-sprint / start-sprint / delete-sprint (+ sprint)
   const [dialog, setDialog] = useState(null);
+  const shownDialog = useLatched(dialog);
   // { text, severity }: "warning" for a move the user may not make, "error" for one the backend refused
   const [notice, setNotice] = useState(null);
-  const [dragging, setDragging] = useState(null); // { taskId, fromSprintId }
+  // how the copy lands when it's dropped (set when a drag starts: keyboard drags don't animate)
+  const [dropAnimation, setDropAnimation] = useState(null);
+  const [dragging, setDragging] = useState(null); // { taskId, fromSprintId, byKeyboard }
   const [overSprintId, setOverSprintId] = useState(undefined); // list under the pointer (null = backlog)
   const removeSprint = useSubmit(TASK_ERROR_MESSAGES);
   const sensors = useSensors(
@@ -159,7 +164,7 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
 
   if (!state) {
     return (
-      <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2 }}>
+      <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2, ...LOADING_DELAY_SX }}>
         <LoadState loading={!backlogState.error} error={backlogState.error} onRetry={backlogState.reload} rows={6} />
       </Paper>
     );
@@ -187,9 +192,12 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
 
   const lookup = (taskId) => findTask(view, taskId);
 
-  const handleDragStart = ({ active }) => {
+  const handleDragStart = ({ active, activatorEvent }) => {
     const from = lookup(active.data.current.taskId);
-    setDragging(from && { taskId: from.task.id, fromSprintId: from.sprintId });
+    // a keyboard drag doesn't animate its pickup
+    const byKeyboard = activatorEvent instanceof KeyboardEvent;
+    setDropAnimation(dropAnimationFor(byKeyboard));
+    setDragging(from && { taskId: from.task.id, fromSprintId: from.sprintId, byKeyboard });
   };
 
   const handleDragOver = ({ over }) => setOverSprintId(dropTarget(over, lookup)?.sprintId);
@@ -257,44 +265,48 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
     if (ok) afterChange();
   };
 
+  // the filters come in first, then each sprint box and the backlog, one after another (once, when it arrives)
   return (
     <Box>
-      <TaskFilterBar
-        filters={filters}
-        onChange={onFiltersChange}
-        members={data.members}
-        columns={data.columns}
-        labels={projectLabels(state.tasks)}
-        match={match}
-        shown={keep(state.tasks).length}
-        total={state.tasks.length}
-        actions={
-          (canPlan || (canEditTasks && onCreateTask)) && (
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-              {canPlan && (
-                <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setDialog({ type: "create-sprint" })}>
-                  Create sprint
-                </Button>
-              )}
-              {canEditTasks && onCreateTask && (
-                <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
-                  Create task
-                </Button>
-              )}
-            </Box>
-          )
-        }
-      />
+      <Box sx={reveal(0)}>
+        <TaskFilterBar
+          filters={filters}
+          onChange={onFiltersChange}
+          members={data.members}
+          columns={data.columns}
+          labels={projectLabels(state.tasks)}
+          match={match}
+          shown={keep(state.tasks).length}
+          total={state.tasks.length}
+          actions={
+            (canPlan || (canEditTasks && onCreateTask)) && (
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                {canPlan && (
+                  <Button variant="outlined" startIcon={<AddIcon />} onClick={() => setDialog({ type: "create-sprint" })}>
+                    Create sprint
+                  </Button>
+                )}
+                {canEditTasks && onCreateTask && (
+                  <Button variant="contained" startIcon={<AddIcon />} onClick={onCreateTask}>
+                    Create task
+                  </Button>
+                )}
+              </Box>
+            )
+          }
+        />
+      </Box>
 
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}
+        measuring={DND_MEASURING}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <Stack spacing={2.5}>
+        <Stack spacing={2.5} sx={revealChildren(1)}>
           {view.sprints.map((sprint) => (
             <TaskList
               key={sprint.id}
@@ -374,39 +386,45 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
         </Stack>
 
         {/* the row that follows the pointer while dragging */}
-        <DragOverlay dropAnimation={null}>{draggedTask && <TaskRowContent task={draggedTask} raised />}</DragOverlay>
+        <DragOverlay dropAnimation={dropAnimation}>{draggedTask && <TaskRowContent task={draggedTask} raised lift={!dragging.byKeyboard} />}</DragOverlay>
       </DndContext>
 
-      {openTaskId !== null && (
-        <TaskDrawer
-          project={project}
-          taskId={openTaskId}
-          columns={data.columns}
-          members={data.members}
-          labels={projectLabels(state.tasks)}
-          canEdit={canEditTasks}
-          onClose={() => setOpenTaskId(null)}
-          onChanged={reload}
-        />
-      )}
+      <TaskDrawer
+        project={project}
+        taskId={openTaskId}
+        columns={data.columns}
+        members={data.members}
+        labels={projectLabels(state.tasks)}
+        canEdit={canEditTasks}
+        onClose={() => setOpenTaskId(null)}
+        onChanged={reload}
+      />
 
-      {(dialog?.type === "create-sprint" || dialog?.type === "edit-sprint") && (
+      {/* rendered from `shownDialog` (kept a moment after closing, so the window can play its close) */}
+      {(shownDialog?.type === "create-sprint" || shownDialog?.type === "edit-sprint") && (
         <SprintDialog
+          open={dialog?.type === shownDialog.type}
           projectId={project.id}
-          sprint={dialog.sprint}
+          sprint={shownDialog.sprint}
           members={data.members}
           onClose={closeDialog}
           onSaved={afterChange}
         />
       )}
-      {dialog?.type === "start-sprint" && (
-        <StartSprintDialog sprint={dialog.sprint} onClose={closeDialog} onStarted={afterChange} />
+      {shownDialog?.type === "start-sprint" && (
+        <StartSprintDialog
+          open={dialog?.type === "start-sprint"}
+          sprint={shownDialog.sprint}
+          onClose={closeDialog}
+          onStarted={afterChange}
+        />
       )}
-      {dialog?.type === "delete-sprint" && (
+      {shownDialog?.type === "delete-sprint" && (
         <ConfirmDialog
-          title={`Delete ${dialog.sprint.name}?`}
+          open={dialog?.type === "delete-sprint"}
+          title={`Delete ${shownDialog.sprint.name}?`}
           message={
-            dialog.sprint.tasks.length > 0
+            shownDialog.sprint.tasks.length > 0
               ? "Its tasks go back to their places in the backlog. The tasks themselves are kept."
               : "This empty sprint will be removed."
           }

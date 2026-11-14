@@ -19,6 +19,7 @@ import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { WORKSPACE_ERROR_MESSAGES } from "../../constants/workspaces";
 import { memberLabel } from "../../utils/people";
 import { ROLE_LABEL, isWorkspaceAdmin, isWorkspaceArchived, workspacePath } from "../../utils/workspace";
+import { reveal } from "../../theme/motion";
 
 // /workspaces/:workspaceSlug/members: WorkspaceAccessGuard has loaded the workspace
 // (and remounts this page when the workspace changes).
@@ -102,22 +103,25 @@ const WorkspaceMembersPage = () => {
           isEmpty={members.items.length === 0}
           emptyMessage={query ? `No members match "${query}".` : "This workspace has no members yet."}
         >
-          <WorkspaceMembersTable
-            members={members.items}
-            canChange={canChange}
-            currentUserId={user?.id}
-            savingId={savingId}
-            onChangeRole={handleChangeRole}
-          />
-          <Pager
-            page={members.page}
-            size={members.size}
-            total={members.total}
-            totalPages={members.totalPages}
-            shown={members.items.length}
-            noun="member"
-            onPageChange={members.setPage}
-          />
+          {/* the results arrive as one block, after each load (search, page) */}
+          <Box sx={reveal(0)}>
+            <WorkspaceMembersTable
+              members={members.items}
+              canChange={canChange}
+              currentUserId={user?.id}
+              savingId={savingId}
+              onChangeRole={handleChangeRole}
+            />
+            <Pager
+              page={members.page}
+              size={members.size}
+              total={members.total}
+              totalPages={members.totalPages}
+              shown={members.items.length}
+              noun="member"
+              onPageChange={members.setPage}
+            />
+          </Box>
         </LoadState>
       </SectionCard>
 

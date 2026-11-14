@@ -32,6 +32,7 @@ import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_TYPES } from "../../constant
 import { findAssignee, needsSubtaskConfirmation, taskChanges, taskPath, taskValues } from "../../utils/task";
 import { isRichTextError, richTextValue } from "../../utils/richText";
 import { TASK_TITLE_MAX, validateTask } from "../../utils/validation";
+import { useLatched } from "../../hooks/useLatched";
 
 // a label above a field that isn't a FormField (the pickers)
 const Field = ({ id, label, children }) => (
@@ -52,6 +53,7 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
   const [errors, setErrors] = useState({});
   // a move to Done the backend refused because subtasks are open: the same changes, waiting for a confirmation
   const [confirmDone, setConfirmDone] = useState(null);
+  const shownConfirmDone = useLatched(confirmDone);
   const save = useSubmit(TASK_ERROR_MESSAGES);
 
   const send = async (changes) => {
@@ -205,10 +207,11 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
         </>
       )}
 
-      {confirmDone && (
+      {shownConfirmDone && (
         <OpenSubtasksDialog
+          open={Boolean(confirmDone)}
           task={task}
-          columnName={columns.find((column) => column.id === confirmDone.statusId)?.name}
+          columnName={columns.find((column) => column.id === shownConfirmDone.statusId)?.name}
           onConfirm={moveToDoneAnyway}
           onClose={() => setConfirmDone(null)}
         />
@@ -217,11 +220,8 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
   );
 };
 
-// Side panel with one task's details, opened from a backlog row or a board card. "Open full page" goes to the
-// task's own page. `columns` are the board's (the status choices), `members` the project's (to name the assignee),
-// `labels` the project's labels, suggested in the label picker; `onChanged` runs after a save (with the saved task,
-// which may carry a `wipWarning`) or a delete (with nothing).
-const TaskDrawer = ({ project, taskId, columns, members, labels, canEdit, onClose, onChanged }) => {
+// the drawer's content: loads the task (only while the drawer is open, the Drawer doesn't render it when closed)
+const TaskDrawerContent = ({ project, taskId, columns, members, labels, canEdit, onClose, onChanged }) => {
   const { workspace } = useWorkspaceAccess();
   const taskState = useAsync((signal) => getTask(project.id, taskId, signal), [project.id, taskId], {
     fallback: "Couldn't load the task. Please try again.",
@@ -231,12 +231,7 @@ const TaskDrawer = ({ project, taskId, columns, members, labels, canEdit, onClos
   const type = TASK_TYPES[task?.type];
 
   return (
-    <Drawer
-      anchor="right"
-      open
-      onClose={onClose}
-      slotProps={{ paper: { sx: { width: { xs: "100%", sm: 560 }, display: "flex", flexDirection: "column" } } }}
-    >
+    <>
       <Box
         sx={{ display: "flex", alignItems: "center", gap: 1, px: { xs: 2, sm: 3 }, py: 2, borderBottom: 1, borderColor: "divider" }}
       >
@@ -296,6 +291,28 @@ const TaskDrawer = ({ project, taskId, columns, members, labels, canEdit, onClos
           <Skeleton variant="rounded" height={160} />
         </Stack>
       )}
+    </>
+  );
+};
+
+// Side panel with one task's details, opened from a backlog row or a board card (`taskId`, null = closed). "Open
+// full page" goes to the task's own page. `columns` are the board's (the status choices), `members` the project's
+// (to name the assignee), `labels` the project's labels, suggested in the label picker; `onChanged` runs after a
+// save (with the saved task, which may carry a `wipWarning`) or a delete (with nothing).
+// Always rendered, so the Drawer only ever goes from closed to open and slides in every time (a Drawer mounted
+// already open skips its slide); it keeps drawing the last task while it slides out.
+const TaskDrawer = ({ taskId, onClose, ...props }) => {
+  const [shownId, setShownId] = useState(taskId);
+  if (taskId != null && taskId !== shownId) setShownId(taskId);
+
+  return (
+    <Drawer
+      anchor="right"
+      open={taskId != null}
+      onClose={onClose}
+      slotProps={{ paper: { sx: { width: { xs: "100%", sm: 560 }, display: "flex", flexDirection: "column" } } }}
+    >
+      {shownId != null && <TaskDrawerContent {...props} taskId={shownId} onClose={onClose} />}
     </Drawer>
   );
 };

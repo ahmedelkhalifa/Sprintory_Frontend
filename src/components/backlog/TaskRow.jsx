@@ -12,10 +12,12 @@ import { carriedOverLabel } from "../../utils/sprint";
 import { formatEstimate, labelTone } from "../../utils/task";
 import { memberLabel } from "../../utils/people";
 import { rowId } from "../tasks/dnd";
+import { lifted } from "../../theme/motion";
 
 // the visible row: used in the lists and as the picture that follows the pointer while dragging.
 // `task` comes from describeTasks (utils/task.js), so it has its `assignee` and `stage`
-export const TaskRowContent = ({ task, handle, onOpen, actions, raised = false }) => {
+// `raised`: the dragged copy (`lift` false for a keyboard drag, which doesn't animate)
+export const TaskRowContent = ({ task, handle, onOpen, actions, raised = false, lift = true }) => {
   const type = TASK_TYPES[task.type] ?? TASK_TYPES.TASK;
   const priority = TASK_PRIORITIES[task.priority] ?? TASK_PRIORITIES.MEDIUM;
   const stage = TASK_STAGES[task.stage] ?? TASK_STAGES.TODO;
@@ -35,7 +37,8 @@ export const TaskRowContent = ({ task, handle, onOpen, actions, raised = false }
         bgcolor: "background.paper",
         borderBottom: 1,
         borderColor: "divider",
-        ...(raised && { border: 1, borderColor: "primary.light", borderRadius: 1, boxShadow: 4 }),
+        // a row is wide, so it lifts less than a card
+        ...(raised && { border: 1, borderColor: "primary.light", borderRadius: 1, ...lifted(1.01, lift) }),
         "&:hover": { bgcolor: raised ? "background.paper" : "action.hover" },
       }}
     >

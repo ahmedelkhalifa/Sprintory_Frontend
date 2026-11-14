@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="en" data-type="software" data-radius="soft" data-ground="sand" data-buttons="arrow" data-motion>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sprintory: project management for Scrum and Kanban teams</title>
+<meta name="description" content="Plan sprints with real capacity and a sprint goal, or run Kanban with WIP limits. Backlog, board, charter and chat in one project.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Sprintory: project management for Scrum and Kanban teams">
+<meta property="og:description" content="Sprints with capacity and a goal, or Kanban with WIP limits, in one tool for software teams.">
+<meta property="og:image" content="share.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#eef0f3">
+<!-- <link rel="canonical" href="https://[the domain]/welcome/"> : once the domain is known -->
+<meta name="site-kind" content="software">
+<meta name="page-type" content="software">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@400..700&family=Funnel+Sans:wght@400..600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/system.css">
+<link rel="stylesheet" href="assets/ui/cards.css">
+<link rel="stylesheet" href="assets/motion/motion.css">
+<link rel="stylesheet" href="assets/backgrounds/backgrounds.css">
+<link rel="stylesheet" href="assets/layout/layout.css">
+<link rel="stylesheet" href="assets/icons/icon.css">
+<style>
+:root {
+  --p-bg: #eef0f3; --p-surface: #e2e5ea; --p-ink: #0b0c0e; --p-muted: #5d6470;
+  --p-accent: #1f2de6; --p-accent-ink: #ffffff; --p-action: #1f2de6; --p-action-ink: #ffffff;
+  --p-inv-bg: #0b0c0e; --p-inv-surface: #17181a; --p-inv-ink: #eef0f3; --p-inv-muted: #8e8f92;
+  --p-inv-accent: #eef0f3; --p-inv-accent-ink: #0b0c0e; --p-inv-action: #eef0f3; --p-inv-action-ink: #0b0c0e;
+  --font-display: "Funnel Display", system-ui, sans-serif;
+  --font-text: "Funnel Sans", system-ui, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --display-weight: 400;
+  --display-tracking: -0.03em;
+  --display-tracking-xl: -0.04em;
+  --ly-scale: 0.98;
+}
+</style>
+<link rel="stylesheet" href="assets/ui/base.css">
+<link rel="stylesheet" href="assets/ui/window/fragment.css">
+<link rel="stylesheet" href="assets/ui/doc/fragment.css">
+<link rel="stylesheet" href="assets/ui/stat/fragment.css">
+<link rel="stylesheet" href="assets/ui/checklist/fragment.css">
+<link rel="stylesheet" href="assets/ui/toggles/fragment.css">
+<link rel="stylesheet" href="assets/ui/notify/fragment.css">
+<link rel="stylesheet" href="assets/ui/chat/fragment.css">
+<link rel="stylesheet" href="assets/diagrams/diagram.css">
+<script>document.documentElement.classList.add('m-enter');setTimeout(()=>document.documentElement.classList.add('m-enter-done'),700)</script>
+<script src="assets/backgrounds/backgrounds.js"></script>
+<script>document.documentElement.classList.add('mo-js');setTimeout(()=>document.documentElement.classList.add('mo-safe'),2500)</script>
+<link rel="modulepreload" href="assets/moments/moments.js">
+<link rel="modulepreload" href="assets/moments/lib.js">
+<link rel="modulepreload" href="assets/moments/liquid-type/moment.js">
+<!-- page CSS: only what sits inside a visual (the Sprintory screens drawn in HTML) and one --p-h per card group -->
+<style>
+  /* the logo: Sprintory's bolt beside the name */
+  .mark.sp-mark { background: var(--p-action); -webkit-mask: url("favicon.svg") center / contain no-repeat; mask: url("favicon.svg") center / contain no-repeat; }
+  .ui-brand.sp-bolt { color: var(--p-action); transform: skewX(-10deg); }
+
+  /* ---- the hero's Sprintory window: the active sprint's board (the product's own UI, light) */
+  .hero__art > .ly-piece { z-index: 1; }
+  .hero__art > .ly-piece--note { left: var(--s-6); bottom: var(--s-6); width: 300px; z-index: 2; }
+  .sp-win { background: #fff; color: #172b4d; border-radius: 12px; overflow: hidden; font: 400 13px/1.35 var(--font-text); text-align: left;
+            box-shadow: 0 0 0 1px rgb(0 0 0 / .08), 0 24px 60px -28px rgb(0 0 0 / .45); }
+  .sp-win__bar { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px; border-bottom: 1px solid #dfe1e6; font-size: 13px; color: #44546f; }
+  .sp-win__dots { display: flex; gap: 6px; } .sp-win__dots i { width: 10px; height: 10px; border-radius: 50%; background: #dcdfe4; }
+  .sp-win__bar b { font-weight: 500; color: #172b4d; }
+  .sp-win__bar svg { width: 15px; height: 15px; color: #0c66e4; transform: skewX(-10deg); flex: none; }
+  .sp-win__body { display: grid; grid-template-columns: 128px minmax(0, 1fr); min-height: 640px; }
+  .sp-side { padding: 12px 8px; background: #f7f8f9; border-right: 1px solid #dfe1e6; display: grid; align-content: start; gap: 2px; color: #44546f; }
+  .sp-side > span { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 8px; border-radius: 4px; }
+  .sp-side > span i { width: 13px; height: 13px; border-radius: 3px; border: 1.5px solid currentColor; opacity: .55; flex: none; }
+  .sp-side > span.is-on { background: #e9f2ff; color: #0c66e4; font-weight: 500; }
+  .sp-side > span.is-on i { opacity: 1; }
+  .sp-side__label { font-size: 12px; color: #626f86; padding: 12px 8px 4px !important; height: auto !important; }
+  .sp-main { padding: 16px var(--ly-cut-room, 48px) 16px 16px; display: grid; align-content: start; gap: 10px; min-width: 0; }
+  .sp-main__head { display: flex; align-items: center; gap: 8px; }
+  .sp-main__head h4 { margin: 0; font: 500 16px/1.2 var(--font-text); color: #172b4d; }
+  .sp-chip { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 3px; font-size: 12px; font-weight: 500; background: #f1f2f4; color: #44546f; white-space: nowrap; }
+  .sp-chip--blue { background: #e9f2ff; color: #0055cc; } .sp-chip--green { background: #dcfff1; color: #216e4e; } .sp-chip--amber { background: #fff7d6; color: #7f5f01; }
+  .sp-btn { margin-left: auto; height: 28px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 3px; border: 1px solid #c1c7d0; font-weight: 500; color: #172b4d; white-space: nowrap; }
+  .sp-goal { font-size: 13px; color: #44546f; } .sp-goal b { font-weight: 500; color: #172b4d; }
+  .sp-days { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px; }
+  .sp-days i { height: 6px; border-radius: 2px; background: #dfe1e6; } .sp-days i.is-past { background: #8590a2; } .sp-days i.is-today { background: #0c66e4; }
+  .sp-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
+  .sp-col { background: #f7f8f9; border-radius: 6px; padding: 8px 6px; display: grid; align-content: start; gap: 6px; min-width: 0; }
+  .sp-col__head { display: flex; align-items: center; gap: 6px; padding: 0 2px 2px; font-size: 12px; font-weight: 500; color: #44546f; }
+  .sp-col__head em { font-style: normal; color: #626f86; font-weight: 400; }
+  .sp-card { background: #fff; border-radius: 4px; padding: 8px; box-shadow: 0 1px 1px rgb(0 0 0 / .2), 0 0 1px rgb(0 0 0 / .25); display: grid; gap: 6px; }
+  .sp-card b { font-weight: 400; color: #172b4d; }
+  .sp-card__foot { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #626f86; }
+  .sp-card__foot .sp-pts { margin-left: auto; min-width: 18px; height: 18px; border-radius: 9px; background: #f1f2f4; display: inline-grid; place-items: center; padding: 0 5px; color: #44546f; }
+  .sp-av { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 10px; font-weight: 500; color: #fff; background: #44546f; flex: none; }
+  .sp-av[data-tone="1"] { background: #0c66e4; } .sp-av[data-tone="2"] { background: #216e4e; } .sp-av[data-tone="3"] { background: #a54800; } .sp-av[data-tone="4"] { background: #5e4db2; }
+  .sp-key { font-family: var(--font-mono); font-size: 11.5px; color: #626f86; }
+  .sp-done b { color: #626f86; text-decoration: line-through; text-decoration-color: rgb(98 111 134 / .5); }
+  /* the result card over the window: Complete sprint */
+  .sp-note { background: #fff; color: #172b4d; border-radius: 10px; padding: 14px 16px; font: 400 13px/1.35 var(--font-text); box-shadow: 0 0 0 1px rgb(0 0 0 / .08), 0 18px 40px -20px rgb(0 0 0 / .5); }
+  .sp-note__row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  .sp-note__row h5 { margin: 0; font: 500 14px/1.3 var(--font-text); }
+  .sp-note__line { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid #f1f2f4; color: #44546f; }
+  .sp-note__line:first-of-type { border-top: 0; }
+  .sp-note__line i { width: 18px; height: 18px; border-radius: 50%; flex: none; display: grid; place-items: center; background: #dcfff1; color: #216e4e; font-style: normal; font-size: 12px; font-weight: 600; }
+  .sp-note__line i.is-carry { background: #fff7d6; color: #7f5f01; }
+  .sp-note__line b { font-weight: 500; color: #172b4d; }
+  @media (max-width: 1279px) {
+    .sp-win__body { grid-template-columns: minmax(0, 1fr); }
+    .sp-side { display: none; }
+    .sp-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sp-cols > .sp-col:last-child, .sp-main__head .sp-chip { display: none; }
+  }
+  @media (max-width: 1023px) { .hero__art > .ly-piece--note { left: var(--s-4); bottom: var(--s-4); width: 270px; } }
+  @media (max-width: 639px) {
+    .sp-main { padding: 12px var(--ly-cut-room, 48px) 12px 16px; }
+    .sp-goal, .sp-days, .sp-main__head .sp-btn { display: none; }
+    .sp-col > .sp-card:nth-of-type(n+2) { display: none; }
+  }
+
+  /* ---- the backlog beside the open task (app-frame recipe) */
+  .app.ui { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); margin-top: var(--s-7); background: var(--u-bg); border: 1px solid var(--u-border); border-radius: var(--u-r); box-shadow: var(--u-shadow); }
+  .app > .app__pane { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+  .app > .app__pane + .app__pane { border-left: 1px solid var(--u-line); }
+  .app > .app__pane > .ui-panel { width: 100%; border: 0; border-radius: 0; box-shadow: none; }
+  .app > .app__pane::after { content: ""; position: absolute; inset: auto 0 0 0; height: 64px; background: linear-gradient(transparent, var(--u-bg)); pointer-events: none; }
+  @media (min-width: 1024px) and (max-width: 1279px) { .app.ui { grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); } }
+  @media (max-width: 1023px) {
+    .app.ui { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+    .app > .app__pane--list { max-height: 252px; }
+    .app > .app__pane--list::after { display: none; }
+    .app .ui-win__side { display: none; }
+    .app .ui-win__body { grid-template-columns: minmax(0, 1fr); }
+    .app > .app__pane + .app__pane { border-left: 0; border-top: 1px solid var(--u-line); }
+  }
+  @media (max-width: 639px) {
+    .app.ui { grid-template-rows: minmax(0, 1fr); }
+    .app > .app__pane--list { display: none; }
+    .app > .app__pane + .app__pane { border-top: 0; }
+  }
+  /* the open task: the doc fragment as the task page, with its subtasks and files */
+  .app__pane--open .ui-doc { width: 100%; max-width: none; padding: 24px 28px; }
+  .sp-sub { display: grid; gap: 6px; margin: 4px 0 2px; }
+  .sp-sub > span { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--u-ink, #1d1f22); }
+  .sp-sub > span i { width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid currentColor; opacity: .5; flex: none; }
+  .sp-sub > span.is-done i { background: currentColor; opacity: .75; }
+  .sp-sub > span.is-done { color: var(--u-muted, #6b7075); text-decoration: line-through; }
+  .sp-files { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+  .sp-file { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border: 1px solid var(--u-line); border-radius: 8px; font-size: 13px; }
+  .sp-file img { width: 18px; height: 18px; }
+
+  /* ---- the four feature cards (one --p-h for the group) and the Kanban column drawn in HTML */
+  #scrum .panel { --p-h: 336px; }
+  @media (min-width: 1024px) and (max-width: 1279px) { #scrum .panel { --p-h: 300px; } }
+  @media (max-width: 639px) { #scrum .panel { --p-h: 170px; } }
+  .sp-kanban { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; font: 400 13px/1.35 var(--font-text); color: #172b4d; }
+  .sp-kanban .sp-col { background: #fff; box-shadow: 0 0 0 1px rgb(0 0 0 / .08), 0 12px 28px -18px rgb(0 0 0 / .4); border-radius: 10px; padding: 10px 8px; }
+  .sp-kanban .sp-col.is-over { outline: 1.5px solid #b65c02; outline-offset: -1.5px; }
+  .sp-kanban .sp-col.is-over .sp-col__head { color: #7f5f01; }
+  .sp-kanban .sp-card { box-shadow: 0 0 0 1px #dfe1e6; }
+
+  /* ---- AI: three open cards across from 1024 (no span class, so no two-up row at 1024 to 1279) */
+  .ai-cards .panel { --p-h: 300px; background:
+      radial-gradient(80% 70% at 20% 0%, color-mix(in oklab, var(--ground-surface) 80%, white), transparent 70%),
+      var(--ground-bg); }
+  .ai-cards > .card { grid-column: 1 / -1; }
+  @media (min-width: 1024px) { .ai-cards > .card { grid-column: auto / span 4; } }
+  @media (min-width: 640px) and (max-width: 1023px) {
+    .ai-cards > .card { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-auto-rows: min-content; column-gap: var(--s-6); align-content: start; }
+    .ai-cards > .card > :not(.panel) { grid-column: 1; }
+    .ai-cards > .card > .panel { grid-column: 2; grid-row: 1 / span 4; --p-h: 196px; }
+  }
+  @media (max-width: 639px) { .ai-cards .panel { --p-h: 170px; } }
+
+  /* ---- the tour: one screen per tab in the frame; the diagram fills its slot */
+  .sp-dgslot { position: absolute; inset: 0; display: grid; }
+  .sp-dgslot > .dg { width: 100%; height: 100%; }
+  .sp-tools { display: grid; gap: var(--s-4); margin: var(--s-5) 0 0; padding: 0; list-style: none; }
+  .sp-tool-ic { width: 32px; height: 32px; object-fit: contain; flex: none; }
+  .sp-tools > li { display: flex; align-items: center; gap: var(--s-4); font-size: var(--t-body); }
+  /* the big close button keeps its one line inside a 320px screen */
+  @media (max-width: 379px) { .closing__cta .btn--xl { padding-inline: var(--s-4); font-size: var(--t-body); } }
+  /* a tablet held upright stacks the tabs over the frame: a lower frame keeps the section one screen */
+  @media (min-width: 640px) and (max-width: 1023px) { #tour .frame--split { --ratio: 62%; } }
+</style>
+</head>
+<body>
+<!-- type: software
+     deal: hero collage, nav nav-mega, close close-type, footer footer-dark, rhythm space, buttons arrow,
+           mark stack (replaced by Sprintory's own bolt logo), ground sand, palette cool-grey-cobalt
+           (the first dealt, mint-pink-accounts, clashed with Sprintory's blue bolt), type funnel (dealt again: outfit, host and instrument all failed hero-lines, 4 lines at 1440)
+     effect: painterly-landscape in the hero's art frame; card grounds: gradient-mesh (the Scrum 2x2)
+     moments: liquid-type on the statement (#methods); marquee-row was dealt second and taken out (it cut its words)
+     screens: hero 1, board 1, scrum 2, methods 1, ai 1, tour 1, faq 1, footer 1 -->
+
+<header class="nav">
+  <div class="wrap nav__bar">
+    <a class="skip-link" href="#top">Skip to content</a>
+    <a class="nav__logo" href="#top"><span class="mark sp-mark" aria-hidden="true"></span>Sprintory</a>
+    <nav class="nav__links" aria-label="Main">
+      <div class="nav__item">
+        <a class="nav__link" href="#board">Product <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <div class="nav__menu">
+          <div class="wrap grid">
+            <div class="menu-col span-3">
+              <p class="t-label">Plan</p>
+              <a href="#board">Backlog<span>Rank the work for a sprint</span></a>
+              <a href="#scrum">Sprints<span>Capacity, goal, completion</span></a>
+              <a href="#tour">Charter<span>Goals, scope, stakeholders</span></a>
+            </div>
+            <div class="menu-col span-3">
+              <p class="t-label">Track</p>
+              <a href="#scrum">Board<span>Columns with WIP limits</span></a>
+              <a href="#tour">Reports<span>Burndown and velocity</span></a>
+              <a href="#tour">Chat<span>Talk inside the project</span></a>
+            </div>
+            <a class="menu-card span-3 start-10" href="#ai">
+              <div class="panel" style="--p-h: 160px">
+                <div class="stage stage--fade-br"><div class="at-corner" style="--ax: 24px; --ay: 24px">
+                  <div class="ui ui-notify" data-ui="notify" data-ui-still>
+                    <ul class="ui-notify__list" data-notify-list>
+                      <li class="ui-note"><span class="ui-agent ui-note__av" aria-hidden="true"></span><span class="ui-note__text"><span class="ui-note__title">Estimate for SHOP-57<time>now</time></span><span class="ui-note__body">5 points suggested</span></span><span class="ui-btn ui-btn--sm ui-note__btn">Accept</span></li>
+                    </ul>
+                  </div>
+                </div></div>
+              </div>
+              <span class="t-card">AI in the project</span>
+              <span class="t-small muted">Plans, estimates and catches up</span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="nav__item"><a class="nav__link" href="#scrum">Scrum</a></div>
+      <div class="nav__item"><a class="nav__link" href="#ai">AI</a></div>
+      <div class="nav__item"><a class="nav__link" href="#tour">Reports</a></div>
+      <div class="nav__item"><a class="nav__link" href="#faq">Questions</a></div>
+    </nav>
+    <div class="nav__actions">
+      <a class="nav__link" href="/login">Log in</a>
+      <a class="btn btn--primary" href="/register">Create your workspace</a>
+    </div>
+    <button class="nav__toggle" type="button" aria-expanded="false" aria-label="Menu">
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 5h14M2 13h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+  <!-- HERO: collage. The text on span-5; the lit art frame (the page's one effect) holds Sprintory's
+       active sprint board, cut by the frame, and one result card that loops: completing the sprint. -->
+  <section class="hero hero--collage" data-enter aria-labelledby="hero-h">
+    <div class="wrap"><div class="hero-text grid hero__grid">
+      <div class="hero__text span-5">
+        <h1 id="hero-h">Scrum and Kanban boards for software teams</h1>
+        <p class="hero__lead">Plan sprints with the 3 Scrum roles, a sprint goal and real capacity, or run Kanban with WIP limits. Backlog, board, charter and chat sit in one project.</p>
+        <div class="btn-row">
+          <a class="btn btn--primary" href="/register">Create your workspace<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a>
+          <a class="btn btn--secondary" href="#board">See the board</a>
+        </div>
+        <p class="hero__proof">Sign in with Google or with email.</p>
+      </div>
+      <div class="hero__art span-6 start-7" data-fx="painterly-landscape" data-fx-seed="7"
+           data-fx-palette='{"bg":"#a3b0b6","accent":"#c49a6c"}'
+           data-fx-params='{"blur":1,"brush":0.35,"slope":0,"hillY":0.3,"horizon":0.62}'
+           role="img" aria-label="Sprintory's board for Sprint 4 of a checkout project, with To do, In progress and Done columns, and the sprint being completed with its goal met">
+        <div class="ly-piece ly-piece--main ui sp-win" aria-hidden="true">
+          <div class="sp-win__bar"><span class="sp-win__dots"><i></i><i></i><i></i></span><svg viewBox="0 0 24 24"><path fill="currentColor" d="M10.67 21c-.35 0-.62-.31-.57-.66L11 14H7.5c-.88 0-.33-.75-.31-.78 1.26-2.23 3.15-5.53 5.65-9.93.1-.18.3-.29.5-.29.35 0 .62.31.57.66l-.9 6.34h3.51c.4 0 .62.19.4.66-3.29 5.74-5.2 9.09-5.75 10.05-.1.18-.29.29-.5.29"/></svg><span>Checkout app / <b>Board</b></span></div>
+          <div class="sp-win__body">
+            <div class="sp-side">
+              <span><i></i>Overview</span><span><i></i>Backlog</span><span class="is-on"><i></i>Board</span><span><i></i>Sprints</span><span><i></i>Reports</span><span><i></i>Chat</span>
+              <span class="sp-side__label">Projects</span><span><i></i>Checkout app</span><span><i></i>Mobile app</span>
+            </div>
+            <div class="sp-main">
+              <div class="sp-main__head"><h4>Sprint 4</h4><span class="sp-chip sp-chip--blue">2 days left</span><span class="sp-btn">Complete sprint</span></div>
+              <div class="sp-goal">Goal: <b>guests can pay without an account</b></div>
+              <div class="sp-days"><i class="is-past"></i><i class="is-past"></i><i class="is-past"></i><i class="is-past"></i><i class="is-past"></i><i class="is-past"></i><i class="is-past"></i><i class="is-today"></i><i></i><i></i></div>
+              <div class="sp-cols">
+                <div class="sp-col">
+                  <div class="sp-col__head">To do <em>2</em></div>
+                  <div class="sp-card"><b>Order email with receipt</b><div class="sp-card__foot"><span class="sp-key">SHOP-44</span><span class="sp-pts">2</span><span class="sp-av" data-tone="2">RK</span></div></div>
+                  <div class="sp-card"><b>Address lookup by postcode</b><div class="sp-card__foot"><span class="sp-key">SHOP-47</span><span class="sp-pts">3</span><span class="sp-av" data-tone="3">LM</span></div></div>
+                </div>
+                <div class="sp-col">
+                  <div class="sp-col__head">In progress <em>2</em></div>
+                  <div class="sp-card"><b>Pay as a guest at checkout</b><div class="sp-card__foot"><span class="sp-key">SHOP-42</span><span class="sp-pts">5</span><span class="sp-av" data-tone="1">AE</span></div></div>
+                  <div class="sp-card"><b>Card form error states</b><div class="sp-card__foot"><span class="sp-key">SHOP-52</span><span class="sp-pts">3</span><span class="sp-av" data-tone="4">KA</span></div></div>
+                </div>
+                <div class="sp-col">
+                  <div class="sp-col__head">Done <em>7</em></div>
+                  <div class="sp-card sp-done"><b>Guest cart keeps its items</b><div class="sp-card__foot"><span class="sp-key">SHOP-39</span><span class="sp-pts">3</span><span class="sp-av" data-tone="2">RK</span></div></div>
+                  <div class="sp-card sp-done"><b>Fix rounding on discounts</b><div class="sp-card__foot"><span class="sp-key">SHOP-46</span><span class="sp-pts">1</span><span class="sp-av" data-tone="1">AE</span></div></div>
+                  <div class="sp-card sp-done"><b>Totals with tax per country</b><div class="sp-card__foot"><span class="sp-key">SHOP-40</span><span class="sp-pts">5</span><span class="sp-av" data-tone="3">LM</span></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="ly-piece ly-piece--note ui sp-note" aria-hidden="true" data-ly-steps="700">
+          <div class="sp-note__row"><h5>Sprint 4 completed</h5><span class="sp-chip sp-chip--green" data-step data-step-at="4">Goal met</span></div>
+          <div class="sp-note__line" data-step><i>✓</i><span><b>9 of 11 tasks</b> done, 29 points</span></div>
+          <div class="sp-note__line" data-step><i class="is-carry">↻</i><span><b>2 tasks</b> carried over to Sprint 5</span></div>
+          <div class="sp-note__line" data-step><i>✓</i><span>Goal answer saved for the review</span></div>
+        </div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- APP-FRAME: the backlog list beside the open task, one window across the .wrap -->
+  <section class="section" id="board" aria-labelledby="board-h">
+    <div class="wrap">
+      <div class="grid">
+        <h2 class="span-5" id="board-h">The project backlog beside the task you open</h2>
+        <div class="span-6 start-7 stack-4">
+          <p class="t-lead">Rank the backlog, pull tasks into the planned sprint, then open one to split it into subtasks, attach the mockups and mention the team that owns it.</p>
+          <p><a class="link" href="#scrum">See how sprints work</a></p>
+        </div>
+      </div>
+      <div class="ui app fill" role="img" aria-label="Sprintory's project backlog for the checkout app beside the open task Pay as a guest at checkout, with its subtasks, two attached files and a comment to the Payments team" data-ui-pause-host>
+        <div class="app__pane app__pane--list">
+          <div class="ui ui-panel ui-win" data-ui="window" data-open="To do" data-work="In progress" data-done="Done">
+            <div class="ui-win__bar">
+              <span class="ui-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="ui-win__crumb"><svg class="ui-brand sp-bolt" aria-hidden="true" viewBox="0 0 24 24"><path fill="currentColor" d="M10.67 21c-.35 0-.62-.31-.57-.66L11 14H7.5c-.88 0-.33-.75-.31-.78 1.26-2.23 3.15-5.53 5.65-9.93.1-.18.3-.29.5-.29.35 0 .62.31.57.66l-.9 6.34h3.51c.4 0 .62.19.4.66-3.29 5.74-5.2 9.09-5.75 10.05-.1.18-.29.29-.5.29"/></svg>Checkout app <i>/</i> <b>Backlog</b></span>
+              <span class="ui-spacer"></span>
+              <span class="ui-win__search" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><span class="ui-win__ph">Search</span><span class="ui-kbd">K</span></span>
+            </div>
+            <div class="ui-win__body">
+              <nav class="ui-win__side" aria-hidden="true">
+                <span class="ui-win__nav is-on"><svg class="ui-icon" viewBox="0 0 16 16"><path d="M3 4h10M3 8h10M3 12h6"/></svg>Backlog<em>14</em></span>
+                <span class="ui-win__nav"><svg class="ui-icon" viewBox="0 0 16 16"><path d="M2.5 3.5h3v9h-3zM6.5 3.5h3v6h-3zM10.5 3.5h3v4h-3z"/></svg>Board</span>
+                <span class="ui-win__nav"><svg class="ui-icon" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v3l2 1.5"/></svg>Sprints<em>2</em></span>
+                <span class="ui-win__nav"><svg class="ui-icon" viewBox="0 0 16 16"><path d="M3 13V8M8 13V4M13 13V9"/></svg>Reports</span>
+                <span class="ui-win__label">Planned</span>
+                <span class="ui-win__nav"><span class="ui-win__hash">#</span>Sprint 5</span>
+                <span class="ui-win__nav"><span class="ui-win__hash">#</span>Sprint 6</span>
+              </nav>
+              <div class="ui-win__main">
+                <div class="ui-win__cols" aria-hidden="true"><span>Key</span><span>Task</span><span>Status</span><span>Pts</span></div>
+                <ul class="ui-win__rows">
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="1">AE</span><span class="ui-win__who">SHOP-42</span><span class="ui-win__sub">Pay as a guest at checkout</span><span class="ui-win__st is-you" data-st>In progress</span><span class="ui-win__age">5</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="4">KA</span><span class="ui-win__who">SHOP-52</span><span class="ui-win__sub">Card form error states</span><span class="ui-win__st is-you" data-st>In progress</span><span class="ui-win__age">3</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="2">RK</span><span class="ui-win__who">SHOP-44</span><span class="ui-win__sub">Order email with receipt</span><span class="ui-win__st" data-st>To do</span><span class="ui-win__age">2</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="3">LM</span><span class="ui-win__who">SHOP-47</span><span class="ui-win__sub">Address lookup by postcode</span><span class="ui-win__st" data-st>To do</span><span class="ui-win__age">3</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="5">SN</span><span class="ui-win__who">SHOP-48</span><span class="ui-win__sub">Refund from the admin page</span><span class="ui-win__st" data-st>To do</span><span class="ui-win__age">5</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="2">RK</span><span class="ui-win__who">SHOP-49</span><span class="ui-win__sub">Checkout page speed audit</span><span class="ui-win__st" data-st>To do</span><span class="ui-win__age">2</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="1">AE</span><span class="ui-win__who">SHOP-50</span><span class="ui-win__sub">Remind about abandoned carts</span><span class="ui-win__st" data-st>To do</span><span class="ui-win__age">3</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="3">LM</span><span class="ui-win__who">SHOP-51</span><span class="ui-win__sub">Gift card balance check</span><span class="ui-win__st" data-st>To do</span><span class="ui-win__age">2</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="4">KA</span><span class="ui-win__who">SHOP-46</span><span class="ui-win__sub">Fix rounding on discounts</span><span class="ui-win__st is-done" data-st>Done</span><span class="ui-win__age">1</span></li>
+                  <li class="ui-win__row" data-row><span class="ui-avatar" data-tone="5">SN</span><span class="ui-win__who">SHOP-39</span><span class="ui-win__sub">Guest cart keeps its items</span><span class="ui-win__st is-done" data-st>Done</span><span class="ui-win__age">3</span></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="app__pane app__pane--open" data-ui-loop>
+          <div class="ui ui-doc" data-ui="doc">
+            <article class="ui-doc__page">
+              <div class="ui-doc__label">SHOP-42 · Story · 5 points · In progress</div>
+              <div class="ui-doc__title">Pay as a guest at checkout</div>
+              <div class="ui-doc__text">A visitor can pay without making an account. The order is linked to <mark class="ui-doc__mark is-on">the email they enter</mark> at the first step.</div>
+              <div class="ui-doc__text">Card errors show under the field that failed, and <mark class="ui-doc__mark" data-kind="Subtask" data-msg="Error states for the card form, 2 of 4 subtasks done." data-where="SHOP-52, In progress">the form keeps what was typed</mark>.</div>
+              <div class="ui-doc__text">Subtasks, 2 of 4 done</div>
+              <div class="sp-sub">
+                <span class="is-done"><i></i>Guest email step</span>
+                <span class="is-done"><i></i>Order lookup by email</span>
+                <span><i></i>Card form error states</span>
+                <span><i></i>Receipt for guests</span>
+              </div>
+              <div class="ui-doc__text">Attachments</div>
+              <div class="sp-files">
+                <span class="sp-file"><img data-icon="pdf" src="assets/icons/pdf.svg" alt="" width="18" height="18" loading="lazy">checkout-flow.pdf</span>
+                <span class="sp-file"><img data-icon="image" src="assets/icons/image.svg" alt="" width="18" height="18" loading="lazy">card-form.png</span>
+              </div>
+              <div class="ui-doc__text">Guests who later sign up keep their order history under the same email address.</div>
+              <div class="ui-doc__text">Out of scope: saving cards for guests, which stays with signed-in customers in SHOP-43.</div>
+            </article>
+            <aside class="ui-doc__note ui-panel is-on" aria-live="polite">
+              <div class="ui-doc__kind"><span class="ui-doc__dot"></span><span data-doc-kind>Comment</span></div>
+              <div class="ui-doc__msg" data-doc-msg>@Payments team, can the email step reuse the newsletter field?</div>
+              <div class="ui-doc__where" data-doc-where>SHOP-42, 3 comments</div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES-2X2, two screens: the card ground (gradient-mesh), one seed per panel; the first card loops -->
+  <section class="section g2" id="scrum" aria-labelledby="scrum-h">
+    <div class="wrap">
+      <div class="group">
+        <div class="section-head">
+          <h2 id="scrum-h">Scrum and Kanban as they are defined. <span class="muted">The rules are part of the tool.</span></h2>
+        </div>
+        <div class="grid">
+          <article class="card card--row card--open span-6 m-nolift">
+            <h3>Plans sprints by capacity</h3>
+            <p>Each member marks their days off, and the sprint shows its capacity beside the points you commit.</p>
+            <div class="panel" data-fx="gradient-mesh" data-fx-seed="21" data-fx-params='{"drift":0}' data-fx-palette='{"bg":"#d9ccb7","surface":"#e9e0d2","ink":"#2a2622","accent":"#a8794a"}'>
+              <div class="stage stage--fade-b"><div class="at-rise fit to-edge" style="--fit-max: 420px; --ax: max(24px, 50% - 210px); --ay: 56px; --ay-sm: 24px" data-ui-loop>
+                <div class="ui ui-panel ui-stat" data-ui="stat" data-ui-opts='{"fill":true}' data-from="26" data-to="34" data-suffix=" pts" data-values="6,7,7,6,7,6,7,7,5,6" data-prev="5,6,6,5,6,5,6,5,4,5">
+                  <div class="ui-stat__head">
+                    <div class="ui-stat__top">
+                      <span class="ui-stat__label">Sprint 5</span>
+                      <span class="ui-stat__range">10 days<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"/></svg></span>
+                    </div>
+                    <div class="ui-stat__line">
+                      <span class="ui-stat__num" data-stat-num>34 pts</span>
+                      <span class="ui-chip ui-chip--plain ui-stat__delta">4 pts free</span>
+                      <span class="ui-stat__sub">of 38 points of capacity</span>
+                    </div>
+                  </div>
+                  <div class="ui-stat__chart">
+                    <svg class="ui-stat__svg" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true">
+                      <path class="ui-stat__grid" d="M0 30.5H400M0 60.5H400M0 90.5H400"/>
+                      <path class="ui-stat__cover" fill-rule="evenodd" d=""/>
+                      <g class="ui-stat__bars"></g>
+                    </svg>
+                    <div class="ui-stat__axis" aria-hidden="true"><span>Mon 24 Nov</span><span>Mon 1 Dec</span><span>Fri 5 Dec</span></div>
+                  </div>
+                </div>
+              </div></div>
+            </div>
+          </article>
+          <article class="card card--row card--open span-6 m-nolift">
+            <h3>Starts each Scrum sprint with a goal</h3>
+            <p>A sprint needs a goal to start. Completing it asks if the goal was met and where open tasks go.</p>
+            <div class="panel" data-fx="gradient-mesh" data-fx-seed="34" data-fx-params='{"drift":0}' data-fx-palette='{"bg":"#c6d3df","surface":"#d6e0e9","ink":"#25303a","accent":"#3f6a92"}'>
+              <div class="stage stage--fade-b"><div class="at-rise fit" style="--fit-max: 340px; --ax: max(24px, 50% - 170px); --ay: 56px; --ay-sm: 24px">
+                <div class="ui ui-panel ui-checks" data-ui="checklist">
+                  <div class="ui-checks__head">
+                    <div class="ui-title">Start Sprint 5</div>
+                    <span class="ui-spacer"></span>
+                    <div class="ui-meta" data-checks-count>3 of 4</div>
+                  </div>
+                  <div class="ui-checks__bar"><i data-checks-bar style="--k:0.75"></i></div>
+                  <ul class="ui-checks__list">
+                    <li class="ui-check is-done"><span class="ui-check__box"><svg viewBox="0 0 16 16"><path d="m4.5 8.2 2.3 2.3 4.7-5"/></svg></span><span class="ui-check__label">Goal: refunds without support</span></li>
+                    <li class="ui-check is-done"><span class="ui-check__box"><svg viewBox="0 0 16 16"><path d="m4.5 8.2 2.3 2.3 4.7-5"/></svg></span><span class="ui-check__label">11 tasks, all estimated</span></li>
+                    <li class="ui-check is-done"><span class="ui-check__box"><svg viewBox="0 0 16 16"><path d="m4.5 8.2 2.3 2.3 4.7-5"/></svg></span><span class="ui-check__label">Dates set, 24 Nov to 5 Dec</span></li>
+                    <li class="ui-check"><span class="ui-check__box"><svg viewBox="0 0 16 16"><path d="m4.5 8.2 2.3 2.3 4.7-5"/></svg></span><span class="ui-check__label">Start the sprint</span></li>
+                  </ul>
+                </div>
+              </div></div>
+            </div>
+          </article>
+        </div>
+      </div>
+      <div class="grid">
+        <article class="card card--row card--open span-6 m-nolift">
+          <h3>Gives each Scrum role its rights</h3>
+          <p>Product Owner, Scrum Master and Developers get the rights Scrum gives them, down to who may cancel a sprint.</p>
+          <div class="panel" data-fx="gradient-mesh" data-fx-seed="47" data-fx-params='{"drift":0}' data-fx-palette='{"bg":"#cdd6c6","surface":"#dce3d6","ink":"#262d24","accent":"#6c8e63"}'>
+            <div class="stage stage--fade-b"><div class="at-right to-edge" style="--ax: 32px; --ay: 56px; --ay-sm: 24px">
+              <div class="ui ui-panel ui-toggles" data-ui="toggles">
+                <div class="ui-head">
+                  <svg class="ui-icon ui-toggles__ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 13 4v3.6c0 3-2.1 5.4-5 6.6-2.9-1.2-5-3.6-5-6.6V4z"/><path d="m5.8 8 1.6 1.6 3-3.2"/></svg>
+                  <div class="ui-title">Developer rights</div>
+                  <span class="ui-spacer"></span>
+                  <div class="ui-meta" data-tg-count>3 of 5 on</div>
+                </div>
+                <ul class="ui-toggles__list">
+                  <li class="ui-tg">
+                    <span class="ui-tg__text"><span class="ui-tg__label">Edit and move tasks</span><span class="ui-tg__sub">On the board and the backlog</span></span>
+                    <button class="ui-switch is-on" type="button" role="switch" aria-checked="true" aria-label="Edit and move tasks"><i></i></button>
+                  </li>
+                  <li class="ui-tg">
+                    <span class="ui-tg__text"><span class="ui-tg__label">Comment and mention</span><span class="ui-tg__sub">People and whole teams</span></span>
+                    <button class="ui-switch is-on" type="button" role="switch" aria-checked="true" aria-label="Comment and mention"><i></i></button>
+                  </li>
+                  <li class="ui-tg">
+                    <span class="ui-tg__text"><span class="ui-tg__label">Rank the backlog</span><span class="ui-tg__sub">The Product Owner's call</span></span>
+                    <button class="ui-switch" type="button" role="switch" aria-checked="false" aria-label="Rank the backlog"><i></i></button>
+                  </li>
+                  <li class="ui-tg">
+                    <span class="ui-tg__text"><span class="ui-tg__label">Cancel a sprint</span><span class="ui-tg__sub">Product Owner or Project Manager</span></span>
+                    <button class="ui-switch" type="button" role="switch" aria-checked="false" aria-label="Cancel a sprint"><i></i></button>
+                  </li>
+                  <li class="ui-tg">
+                    <span class="ui-tg__text"><span class="ui-tg__label">Write in the project chat</span><span class="ui-tg__sub">Every member of the project</span></span>
+                    <button class="ui-switch is-on" type="button" role="switch" aria-checked="true" aria-label="Write in the project chat"><i></i></button>
+                  </li>
+                </ul>
+              </div>
+            </div></div>
+          </div>
+        </article>
+        <article class="card card--row card--open span-6 m-nolift">
+          <h3>Warns at a Kanban WIP limit</h3>
+          <p>Each Kanban column can carry a limit. Go past it and the column turns amber, and the move still goes through.</p>
+          <div class="panel" data-fx="gradient-mesh" data-fx-seed="58" data-fx-params='{"drift":0}' data-fx-palette='{"bg":"#d9ccb7","surface":"#e9e0d2","ink":"#2a2622","accent":"#a8794a"}'>
+            <div class="stage stage--fade-b"><div class="at-rise fit to-edge" style="--fit-max: 420px; --ax: max(24px, 50% - 210px); --ay: 56px; --ay-sm: 24px">
+              <div class="ui sp-kanban" role="img" aria-label="A Kanban board whose In progress column holds 4 tasks against a limit of 3, marked in amber">
+                <div class="sp-col is-over">
+                  <div class="sp-col__head">In progress <em>4 / 3</em><span class="sp-chip sp-chip--amber" style="margin-left:auto">Over limit</span></div>
+                  <div class="sp-card"><b>Import contacts from CSV</b><div class="sp-card__foot"><span class="sp-key">CRM-18</span><span class="sp-av" data-tone="1">AE</span></div></div>
+                  <div class="sp-card"><b>Merge duplicate contacts</b><div class="sp-card__foot"><span class="sp-key">CRM-21</span><span class="sp-av" data-tone="2">RK</span></div></div>
+                  <div class="sp-card"><b>Export to spreadsheet</b><div class="sp-card__foot"><span class="sp-key">CRM-24</span><span class="sp-av" data-tone="3">LM</span></div></div>
+                  <div class="sp-card"><b>Tags on every contact</b><div class="sp-card__foot"><span class="sp-key">CRM-25</span><span class="sp-av" data-tone="4">KA</span></div></div>
+                </div>
+                <div class="sp-col">
+                  <div class="sp-col__head">Review <em>1 / 2</em></div>
+                  <div class="sp-card"><b>Search by company</b><div class="sp-card__foot"><span class="sp-key">CRM-15</span><span class="sp-av" data-tone="2">RK</span></div></div>
+                </div>
+              </div>
+            </div></div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATEMENT with liquid-type: the headline ripples under the pointer; plain type on touch and reduced motion -->
+  <section class="section statement" id="methods" aria-labelledby="methods-h">
+    <div class="wrap" data-moment="liquid-type" data-moment-opts='{"strength": 0.8}'>
+      <h2 class="mo-lt__type" id="methods-h">Scrum as the guide writes it</h2>
+      <p class="t-lead measure" style="margin-top: var(--s-7)">Sprintory follows the Scrum Guide's roles, events and artefacts, and gives Kanban its own board without sprints.</p>
+    </div>
+  </section>
+
+  <!-- AI: three open cards on the lit ground plain; the chat is the group's one loop -->
+  <section class="section" id="ai" aria-labelledby="ai-h">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="ai-h">Sprintory AI plans, estimates and summarises</h2>
+      </div>
+      <div class="grid ai-cards">
+        <article class="card card--row card--open m-nolift">
+          <h3>Suggests a sprint plan</h3>
+          <p>Picks backlog tasks that fit the team's capacity and the sprint goal.</p>
+          <div class="panel">
+            <div class="stage stage--fade-b"><div class="at-rise fit" style="--fit-max: 340px; --ax: max(24px, 50% - 170px); --ay: 40px; --ay-sm: 20px">
+              <div class="ui ui-panel ui-checks" data-ui="checklist">
+                <div class="ui-checks__head">
+                  <div class="ui-title">Suggested for Sprint 5</div>
+                  <span class="ui-spacer"></span>
+                  <div class="ui-meta" data-checks-count>2 of 4 added</div>
+                </div>
+                <div class="ui-checks__bar"><i data-checks-bar style="--k:0.5"></i></div>
+                <ul class="ui-checks__list">
+                  <li class="ui-check is-done"><span class="ui-check__box"><svg viewBox="0 0 16 16"><path d="m4.5 8.2 2.3 2.3 4.7-5"/></svg></span><span class="ui-check__label">Refund from the admin page, 5</span></li>
+                  <li class="ui-check is-done"><span class="ui-check__box"><svg viewBox="0 0 16 16"><path d="m4.5 8.2 2.3 2.3 4.7-5"/></svg></span><span class="ui-check__label">Refund status email, 3</span></li>
+                  <li class="ui-check"><span class="ui-check__box"><svg viewBox="0 0 16 16"><path d="m4.5 8.2 2.3 2.3 4.7-5"/></svg></span><span class="ui-check__label">Partial refunds, 8</span></li>
+                  <li class="ui-check"><span class="ui-check__box"><svg viewBox="0 0 16 16"><path d="m4.5 8.2 2.3 2.3 4.7-5"/></svg></span><span class="ui-check__label">Refund reasons report, 5</span></li>
+                </ul>
+              </div>
+            </div></div>
+          </div>
+        </article>
+        <article class="card card--row card--open m-nolift">
+          <h3>Estimates each project task</h3>
+          <p>Proposes story points or a time estimate, which you accept or change.</p>
+          <div class="panel">
+            <div class="stage stage--fade-b"><div class="at-rise fit" style="--fit-max: 380px; --ax: max(24px, 50% - 190px); --ay: calc(100% - 180px); --ay-sm: calc(100% - 150px)">
+              <div class="ui ui-notify" data-ui="notify">
+                <ul class="ui-notify__list" data-notify-list>
+                  <li class="ui-note"><span class="ui-agent ui-note__av" aria-hidden="true"></span><span class="ui-note__text"><span class="ui-note__title">Estimate for SHOP-57<time>now</time></span><span class="ui-note__body">5 points, like SHOP-48</span></span></li>
+                  <li class="ui-note"><span class="ui-agent ui-note__av" aria-hidden="true"></span><span class="ui-note__text"><span class="ui-note__title">Estimate for SHOP-58<time>1m</time></span><span class="ui-note__body">3 points suggested</span></span></li>
+                  <li class="ui-note"><span class="ui-agent ui-note__av" aria-hidden="true"></span><span class="ui-note__text"><span class="ui-note__title">Estimate for SHOP-61<time>2m</time></span><span class="ui-note__body">90 minutes for a subtask</span></span></li>
+                </ul>
+              </div>
+            </div></div>
+          </div>
+        </article>
+        <article class="card card--row card--open m-nolift">
+          <h3>Catches you up on the project</h3>
+          <p>Catches you up on a task's comments, a sprint or the project chat.</p>
+          <div class="panel">
+            <div class="stage stage--fade-b"><div class="at-rise fit to-edge" style="--fit-max: 400px; --ax: max(24px, 50% - 200px); --ay: 40px; --ay-sm: 20px" data-ui-loop>
+              <div class="ui ui-panel ui-chat" data-ui="chat">
+                <div class="ui-head">
+                  <span class="ui-agent" aria-hidden="true"></span>
+                  <div class="ui-title">Sprintory AI</div>
+                  <span class="ui-spacer"></span>
+                </div>
+                <div class="ui-chat__body">
+                  <div class="ui-msg ui-msg--me" data-chat-q><span class="ui-msg__text">What changed on SHOP-42 while I was off?</span></div>
+                  <div class="ui-msg ui-msg--bot" data-chat-a>
+                    <span class="ui-agent ui-msg__av" aria-hidden="true"></span>
+                    <span class="ui-msg__col">
+                      <span class="ui-chat__answer">The guest email step is done. <b>Card form errors</b> are still open in SHOP-52.</span>
+                      <span class="ui-chat__srcs"><span class="ui-chat__src"><svg class="ui-icon" viewBox="0 0 16 16"><path d="M4 2.5h5l3 3v8H4z"/><path d="M9 2.5v3h3"/></svg>SHOP-42 comments</span></span>
+                    </span>
+                  </div>
+                </div>
+                <div class="ui-chat__input"><span class="ui-chat__ph">Ask about this project</span><span class="ui-chat__send" aria-hidden="true"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M8 13V3.5M3.8 7.5 8 3.3l4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+              </div>
+            </div></div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- TABS-TOUR: one job per tab, the frame stays still -->
+  <section class="section" id="tour" aria-labelledby="tour-h">
+    <div class="wrap">
+      <div class="grid">
+        <div class="span-5 stack-6">
+          <div class="section-head" style="margin-bottom: 0">
+            <h2 id="tour-h">One project holds its reports and its talk</h2>
+          </div>
+          <div class="tabs" role="tablist" aria-label="Project tools">
+            <button class="tab" role="tab" id="tab-1" aria-selected="true" aria-controls="panel-1 screen-1" type="button">Read the burndown</button>
+            <button class="tab" role="tab" id="tab-2" aria-selected="false" aria-controls="panel-2 screen-2" type="button" tabindex="-1">Write the charter</button>
+            <button class="tab" role="tab" id="tab-3" aria-selected="false" aria-controls="panel-3 screen-3" type="button" tabindex="-1">Talk in the project</button>
+            <button class="tab" role="tab" id="tab-4" aria-selected="false" aria-controls="panel-4 screen-4" type="button" tabindex="-1">Connect your tools</button>
+          </div>
+          <div role="tabpanel" id="panel-1" aria-labelledby="tab-1" class="stack-4">
+            <p>Burndown and velocity come from the board, sprint by sprint. Compare the last sprints before you plan the next one.</p>
+            <p><a class="link" href="#scrum">See sprint planning</a></p>
+          </div>
+          <div role="tabpanel" id="panel-2" aria-labelledby="tab-2" class="stack-4" hidden>
+            <p>Goals with success measures, the scope in and out, and the stakeholders sit on the project's overview.</p>
+            <p><a class="link" href="#board">See the backlog</a></p>
+          </div>
+          <div role="tabpanel" id="panel-3" aria-labelledby="tab-3" class="stack-4" hidden>
+            <p>Each project has a live chat where you mention a person or a whole team. Ctrl+K finds any task, project or team.</p>
+            <p><a class="link" href="#ai">See the AI catch-up</a></p>
+          </div>
+          <div role="tabpanel" id="panel-4" aria-labelledby="tab-4" class="stack-4" hidden>
+            <p>GitHub and Google Calendar connect to the project, and you sign in with Google or with email.</p>
+            <p><a class="link" href="#faq">Read the questions</a></p>
+          </div>
+        </div>
+        <div class="frame frame--split span-6 start-7" data-ui-pause-host>
+          <div class="stage stage--fade-br">
+            <div class="at-rise to-edge" id="screen-1" style="--w: 420px; --ay: 56px" data-ui-loop>
+              <div class="ui ui-panel ui-stat" data-ui="stat" data-ui-opts='{"fill":true}' data-from="27" data-to="29" data-suffix=" pts" data-values="21,26,24,31,27,29" data-prev="18,22,23,26,25,27">
+                <div class="ui-stat__head">
+                  <div class="ui-stat__top">
+                    <span class="ui-stat__label">Velocity, Checkout app</span>
+                    <span class="ui-stat__range">Last 6 sprints<svg class="ui-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"/></svg></span>
+                  </div>
+                  <div class="ui-stat__line">
+                    <span class="ui-stat__num" data-stat-num>29 pts</span>
+                    <span class="ui-chip ui-chip--plain ui-stat__delta">Sprint 4</span>
+                    <span class="ui-stat__sub">average 26 points</span>
+                  </div>
+                </div>
+                <div class="ui-stat__chart">
+                  <svg class="ui-stat__svg" viewBox="0 0 400 120" preserveAspectRatio="none" aria-hidden="true">
+                    <path class="ui-stat__grid" d="M0 30.5H400M0 60.5H400M0 90.5H400"/>
+                    <path class="ui-stat__cover" fill-rule="evenodd" d=""/>
+                    <g class="ui-stat__bars"></g>
+                  </svg>
+                  <div class="ui-stat__axis" aria-hidden="true"><span>Sprint -1</span><span>Sprint 2</span><span>Sprint 4</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="at-rise to-edge" id="screen-2" style="--w: 440px; --ay: 56px" hidden>
+              <div class="ui ui-doc" data-ui="doc">
+                <article class="ui-doc__page">
+                  <div class="ui-doc__label">Charter, Checkout app</div>
+                  <div class="ui-doc__title">1. Guests can pay without an account</div>
+                  <div class="ui-doc__text">Success measure: <mark class="ui-doc__mark is-on">a third of orders paid as a guest</mark> within two months of launch.</div>
+                  <div class="ui-doc__text">In scope: guest checkout on the web, card and wallet payments, order email.</div>
+                  <div class="ui-doc__text">Out of scope: <mark class="ui-doc__mark" data-kind="Stakeholder" data-msg="Support lead, consulted before each release." data-where="Stakeholder register">guest returns</mark>, which stay with the support team.</div>
+                  <div class="ui-doc__text">2. Refunds go out without a support ticket</div>
+                </article>
+                <aside class="ui-doc__note ui-panel is-on" aria-live="polite">
+                  <div class="ui-doc__kind"><span class="ui-doc__dot"></span><span data-doc-kind>Goal</span></div>
+                  <div class="ui-doc__msg" data-doc-msg>Measured each sprint review.</div>
+                  <div class="ui-doc__where" data-doc-where>Goal 1 of 5</div>
+                </aside>
+              </div>
+            </div>
+            <div class="at-rise to-edge" id="screen-3" style="--w: 400px; --ay: 56px" hidden>
+              <div class="ui ui-panel ui-chat" data-ui="chat">
+                <div class="ui-head">
+                  <span class="ui-agent" aria-hidden="true"></span>
+                  <div class="ui-title">Checkout app chat</div>
+                  <span class="ui-chat__online">6 members</span>
+                  <span class="ui-spacer"></span>
+                </div>
+                <div class="ui-chat__body">
+                  <div class="ui-chat__day">Today, 10:12</div>
+                  <div class="ui-msg ui-msg--me" data-chat-q><span class="ui-msg__text">@Payments team is the wallet button in Sprint 5?</span></div>
+                  <div class="ui-msg ui-msg--bot" data-chat-a>
+                    <span class="ui-avatar ui-msg__av" data-tone="4">KA</span>
+                    <span class="ui-msg__col">
+                      <span class="ui-chat__answer">Yes, it is SHOP-45, <b>8 points</b>. Ranked third on the backlog.</span>
+                    </span>
+                  </div>
+                </div>
+                <div class="ui-chat__input"><span class="ui-chat__ph">Write to the project</span><span class="ui-chat__send" aria-hidden="true"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M8 13V3.5M3.8 7.5 8 3.3l4.2 4.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+              </div>
+            </div>
+            <div class="sp-dgslot" id="screen-4" hidden>
+              <div class="dg" data-diagram='{"layout":"hub","alt":"Sprintory connects to GitHub, Google Calendar, Google sign-in and email.","center":{"label":"Sprintory"},"spokes":[{"label":"GitHub","icon":"github"},{"label":"Google Calendar","icon":"google-calendar"},{"label":"Google sign-in","icon":"logos:google-icon"},{"label":"Email","icon":"ui:mail"}]}'></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ: every answer open -->
+  <section class="section" id="faq" aria-labelledby="faq-h" style="--hm: 2">
+    <div class="wrap">
+      <div class="grid grid--top">
+        <div class="span-5 section-head">
+          <h2 id="faq-h">Questions</h2>
+          <p>About Scrum, Kanban and workspaces in Sprintory.</p>
+          <ul class="sp-tools">
+            <li><img class="ic sp-tool-ic" src="assets/icons/google-icon.svg" alt="" width="32" height="32" loading="lazy">Google sign-in</li>
+            <li><img class="ic ic-ink sp-tool-ic" src="assets/icons/github.svg" alt="" width="32" height="32" loading="lazy">GitHub</li>
+            <li><img class="ic sp-tool-ic" src="assets/icons/google-calendar.svg" alt="" width="32" height="32" loading="lazy">Google Calendar</li>
+          </ul>
+        </div>
+        <div class="faq span-6 start-7">
+          <div class="faq__item"><h3>Can one workspace run Scrum and Kanban?</h3><p>Yes. The template is chosen per project, so Scrum projects with sprints and Kanban projects with WIP limits sit side by side.</p></div>
+          <div class="faq__item"><h3>Who can complete or cancel a Scrum sprint?</h3><p>Completing takes the right to manage sprints. Cancelling needs a written reason and is left to the Product Owner or Project Manager.</p></div>
+          <div class="faq__item"><h3>How do I bring my team into Sprintory?</h3><p>Invite people by email. They open the link, sign in with that address or with Google, and land in the workspace.</p></div>
+          <div class="faq__item"><h3>How do GitHub and Google Calendar join a project?</h3><p>Each connects to a project, so its code and its dates sit next to its tasks.</p></div>
+          <div class="faq__item"><h3>What does a workspace admin see across projects?</h3><p>Admins manage members and their roles, see every project and read an audit log of key actions.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer closing footer--dark ground-inverse" id="contact" aria-labelledby="close-h">
+  <div class="wrap">
+    <div class="closing__cta close--type">
+      <div class="section-head">
+        <h2 id="close-h">Start your next sprint in Sprintory</h2>
+        <p class="t-small muted">Sign up with email or Google, then invite your team.</p>
+      </div>
+      <a class="btn btn--primary btn--xl btn--wide" href="/register">Create your workspace<svg class="m-arrow" viewBox="0 0 12 12" aria-hidden="true"><path class="m-arrow__stem" d="M1 6h8"/><path class="m-arrow__head" d="M4.5 2.5 8 6l-3.5 3.5"/></svg></a>
+    </div>
+    <div class="closing__links">
+      <div class="grid">
+        <div class="span-4 stack-4">
+          <a class="nav__logo" href="#top"><span class="mark sp-mark" aria-hidden="true"></span>Sprintory</a>
+          <p class="footer__lede">Project management for Scrum and Kanban teams.</p>
+        </div>
+        <div class="span-2 footer__col"><h3>Product</h3><ul><li><a href="#board">Backlog</a></li><li><a href="#scrum">Board</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>Scrum</h3><ul><li><a href="#scrum">Sprints</a></li><li><a href="#methods">Roles</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>AI</h3><ul><li><a href="#ai">Sprint plans</a></li><li><a href="#ai">Estimates</a></li></ul></div>
+        <div class="span-2 footer__col"><h3>Reports</h3><ul><li><a href="#tour">Burndown</a></li><li><a href="#faq">Questions</a></li><li><a href="/login">Log in</a></li></ul></div>
+      </div>
+      <div class="footer__legal">
+        <span>&copy; 2026 Sprintory</span>
+        <span>Product names and logos are trademarks of their owners.</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<nav class="actionbar" aria-label="Quick actions">
+  <a class="btn btn--primary" href="/register">Create your workspace</a>
+</nav>
+
+<script type="module" src="assets/system.js"></script>
+<script type="module" src="assets/motion/motion.js"></script>
+<script type="module" src="assets/layout/layout.js"></script>
+<script type="module" src="assets/diagrams/mount.js"></script>
+</body>
+</html>

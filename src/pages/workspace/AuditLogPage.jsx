@@ -26,6 +26,7 @@ import {
   hasAuditFilters,
 } from "../../utils/audit";
 import { isWorkspaceAdmin, workspacePath } from "../../utils/workspace";
+import { reveal } from "../../theme/motion";
 
 const NO_ITEMS = [];
 
@@ -127,32 +128,35 @@ const AuditLogPage = () => {
             )}
 
             <LoadState loading={log.loading} error={log.error} onRetry={log.reload} isEmpty={false} rows={6}>
-              {log.items.length === 0 ? (
-                <Box sx={{ p: { xs: 3, sm: 5 }, textAlign: "center" }}>
-                  <Typography color="text.secondary">
-                    {filtered ? "No entries match these filters." : "No activity has been recorded yet."}
-                  </Typography>
-                  {filtered && (
-                    <Button sx={{ mt: 1.5 }} onClick={() => applyFilters(EMPTY_AUDIT_FILTERS)}>
-                      Clear filters
-                    </Button>
-                  )}
-                </Box>
-              ) : (
-                <>
-                  {phone ? <AuditLogCards entries={log.items} /> : <AuditLogTable entries={log.items} />}
-                  <Pager
-                    page={log.page}
-                    size={log.size}
-                    total={log.total}
-                    totalPages={log.totalPages}
-                    shown={log.items.length}
-                    noun="entry"
-                    nounPlural="entries"
-                    onPageChange={log.setPage}
-                  />
-                </>
-              )}
+              {/* the entries arrive as one block, after each load (filters, page) */}
+              <Box sx={reveal(0)}>
+                {log.items.length === 0 ? (
+                  <Box sx={{ p: { xs: 3, sm: 5 }, textAlign: "center" }}>
+                    <Typography color="text.secondary">
+                      {filtered ? "No entries match these filters." : "No activity has been recorded yet."}
+                    </Typography>
+                    {filtered && (
+                      <Button sx={{ mt: 1.5 }} onClick={() => applyFilters(EMPTY_AUDIT_FILTERS)}>
+                        Clear filters
+                      </Button>
+                    )}
+                  </Box>
+                ) : (
+                  <>
+                    {phone ? <AuditLogCards entries={log.items} /> : <AuditLogTable entries={log.items} />}
+                    <Pager
+                      page={log.page}
+                      size={log.size}
+                      total={log.total}
+                      totalPages={log.totalPages}
+                      shown={log.items.length}
+                      noun="entry"
+                      nounPlural="entries"
+                      onPageChange={log.setPage}
+                    />
+                  </>
+                )}
+              </Box>
             </LoadState>
           </>
         )}

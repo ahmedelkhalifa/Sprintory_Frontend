@@ -4,8 +4,8 @@ import { alpha } from "@mui/material/styles";
 // read a palette color from its path, e.g. "success.main" -> theme.palette.success.main
 const paletteColor = (theme, path) => path.split(".").reduce((value, key) => value?.[key], theme.palette);
 
-// Small soft label in one theme color (text in the color, background a light tint of it),
-// optionally with a dot in front. Used for template, status and role labels.
+// Small lozenge in one theme color (uppercase text in the color, background a light tint of it), the way Jira marks
+// statuses, optionally with a dot in front. Used for template, status and role labels.
 const ToneChip = ({ label, tone = "text.secondary", dot = false }) => {
   return (
     <Chip
@@ -21,11 +21,15 @@ const ToneChip = ({ label, tone = "text.secondary", dot = false }) => {
         )
       }
       sx={(theme) => ({
-        height: 24,
+        height: 20,
         borderRadius: 1,
-        fontWeight: 600,
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: "0.02em",
+        textTransform: "uppercase",
         color: tone,
         bgcolor: alpha(paletteColor(theme, tone), 0.12),
+        "& .MuiChip-label": { px: 0.75 },
       })}
     />
   );

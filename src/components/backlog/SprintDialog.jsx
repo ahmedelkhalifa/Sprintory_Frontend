@@ -14,7 +14,7 @@ const FIELDS = ["name", "goal", "capacity", "startDate", "endDate"];
 // Without `sprint` it creates one; a blank name lets the backend number it ("WR Sprint 3") and blank dates give the
 // next free period. Editing also shows the capacity suggestion and the team's availability (SprintCapacity), which
 // need the sprint to exist; `members` are the project's, for their names.
-const SprintDialog = ({ projectId, sprint, members = [], onClose, onSaved }) => {
+const SprintDialog = ({ open = true, projectId, sprint, members = [], onClose, onSaved }) => {
   const editing = Boolean(sprint);
   const [values, setValues] = useState(() =>
     Object.fromEntries(FIELDS.map((field) => [field, sprint?.[field] ?? ""])),
@@ -56,7 +56,7 @@ const SprintDialog = ({ projectId, sprint, members = [], onClose, onSaved }) => 
   });
 
   return (
-    <Dialog open onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
       <Box component="form" noValidate onSubmit={handleSubmit}>
         <DialogTitle sx={{ fontWeight: 700 }}>{editing ? "Edit sprint" : "Create sprint"}</DialogTitle>
         <DialogContent>

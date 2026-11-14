@@ -35,7 +35,7 @@ const ERRORS = {
 
 // "Add people" window: search the workspace's people, tick several, add them to the project as Members.
 // People already in the project are skipped by the backend, so picking them does no harm.
-const AddPeopleDialog = ({ project, onClose, onAdded }) => {
+const AddPeopleDialog = ({ open = true, project, onClose, onAdded }) => {
   const people = usePagedList(
     (params, signal) => listWorkspaceMembers(project.workspaceId, params, signal),
     [project.workspaceId],
@@ -63,7 +63,7 @@ const AddPeopleDialog = ({ project, onClose, onAdded }) => {
   const addLabel = count === 0 ? "Add people" : count === 1 ? "Add 1 person" : `Add ${count} people`;
 
   return (
-    <Dialog open onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontWeight: 700, pb: 0.5 }}>Add people to {project.name}</DialogTitle>
       <DialogContent>
         <Typography color="text.secondary" sx={{ mb: 2 }}>

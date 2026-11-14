@@ -10,7 +10,7 @@ import { isWorkspaceArchived } from "../../utils/workspace";
 
 // admin-only: rename, archive/restore, and delete (only once archived, as the backend requires).
 // Mount it only while open, so the name field starts from the current workspace name
-const WorkspaceSettingsDialog = ({ workspace, onClose, onChanged, onDeleted }) => {
+const WorkspaceSettingsDialog = ({ open = true, workspace, onClose, onChanged, onDeleted }) => {
   const [name, setName] = useState(workspace.name);
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState(null);
@@ -40,7 +40,7 @@ const WorkspaceSettingsDialog = ({ workspace, onClose, onChanged, onDeleted }) =
   const remove = () => run(() => deleteWorkspace(workspace.id), () => onDeleted());
 
   return (
-    <Dialog open onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>Workspace settings</DialogTitle>
       <DialogContent>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}

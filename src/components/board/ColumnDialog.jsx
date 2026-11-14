@@ -17,7 +17,7 @@ const categoryHelp = (rules, category) => {
 // Add a column (`column` null) or edit one: its name, its category (To do / In progress / Done) and, for a new one,
 // where it goes (default: before the first Done column). `rules` (columnRules) lock the category of the Kanban
 // backlog and of the board's only To do / Done column. `onSaved` runs once the backend took it.
-const ColumnDialog = ({ projectId, column = null, columns, rules = null, onSaved, onClose }) => {
+const ColumnDialog = ({ open = true, projectId, column = null, columns, rules = null, onSaved, onClose }) => {
   const adding = column === null;
   const currentCategory = adding ? null : columnCategory(column, columns);
   const [values, setValues] = useState({
@@ -69,7 +69,7 @@ const ColumnDialog = ({ projectId, column = null, columns, rules = null, onSaved
   };
 
   return (
-    <Dialog open onClose={submit.submitting ? undefined : onClose} maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={submit.submitting ? undefined : onClose} maxWidth="xs" fullWidth>
       <Box component="form" noValidate onSubmit={handleSubmit}>
         <DialogTitle sx={{ fontWeight: 700 }}>{adding ? "Add column" : "Edit column"}</DialogTitle>
         <DialogContent>

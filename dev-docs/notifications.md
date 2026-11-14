@@ -50,7 +50,8 @@ In the frontend: [notificationsApi.js](../src/api/notificationsApi.js) (`listNot
 
 - The badge is the unread count (hidden at 0, `99+`). Opening loads `page=0&size=10`, "Load more" the next pages; pushed notifications go on top, deduplicated by id (`mergeNotifications` in [utils/notification.js](../src/utils/notification.js)).
 - Each item: `message`, the excerpt, "project · workspace" (`notificationWhere`) and the time ago; unread ones are highlighted.
-- A click calls open, marks the item read locally, then goes to `notificationTargetPath(target, workspaces, type)`: TASK → the task page, PROJECT → the project (a `MENTIONED` about a project is a chat mention: its Chat tab; `SPRINT_STARTED` / `SPRINT_OVERDUE` → the Board tab, `SPRINT_COMPLETED` / `SPRINT_CANCELLED` → the Sprints tab, since they carry no sprint id), NONE (invitations, security) → stays. A `404` shows "This item is no longer available." on the item instead of navigating.
+- A click calls open, marks the item read locally, then goes to `notificationTargetPath(target, workspaces, type)`: TASK → the task page, PROJECT → the project (a `MENTIONED` about a project is a chat mention: its Chat tab; `SPRINT_STARTED` / `SPRINT_OVERDUE` → the Board tab, `SPRINT_COMPLETED` / `SPRINT_CANCELLED` → the Sprints tab, since they carry no sprint id), NONE (invitations, security) → stays. A `404` shows "This item is no longer available." on the item instead of navigating. This open logic is [useOpenNotification](../src/hooks/useOpenNotification.js), shared with the home page.
+- The workspace home page's Recent updates lists the latest 8 with `?workspaceId=` (no Load more, no stream: it loads with the page) and opens them the same way.
 - "Mark all as read" sets every loaded item read and the count to the response's `0`.
 
 ## Preferences

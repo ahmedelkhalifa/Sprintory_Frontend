@@ -52,4 +52,3 @@ All optional, combined with AND; `actions` / `areas` are comma-separated and OR 
 - Page: [AuditLogPage](../src/pages/workspace/AuditLogPage.jsx) at `/workspaces/:workspaceSlug/audit-log`, opened from the sidebar's **Audit log** entry, which shows only for workspace admins of the current workspace.
 - On phones (below `sm`) the table becomes a list with one sentence per entry, the contract's suggested sentences (`auditSentence`); only settings changes and unknown actions also list their changes (`sentenceCoversChanges`).
 - Pieces: [components/audit/](../src/components/audit/) (`AuditFilters`, `AuditLogTable`, `AuditLogCards`, `AuditChanges`), helpers in [utils/audit.js](../src/utils/audit.js), tests in [tests/audit.test.js](../tests/audit.test.js).
-- Not done yet: the "Recent activity" cards on the workspace and project overviews still show sample data; they can read the first entries of this log (admins only) later.

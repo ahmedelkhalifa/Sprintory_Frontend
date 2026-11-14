@@ -1,17 +1,16 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Alert, Badge, Box, Button, CircularProgress, Divider, IconButton, List, ListItemButton, Popover, Typography,
 } from "@mui/material";
 import { NotificationsNoneOutlined } from "@mui/icons-material";
 import LoadState from "../general/LoadState";
-import { listNotifications, markAllRead, openNotification } from "../../api/notificationsApi";
-import { useWorkspaces } from "../../context/WorkspaceContext";
+import { listNotifications, markAllRead } from "../../api/notificationsApi";
 import { useNotificationStream } from "../../hooks/useNotificationStream";
+import { useOpenNotification } from "../../hooks/useOpenNotification";
 import { useSubmit } from "../../hooks/useSubmit";
-import { errorCode, errorMessage, isAbort } from "../../utils/apiError";
+import { errorMessage, isAbort } from "../../utils/apiError";
 import { timeAgo } from "../../utils/format";
-import { mergeNotifications, notificationTargetPath, notificationWhere } from "../../utils/notification";
+import { mergeNotifications, notificationWhere } from "../../utils/notification";
 
 const PAGE_SIZE = 10;
 // failedMore: the error is from "Load more" (retry that) rather than from loading page 0
@@ -21,13 +20,10 @@ const EMPTY_FEED = { items: [], page: 0, totalPages: 0, loading: false, loadingM
 // when it opens, newest first, with "Load more". One bell for every workspace, so each item says where it's from.
 const NotificationBell = () => {
   const { unreadCount, setUnreadCount, latest, connection } = useNotificationStream();
-  const { workspaces } = useWorkspaces();
-  const navigate = useNavigate();
   const [anchor, setAnchor] = useState(null);
   const [feed, setFeed] = useState(EMPTY_FEED);
   const [reloadCount, setReloadCount] = useState(0);
-  const [opening, setOpening] = useState(null); // the id being opened
-  const [itemErrors, setItemErrors] = useState({}); // id -> text, e.g. for a deleted task
+  const { opening, itemErrors, open: openItem, clearErrors } = useOpenNotification();
   const [seen, setSeen] = useState(latest);
   const markAll = useSubmit();
   const open = Boolean(anchor);
@@ -63,7 +59,7 @@ const NotificationBell = () => {
 
   const handleOpen = (e) => {
     setAnchor(e.currentTarget);
-    setItemErrors({});
+    clearErrors();
     markAll.clearError();
     setFeed((prev) => ({ ...prev, loading: true, error: "" }));
   };
@@ -93,29 +89,8 @@ const NotificationBell = () => {
   const markRead = (id) =>
     setFeed((prev) => ({ ...prev, items: prev.items.map((n) => (n.id === id ? { ...n, read: true } : n)) }));
 
-  // "open" marks it read on the backend and says where to go; the stream then sends the new count
-  const handleClick = async (notification) => {
-    setOpening(notification.id);
-    setItemErrors((prev) => ({ ...prev, [notification.id]: "" }));
-    try {
-      const target = await openNotification(notification.id);
-      markRead(notification.id);
-      const path = notificationTargetPath(target, workspaces, notification.type);
-      // NONE (an invitation or a security notice): nothing to open, it just turns read
-      if (path) {
-        setAnchor(null);
-        navigate(path);
-      }
-    } catch (err) {
-      // the task or project is gone or no longer visible; the backend still marked it read
-      const gone = errorCode(err) === "RESOURCE_NOT_FOUND";
-      if (gone) markRead(notification.id);
-      const text = gone ? "This item is no longer available." : errorMessage(err);
-      setItemErrors((prev) => ({ ...prev, [notification.id]: text }));
-    } finally {
-      setOpening(null);
-    }
-  };
+  const handleClick = (notification) =>
+    openItem(notification, { onRead: markRead, onNavigate: () => setAnchor(null) });
 
   const handleMarkAll = async () => {
     const { ok, result } = await markAll.run(() => markAllRead());

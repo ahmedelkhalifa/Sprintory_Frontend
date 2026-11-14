@@ -4,11 +4,11 @@ import { useProjectForm } from "../../hooks/useProjectForm";
 
 // "Edit project" window (PATCH /projects/{id}, EDIT_SETTINGS): the name and the description.
 // The key and the template are fixed at creation, so they are only shown.
-const EditProjectDialog = ({ project, onClose, onSaved }) => {
+const EditProjectDialog = ({ open = true, project, onClose, onSaved }) => {
   const form = useProjectForm(project, onSaved);
 
   return (
-    <Dialog open onClose={form.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={form.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
       <Box component="form" noValidate onSubmit={form.save}>
         <DialogTitle sx={{ fontWeight: 700 }}>Edit project</DialogTitle>
         <DialogContent>

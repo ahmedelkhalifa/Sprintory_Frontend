@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLatched } from "../../hooks/useLatched";
 import ColumnMenu from "./ColumnMenu";
 import ColumnDialog from "./ColumnDialog";
 import ColumnFieldDialog from "./ColumnFieldDialog";
@@ -22,7 +23,10 @@ import { validateWipLimit } from "../../utils/validation";
 export const useColumnConfig = ({ projectId, columns, kanban, wipEnabled, contentsOf, onChanged, onNotice }) => {
   const [dialog, setDialog] = useState(null); // { type: "add" | "edit" | "wip" | "delete", columnId }
   const rulesFor = (columnId) => columnRules(columns, columnId, { kanban, wipEnabled });
-  const column = dialog?.columnId != null ? columns.find((c) => c.id === dialog.columnId) : null;
+  // rendered from `kept` (kept a moment after closing, so the window can play its close), open from `dialog`
+  const kept = useLatched(dialog);
+  const column = kept?.columnId != null ? columns.find((c) => c.id === kept.columnId) : null;
+  const isOpen = (type) => dialog?.type === type;
 
   const close = () => setDialog(null);
   const saved = () => {
@@ -65,9 +69,10 @@ export const useColumnConfig = ({ projectId, columns, kanban, wipEnabled, conten
 
   const dialogs = (
     <>
-      {dialog?.type === "add" && <ColumnDialog projectId={projectId} columns={columns} onSaved={saved} onClose={close} />}
-      {column && dialog.type === "edit" && (
+      {kept?.type === "add" && <ColumnDialog open={isOpen("add")} projectId={projectId} columns={columns} onSaved={saved} onClose={close} />}
+      {column && kept.type === "edit" && (
         <ColumnDialog
+          open={isOpen("edit")}
           projectId={projectId}
           column={column}
           columns={columns}
@@ -76,8 +81,9 @@ export const useColumnConfig = ({ projectId, columns, kanban, wipEnabled, conten
           onClose={close}
         />
       )}
-      {column && dialog.type === "wip" && (
+      {column && kept.type === "wip" && (
         <ColumnFieldDialog
+          open={isOpen("wip")}
           title={`WIP limit for ${column.name}`}
           label="Max tasks in this column"
           type="number"
@@ -91,8 +97,9 @@ export const useColumnConfig = ({ projectId, columns, kanban, wipEnabled, conten
           onClose={close}
         />
       )}
-      {column && dialog.type === "delete" && (
+      {column && kept.type === "delete" && (
         <DeleteColumnDialog
+          open={isOpen("delete")}
           projectId={projectId}
           column={column}
           columns={columns}
