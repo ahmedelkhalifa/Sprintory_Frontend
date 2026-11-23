@@ -5,6 +5,7 @@ import GeneralSection from "./GeneralSection";
 import PeopleSection from "./PeopleSection";
 import ArchiveSection from "./ArchiveSection";
 import BoardColumnsSection from "../../board/BoardColumnsSection";
+import JiraImportSection from "../../jiraimport/JiraImportSection";
 import { settingsSectionsFor, statusActionsFor } from "./settingsSections";
 
 // The project's Settings tab, Jira-like: a section menu on the left and one section on the right, each on its own
@@ -14,7 +15,7 @@ import { settingsSectionsFor, statusActionsFor } from "./settingsSections";
 // onRemove, onEditRoles }. `onAction(type)` opens the archive / restore / delete confirmation, `onSaved` runs after
 // the name or description changed.
 const ProjectSettingsTab = ({ project, section = "general", pathFor, writable, workspaceArchived, people, onSaved, onAction }) => {
-  const sections = settingsSectionsFor(project, workspaceArchived);
+  const sections = settingsSectionsFor(project, workspaceArchived, writable);
   if (!sections.some(({ id }) => id === section)) return <Navigate to={pathFor("general")} replace />;
 
   return (
@@ -40,6 +41,7 @@ const ProjectSettingsTab = ({ project, section = "general", pathFor, writable, w
         )}
         {section === "people" && <PeopleSection project={project} readOnly={!writable} {...people} />}
         {section === "board" && <BoardColumnsSection project={project} writable={writable} />}
+        {section === "jira-import" && <JiraImportSection key={project.id} project={project} />}
         {section === "archive" && (
           <ArchiveSection actions={statusActionsFor(project, workspaceArchived)} onAction={onAction} />
         )}

@@ -8,6 +8,10 @@ import api from "./client";
 export const listSprints = (projectId, signal) =>
   api.get(`/projects/${projectId}/sprints`, { signal }).then((res) => res.data);
 
+// Read-only completed and cancelled sprint history (requires VIEW_WORK).
+export const listEndedSprints = (projectId, signal) =>
+  api.get(`/projects/${projectId}/sprints/history`, { signal }).then((res) => res.data);
+
 // any sprint, ended ones included
 export const getSprint = (sprintId, signal) => api.get(`/sprints/${sprintId}`, { signal }).then((res) => res.data);
 
