@@ -38,6 +38,7 @@ const SprintSummary = ({ sprint }) => {
   const cancelled = sprint.status === "CANCELLED";
   // after the end a sprint's taskIds are its done items; the unfinished ones moved on
   const doneItems = sprint.taskIds?.length ?? 0;
+  const unknownOutcome = sprint.completedPoints == null && sprint.unfinishedPoints == null;
 
   return (
     <Paper elevation={0} sx={{ p: { xs: 2, sm: 3 }, border: 1, borderColor: "divider", borderRadius: 2 }}>
@@ -61,17 +62,22 @@ const SprintSummary = ({ sprint }) => {
           <>
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
               <Stat
-                value={formatEstimate(sprint.completedPoints ?? 0)}
-                label={`points done · ${plural(doneItems, "item")}`}
+                value={sprint.completedPoints == null ? "–" : formatEstimate(sprint.completedPoints)}
+                label={unknownOutcome ? "points completed (not recorded)" : `points done · ${plural(doneItems, "item")}`}
                 tone="success.main"
               />
               <Stat
-                value={formatEstimate(sprint.unfinishedPoints ?? 0)}
+                value={sprint.unfinishedPoints == null ? "–" : formatEstimate(sprint.unfinishedPoints)}
                 label="points carried over"
                 tone={sprint.unfinishedPoints > 0 ? "warning.main" : "text.primary"}
               />
-              <Stat value={formatEstimate(sprint.committedPoints ?? 0)} label="points committed at the start" />
+              <Stat value={sprint.committedPoints == null ? "–" : formatEstimate(sprint.committedPoints)} label="points committed at the start" />
             </Box>
+            {unknownOutcome && (
+              <Typography variant="body2" color="text.secondary">
+                Historical sprint outcomes were not available in the source data.
+              </Typography>
+            )}
             {cancelled && (
               <Typography variant="body2" color="text.secondary">
                 A cancelled sprint doesn't count toward velocity, so it doesn't change the capacity suggestion.

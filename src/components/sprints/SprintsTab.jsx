@@ -1,10 +1,12 @@
-import { Box, Button, Paper, Stack, Typography } from "@mui/material";
+import { Alert, Box, Button, Paper, Stack, Typography } from "@mui/material";
 import LoadState from "../general/LoadState";
 import ToneChip from "../general/ToneChip";
 import NoWorkAccess from "../tasks/NoWorkAccess";
 import SprintBoardHeader from "../board/SprintBoardHeader";
 import ScopeChanges from "./ScopeChanges";
 import { loadWork } from "../tasks/loadWork";
+import { listEndedSprints } from "../../api/sprintsApi";
+import SprintSummary from "./SprintSummary";
 import { useAsync } from "../../hooks/useAsync";
 import { PERMISSIONS } from "../../constants/projects";
 import { SPRINT_STATUS, TASK_ERROR_MESSAGES } from "../../constants/tasks";
@@ -53,7 +55,7 @@ const CurrentSprint = ({ sprint, tasks, columns, members, overdue }) => {
       {/* read-only here: the sprint is completed or cancelled from the Board */}
       <SprintBoardHeader sprint={sprint} tasks={tasks} columns={columns} overdue={overdue} />
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
-        <Stat value={formatEstimate(sprint.committedPoints ?? 0)} label="points committed at the start" />
+        <Stat value={sprint.committedPoints == null ? "–" : formatEstimate(sprint.committedPoints)} label="points committed at the start" />
         <Stat
           value={formatEstimate(sprint.selectedPoints)}
           label="points in the sprint now"
@@ -74,12 +76,19 @@ const CurrentSprint = ({ sprint, tasks, columns, members, overdue }) => {
   );
 };
 
-// The Sprints tab of a Scrum project (R14/R15): the current sprint in detail, the planned ones in short, and the
-// ended ones (not yet: the backend can't list them). Read-only for everyone: sprints are planned in the Backlog tab
-// and run on the Board. `onOpenBacklog` goes to the Backlog tab.
+// Current and planned sprints, plus read-only completed and cancelled history.
+// History failures must not prevent the active sprint and backlog summaries from loading.
 const SprintsTab = ({ project, onOpenBacklog }) => {
   const canView = can(project, PERMISSIONS.VIEW_WORK);
-  const state = useAsync((signal) => loadWork(project, "board", signal), [project.id], {
+  const state = useAsync(async (signal) => {
+    const [work, history] = await Promise.all([
+      loadWork(project, "board", signal),
+      listEndedSprints(project.id, signal)
+        .then((items) => ({ items, error: false }))
+        .catch(() => ({ items: [], error: true })),
+    ]);
+    return { ...work, previousSprints: history.items, historyUnavailable: history.error };
+  }, [project.id], {
     enabled: canView,
     fallback: "Couldn't load the sprints. Please try again.",
     messages: TASK_ERROR_MESSAGES,
@@ -95,7 +104,7 @@ const SprintsTab = ({ project, onOpenBacklog }) => {
     );
   }
 
-  const { tasks, columns, members, sprints, board } = state.data;
+  const { tasks, columns, members, sprints, board, previousSprints, historyUnavailable } = state.data;
   const active = sprints.find((sprint) => sprint.status === "ACTIVE");
   const planned = sprints.filter((sprint) => sprint.status === "PLANNED");
   const inActive = active && new Set(active.taskIds);
@@ -165,12 +174,19 @@ const SprintsTab = ({ project, onOpenBacklog }) => {
       </Section>
 
       <Section title="Previous sprints">
-        {/* the backend lists only planned and active sprints (sprints-docs §1); see dev-docs/README.md */}
-        <EmptyPanel>
-          <Typography variant="body2" color="text.secondary">
-            Ended sprints will show here once the backend can list them.
-          </Typography>
-        </EmptyPanel>
+        {historyUnavailable ? (
+          <Alert severity="warning">Previous sprint history is temporarily unavailable.</Alert>
+        ) : previousSprints.length === 0 ? (
+          <EmptyPanel>
+            <Typography variant="body2" color="text.secondary">No completed or cancelled sprints yet.</Typography>
+          </EmptyPanel>
+        ) : (
+          <Stack spacing={2}>
+            {[...previousSprints].reverse().map((sprint) => (
+              <SprintSummary key={sprint.id} sprint={sprint} />
+            ))}
+          </Stack>
+        )}
       </Section>
     </Stack>
   );

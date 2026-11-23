@@ -22,6 +22,7 @@ backend PRs #27 and #28, 8 Nov 2026), for the frontend. All in [sprintsApi.js](.
 | Method and path | Permission | Function | Notes |
 | --- | --- | --- | --- |
 | `GET /projects/{id}/sprints` | `VIEW_WORK` | `listSprints` | **planned and active only**, by number |
+| `GET /projects/{id}/sprints/history` | `VIEW_WORK` | `listEndedSprints` | completed and cancelled, by number; added with Jira importer backend |
 | `GET /sprints/{id}` | `VIEW_WORK` | `getSprint` | ended ones too |
 | `POST /projects/{id}/sprints` `{ name?, goal?, capacity?, startDate?, endDate? }` | `MANAGE_SPRINTS` | `createSprint` | `201`; blank name → "KEY Sprint N" |
 | `PATCH /sprints/{id}` (same, partial) + `clearCapacity: true` | `MANAGE_SPRINTS` | `updateSprint` | a null capacity means "unchanged" |
@@ -143,5 +144,5 @@ the backlog); `historyLine` in [utils/task.js](../src/utils/task.js) words them.
   - the current sprint: board header (with "Past end date"), committed / current points, capacity, unestimated, and
     scope changes since the start;
   - the planned ones in short;
-  - an empty "Previous sprints", since there's no list endpoint for ended sprints. Until there is, an ended sprint is
-    reached from a task's history, or right after ending it.
+  - read-only "Previous sprints" from the history endpoint. A failed history request shows a warning but does not
+    block the current and planned sprint views. Historical Jira statistics not supplied by the export display "–", not 0.

@@ -11,6 +11,7 @@ Short summaries of the backend API contracts, for whoever works on the frontend 
 | [roles.md](roles.md) | workspace and project roles, permissions, role endpoints | `roles-docs.md` |
 | [tasks.md](tasks.md) | tasks, subtasks, descriptions with @mentions, comments, history and the board | `tasks-docs.md`, `board-docs.md`, `mentions-docs.md`, `comments-docs.md`, `task-history-docs.md` |
 | [sprints.md](sprints.md) | sprints: planning, capacity suggestion and availability, start, close, scope changes; the Backlog, Board and Sprints tabs | `sprints-docs.md` |
+| [jira-import.md](jira-import.md) | one-time Jira CSV migration, preview, mapping, permissions and rollout | `jira-import-docs.md` |
 | [attachments.md](attachments.md) | files on tasks and subtasks: upload, preview, download, delete (**backend not built yet**) | `attachments-docs.md` |
 | [charter.md](charter.md) | the project charter: goals, scope, stakeholders, history (Charter tab) | `project-charter-docs.md` |
 | [chat.md](chat.md) | the project chat (WebSocket / STOMP) and the workspace Chats page | `project-chat-docs.md` |
