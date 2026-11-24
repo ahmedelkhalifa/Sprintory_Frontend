@@ -11,7 +11,7 @@ import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
 import { errorMessage } from "../../utils/apiError";
 import { formatDate, timeAgo } from "../../utils/format";
 import { sprintPath } from "../../utils/sprint";
-import { historyLine, mergeHistory } from "../../utils/task";
+import { historyLine, mergeHistory, taskPath } from "../../utils/task";
 
 const PAGE_SIZE = 20;
 
@@ -42,6 +42,8 @@ const Value = ({ children }) => (
 );
 
 // `project` and `workspace` build the link of an entry about a sprint (a carry-over opens the ended sprint's page)
+// or about another task (a dependency added or removed links the other task's key; it may be gone since, then its
+// page says so)
 const Entry = ({ entry, members, subtask, project, workspace }) => {
   const line = historyLine(entry, { subtask });
   // the actor's name is a snapshot from the time; a loaded member only adds the photo
@@ -49,6 +51,8 @@ const Entry = ({ entry, members, subtask, project, workspace }) => {
   const name = entry.actor?.name || "Someone";
   const avatarUser = member ?? { userId: entry.actor?.id, firstName: name };
   const Shown = line.kind === "status" ? ColumnName : Value;
+  // "added blocker PMP-10": the key at the end becomes a link to that task
+  const linkedKey = line.taskId != null && line.taskKey && line.text.endsWith(line.taskKey);
 
   return (
     <Box component="li" sx={{ display: "flex", gap: 1.5, alignItems: "flex-start" }}>
@@ -58,7 +62,16 @@ const Entry = ({ entry, members, subtask, project, workspace }) => {
           <Box component="span" sx={{ fontWeight: 600 }}>
             {name}
           </Box>{" "}
-          {line.text}{" "}
+          {linkedKey ? (
+            <>
+              {line.text.slice(0, -line.taskKey.length)}
+              <Link component={RouterLink} to={taskPath(workspace, project, line.taskId)} underline="hover" sx={{ fontWeight: 600 }}>
+                {line.taskKey}
+              </Link>
+            </>
+          ) : (
+            line.text
+          )}{" "}
           {line.sprintId != null && (
             <>
               <Link component={RouterLink} to={sprintPath(workspace, project, line.sprintId)} underline="hover">

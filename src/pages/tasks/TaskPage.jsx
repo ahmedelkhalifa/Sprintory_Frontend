@@ -18,7 +18,7 @@ import PageLayout from "../../components/layouts/PageLayout";
 import AssigneePicker from "../../components/tasks/AssigneePicker";
 import DetailRow from "../../components/tasks/DetailRow";
 import NoWorkAccess from "../../components/tasks/NoWorkAccess";
-import OpenSubtasksDialog from "../../components/tasks/OpenSubtasksDialog";
+import MoveConfirmDialog from "../../components/tasks/MoveConfirmDialog";
 import TaskActivity from "../../components/tasks/TaskActivity";
 import TaskBreadcrumbs from "../../components/tasks/TaskBreadcrumbs";
 import TaskDates from "../../components/tasks/TaskDates";
@@ -44,12 +44,12 @@ import { wipWarningText } from "../../utils/board";
 import {
   findAssignee,
   formatEstimate,
-  needsSubtaskConfirmation,
   projectLabels,
   taskChanges,
   taskValues,
 } from "../../utils/task";
 import { validateTask } from "../../utils/validation";
+import { confirmedMove, moveConfirmation } from "../../utils/dependency";
 import { isWorkspaceArchived } from "../../utils/workspace";
 import { useLatched } from "../../hooks/useLatched";
 import { LOADING_DELAY_SX, revealChildren } from "../../theme/motion";
@@ -65,7 +65,8 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
   const [task, setTask] = useState(initialTask);
   const [estimate, setEstimate] = useState(null); // the typed estimate, until it's saved
   const [people, setPeople] = useState(members); // to name the assignee, plus anyone picked beyond the first page
-  // a move to Done the backend refused because subtasks are open: the same changes, waiting for a confirmation
+  // a status change the backend wants confirmed (a blocked task going forward, or a parent with open subtasks going
+  // into Done): { changes, confirmation }, waiting for a yes
   const [confirmDone, setConfirmDone] = useState(null);
   const shownConfirmDone = useLatched(confirmDone);
   const [wipNotice, setWipNotice] = useState(null); // a status change put the task over a column's WIP limit
@@ -90,16 +91,25 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
   // `patch` = the edited field(s), see useFieldSave
   const saveFields = async (patch) => {
     const saved = await fields.save(patch);
-    // into Done with open subtasks: allowed, but only once the user confirms (backend tasks-docs §10.3)
-    if (needsSubtaskConfirmation(saved.error)) {
+    // allowed, but only once the user confirms (backend tasks-docs §10.3, dependencies-docs §5)
+    const confirmation = moveConfirmation(saved.error);
+    if (confirmation) {
       fields.clearError();
-      setConfirmDone(saved.changes);
+      setConfirmDone({ changes: saved.changes, confirmation });
     }
     return saved;
   };
 
-  const moveToDoneAnyway = async () => {
-    await fields.send({ ...confirmDone, confirmOpenSubtasks: true });
+  // the same changes again with the confirmed flag; if the other warning comes back too, ask for that one next
+  const moveAnyway = async () => {
+    const changes = confirmedMove(confirmDone.changes, confirmDone.confirmation);
+    const { ok, error } = await fields.send(changes);
+    const next = ok ? null : moveConfirmation(error);
+    if (next && !changes[next.flag]) {
+      fields.clearError();
+      setConfirmDone({ changes, confirmation: next });
+      return;
+    }
     setConfirmDone(null);
   };
 
@@ -135,7 +145,7 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
   };
 
   const { errors } = fields;
-  const doneColumn = confirmDone && columns.find((column) => column.id === confirmDone.statusId);
+  const targetColumn = shownConfirmDone && columns.find((column) => column.id === shownConfirmDone.changes.statusId);
 
   return (
     <Box>
@@ -316,12 +326,13 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
       </Box>
 
       {shownConfirmDone && (
-        <OpenSubtasksDialog
+        <MoveConfirmDialog
           open={Boolean(confirmDone)}
           task={task}
-          columnName={doneColumn?.name}
+          confirmation={shownConfirmDone.confirmation}
+          columnName={targetColumn?.name}
           loading={fields.submitting}
-          onConfirm={moveToDoneAnyway}
+          onConfirm={moveAnyway}
           onClose={() => setConfirmDone(null)}
         />
       )}

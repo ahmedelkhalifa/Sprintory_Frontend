@@ -405,3 +405,10 @@ test("needsSubtaskConfirmation spots only the open-subtasks refusal", () => {
   assert.equal(needsSubtaskConfirmation({ response: { data: { code: "CONFLICT" } } }), false);
   assert.equal(needsSubtaskConfirmation(new Error("network")), false);
 });
+
+test("historyLine words dependency entries with the other task's key", () => {
+  const added = { type: "DEPENDENCY_ADDED", field: null, oldValue: null, newValue: "Blocked by PMP-10", refId: 10 };
+  assert.deepEqual(historyLine(added), { text: "added blocker PMP-10", taskKey: "PMP-10", taskId: 10 });
+  const removed = { type: "DEPENDENCY_REMOVED", field: null, oldValue: "Blocks PMP-11", newValue: null, refId: 11 };
+  assert.equal(historyLine(removed).text, "removed blocked task PMP-11");
+});

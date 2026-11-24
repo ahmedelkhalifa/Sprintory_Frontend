@@ -5,7 +5,10 @@ export const NOTIFICATION_CATEGORIES = {
   ASSIGNMENT: { label: "Task assignments", description: "Someone assigns a task to you." },
   MENTION: { label: "Mentions", description: "Someone mentions you or your team." },
   COMMENT: { label: "Comments", description: "New comments on tasks you watch." },
-  STATUS_CHANGE: { label: "Status changes", description: "A task you watch moves to another column." },
+  STATUS_CHANGE: {
+    label: "Status changes",
+    description: "A task you watch moves to another column, or a task assigned to you is no longer blocked.",
+  },
   PROJECT_MEMBERSHIP: {
     label: "Project membership and roles",
     description: "You are added to a project or your project roles change.",

@@ -8,6 +8,7 @@ import { taskPath } from "./task.js";
 // (not a task) is a mention in the project chat, so it opens the Chat tab. Sprint notifications are about the project
 // (they carry no sprint id): a started or overdue sprint opens the Board (where Complete sprint is), a completed or
 // cancelled one the Sprints tab.
+// TASK_UNBLOCKED (PMP-45, "PMP-15 is no longer blocked.") is about a task, so it opens that task like the others.
 const PROJECT_TAB_BY_TYPE = {
   MENTIONED: "chat",
   SPRINT_STARTED: "board",
