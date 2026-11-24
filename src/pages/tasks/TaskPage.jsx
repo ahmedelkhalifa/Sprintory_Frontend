@@ -29,6 +29,7 @@ import TaskTitleField from "../../components/tasks/TaskTitleField";
 import TaskValueSelect from "../../components/tasks/TaskValueSelect";
 import SubtaskList from "../../components/tasks/subtasks/SubtaskList";
 import SubtaskView from "../../components/tasks/subtasks/SubtaskView";
+import TaskDependencies from "../../components/tasks/dependencies/TaskDependencies";
 import TaskAttachments from "../../components/tasks/attachments/TaskAttachments";
 import TaskWatchToggle from "../../components/tasks/TaskWatchToggle";
 import { loadWork } from "../../components/tasks/loadWork";
@@ -55,7 +56,8 @@ import { LOADING_DELAY_SX, revealChildren } from "../../theme/motion";
 
 // The loaded task and its fields. Every change is saved at once, like in Jira: one field at a time (useFieldSave
 // with validateTask and taskChanges: only what changed, clear flags for emptied fields). Under the description
-// come its attachments (TaskAttachments), subtasks (SubtaskList) and the activity (TaskActivity).
+// come its attachments (TaskAttachments), subtasks (SubtaskList), dependencies (TaskDependencies) and the activity
+// (TaskActivity).
 // `canEdit` = EDIT_TASKS and neither the workspace nor the project archived.
 const TaskView = ({ workspace, project, initialTask, columns, members, labels, canEdit }) => {
   const navigate = useNavigate();
@@ -67,7 +69,8 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
   const [confirmDone, setConfirmDone] = useState(null);
   const shownConfirmDone = useLatched(confirmDone);
   const [wipNotice, setWipNotice] = useState(null); // a status change put the task over a column's WIP limit
-  const [attachmentChanges, setAttachmentChanges] = useState(0); // the history has a new entry to show
+  // the history has a new entry to show (an attachment or a dependency, which don't change the task itself)
+  const [historyChanges, setHistoryChanges] = useState(0);
   // only the latest subtask refresh may land (see refreshTask)
   const refreshCount = useRef(0);
 
@@ -184,7 +187,7 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
             project={project}
             taskId={task.id}
             canEdit={canEdit}
-            onChanged={() => setAttachmentChanges((count) => count + 1)}
+            onChanged={() => setHistoryChanges((count) => count + 1)}
           />
 
           <SubtaskList
@@ -197,7 +200,18 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
             onChanged={refreshTask}
           />
 
-          <TaskActivity project={project} task={task} members={people} historyVersion={attachmentChanges} />
+          <TaskDependencies
+            workspace={workspace}
+            project={project}
+            task={task}
+            onChanged={(dependencies) => {
+              // the derived state comes with the lists; the rest of the task didn't change
+              setTask((prev) => ({ ...prev, blocked: dependencies.blocked, openBlockers: dependencies.openBlockers }));
+              setHistoryChanges((count) => count + 1);
+            }}
+          />
+
+          <TaskActivity project={project} task={task} members={people} historyVersion={historyChanges} />
         </Box>
 
         {/* right: the status, the details and the dates */}
