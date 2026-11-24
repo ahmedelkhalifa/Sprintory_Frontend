@@ -1,10 +1,11 @@
-import { Alert, Box, Button, LinearProgress, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, LinearProgress, Typography } from "@mui/material";
 import FilterAltOffOutlinedIcon from "@mui/icons-material/FilterAltOffOutlined";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import CheckBoxOutlinedIcon from "@mui/icons-material/CheckBoxOutlined";
 import FlagOutlinedIcon from "@mui/icons-material/FlagOutlined";
 import ViewColumnOutlinedIcon from "@mui/icons-material/ViewColumnOutlined";
 import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
+import BlockIcon from "@mui/icons-material/Block";
 import SearchField from "../../general/SearchField";
 import UserAvatar from "../../general/UserAvatar";
 import FilterPanel from "./FilterPanel";
@@ -63,8 +64,9 @@ const filterGroups = ({ members, columns, labels }) => [
 ];
 
 // The Board and Backlog's filter row (Jira's "filter by"): the search box (title or key), the Filter button with
-// its two-pane window (Assignee / Type / Priority / Status / Label), the picked filters as chips, and how many tasks
-// show. One value per filter; the backend does the matching (useTaskFilterMatches).
+// its two-pane window (Assignee / Type / Priority / Status / Label), the Blocked only toggle (tasks with an open
+// blocker, PMP-45), the picked filters as chips, and how many tasks show. One value per filter; the backend does the
+// matching (useTaskFilterMatches).
 // `match` is that hook's result, `shown` / `total` count the tasks for "Showing 4 of 23 tasks",
 // `actions` sits on the right (e.g. Create sprint, Create task).
 const TaskFilterBar = ({ filters, onChange, members, columns, labels, match, shown, total, actions }) => {
@@ -76,6 +78,21 @@ const TaskFilterBar = ({ filters, onChange, members, columns, labels, match, sho
       <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.5 }}>
         <SearchField value={filters.q} onChange={(q) => onChange({ ...filters, q })} placeholder="Search by title or key" />
         <FilterPanel filters={filters} onChange={onChange} groups={groups} />
+        <Button
+          variant="outlined"
+          color={filters.blockedOnly ? "primary" : "inherit"}
+          startIcon={<BlockIcon />}
+          aria-pressed={Boolean(filters.blockedOnly)}
+          onClick={() => onChange({ ...filters, blockedOnly: !filters.blockedOnly })}
+          sx={{
+            height: 40,
+            fontWeight: 600,
+            borderColor: filters.blockedOnly ? "primary.main" : "divider",
+            bgcolor: filters.blockedOnly ? "navActive.background" : "background.paper",
+          }}
+        >
+          Blocked only
+        </Button>
         {filtering && (
           <Button
             color="inherit"
@@ -91,7 +108,28 @@ const TaskFilterBar = ({ filters, onChange, members, columns, labels, match, sho
 
       {filtering && (
         <Box sx={{ mt: 1.25, display: "flex", flexDirection: "column", gap: 1 }}>
-          <ActiveFilterChips filters={filters} groups={groups} onRemove={(id) => onChange({ ...filters, [id]: null })} />
+          {(groups.some((group) => filters[group.id] != null) || filters.blockedOnly) && (
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+              <ActiveFilterChips filters={filters} groups={groups} onRemove={(id) => onChange({ ...filters, [id]: null })} />
+              {filters.blockedOnly && (
+                <Chip
+                  size="small"
+                  label={
+                    <Box component="strong" sx={{ fontWeight: 700 }}>
+                      Blocked tasks only
+                    </Box>
+                  }
+                  onDelete={() => onChange({ ...filters, blockedOnly: false })}
+                  sx={{
+                    height: 28,
+                    bgcolor: "navActive.background",
+                    color: "navActive.text",
+                    "& .MuiChip-deleteIcon": { color: "navActive.text", opacity: 0.6, "&:hover": { opacity: 1, color: "navActive.text" } },
+                  }}
+                />
+              )}
+            </Box>
+          )}
           {match.error ? (
             <Alert
               severity="error"

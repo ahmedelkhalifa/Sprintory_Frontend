@@ -6,6 +6,7 @@ import PersonOutlineIcon from "@mui/icons-material/PersonOutlineOutlined";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import ToneChip from "../general/ToneChip";
 import UserAvatar from "../general/UserAvatar";
+import BlockedMark from "../tasks/dependencies/BlockedMark";
 import { TASK_PRIORITIES, TASK_TYPES } from "../../constants/tasks";
 import { carriedOverLabel } from "../../utils/sprint";
 import { formatEstimate, subtaskProgress } from "../../utils/task";
@@ -67,6 +68,8 @@ export const BoardCardContent = ({ task, raised = false, lift = true, draggable 
         <Typography variant="caption" color="text.secondary" noWrap sx={{ fontWeight: 600, flexGrow: 1 }}>
           {task.key}
         </Typography>
+        {/* an open blocker (PMP-45): the tooltip lists them */}
+        <BlockedMark task={task} />
         <Tooltip title={`${priority.label} priority`}>
           <priority.Icon fontSize="small" sx={{ color: priority.tone }} aria-label={`${priority.label} priority`} />
         </Tooltip>
