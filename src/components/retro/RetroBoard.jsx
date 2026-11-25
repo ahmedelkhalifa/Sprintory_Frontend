@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { Alert, Box, Button, FormControlLabel, Snackbar, Stack, Switch, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import ConfirmDialog from "../general/ConfirmDialog";
 import RetroActionDialog from "./RetroActionDialog";
 import RetroActions from "./RetroActions";
@@ -16,12 +17,19 @@ import { revealChildren } from "../../theme/motion";
 // The loaded retro: how the sprint ended, what the retro before it left unfinished, the three columns with their cards,
 // and the actions. It keeps the retro from here on (useRetroBoard), so a saved card shows without loading the page again.
 const RetroBoard = ({ loaded, workspace, project }) => {
-  const { retro, addItem, editItem, deleteItem, toggleVote, createAction } = useRetroBoard(loaded);
+  const { retro, addItem, editItem, deleteItem, toggleVote, createAction, close, reload } = useRetroBoard(loaded);
   const [byVotes, setByVotes] = useState(false);
   const [deleting, setDeleting] = useState(null); // the card being deleted
   const [removing, setRemoving] = useState(false);
   const [removeError, setRemoveError] = useState("");
   const shownDeleting = useLatched(deleting);
+  const [refreshing, setRefreshing] = useState(false);
+  const [askClose, setAskClose] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const [closeError, setCloseError] = useState("");
+  // someone else closed it meanwhile: there's nothing left to confirm
+  const closeOpen = askClose && retro.canManage;
+  const shownClose = useLatched(closeOpen || null);
   const [making, setMaking] = useState(null); // the action being made: { item: its card or null, openedAt }
   const shownMaking = useLatched(making);
   // at the bottom of the page: what it's about may be gone (a vote's card) or out of sight (a new action)
@@ -41,6 +49,30 @@ const RetroBoard = ({ loaded, workspace, project }) => {
     else setDeleting(null);
   };
 
+  const refresh = async () => {
+    setRefreshing(true);
+    const failure = await reload();
+    setRefreshing(false);
+    if (failure) setNotice({ severity: "error", text: failure });
+  };
+
+  const openClose = () => {
+    setCloseError("");
+    setAskClose(true);
+  };
+
+  const confirmClose = async () => {
+    setClosing(true);
+    const failure = await close();
+    setClosing(false);
+    if (failure) {
+      setCloseError(failure);
+    } else {
+      setAskClose(false);
+      setNotice({ severity: "success", text: "The retrospective is closed." });
+    }
+  };
+
   const vote = async (item) => {
     const failure = await toggleVote(item);
     if (failure) setNotice({ severity: "error", text: failure });
@@ -58,7 +90,23 @@ const RetroBoard = ({ loaded, workspace, project }) => {
   return (
     <>
       <Stack spacing={2} sx={revealChildren(0)}>
-        <RetroHeader retro={retro} workspace={workspace} project={project} />
+        <RetroHeader
+          retro={retro}
+          workspace={workspace}
+          project={project}
+          actions={
+            <>
+              <Button variant="outlined" size="small" startIcon={<RefreshIcon />} loading={refreshing} onClick={refresh}>
+                Refresh
+              </Button>
+              {retro.canManage && (
+                <Button variant="outlined" size="small" onClick={openClose}>
+                  Close retro
+                </Button>
+              )}
+            </>
+          }
+        />
         {previous && (
           <RetroActions
             title={`Unfinished actions from ${previous.sprintName}`}
@@ -139,6 +187,19 @@ const RetroBoard = ({ loaded, workspace, project }) => {
           error={removeError}
           onConfirm={confirmDelete}
           onClose={() => setDeleting(null)}
+        />
+      )}
+      {shownClose && (
+        <ConfirmDialog
+          open={closeOpen}
+          title="Close this retrospective?"
+          message="Closing freezes cards, votes and actions, and it can't be opened again. The action tasks go on as normal."
+          confirmLabel="Close retro"
+          tone="warning"
+          loading={closing}
+          error={closeError}
+          onConfirm={confirmClose}
+          onClose={() => setAskClose(false)}
         />
       )}
       {shownMaking && (

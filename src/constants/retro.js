@@ -13,6 +13,9 @@ export const RETRO_STATUS = {
   CLOSED: { value: "CLOSED", label: "Closed", tone: "text.secondary" },
 };
 
+// how often an open retro on screen loads other people's changes (the backend has no live updates)
+export const RETRO_POLL_MS = 20000;
+
 // the text of one card, the same as the backend's check
 export const RETRO_CARD_MAX = 1000;
 
