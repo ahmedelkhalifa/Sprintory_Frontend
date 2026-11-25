@@ -17,6 +17,8 @@ Project → Settings → Import from Jira (`settings/jira-import`). The menu ite
 
 1. Create a **new, empty Scrum project** and confirm intended workspace/project key.
 2. Open the collapsible export guide for screenshots of Jira Basic search and CSV export. Upload a Jira issues CSV (all fields); optionally provide sprint metadata JSON. The guide generates a sprint export URL from a Jira Cloud board address, opens it in a new tab, and never handles Jira tokens or directly fetches Jira data. Preview the counts, skipped items, blockers and limitations.
+   - Jira CSV exports are limited to 1,000 work items. Larger projects are not supported; the one-time importer does not combine split exports.
+   - Sprint exports require a Scrum board and include up to 50 sprints. If the board has more, import without sprints.
    - Without JSON, imported top-level items go into the backlog with their original statuses and no sprint assignments. A warning is visible before import. Sprint assignments cannot be added later by re-importing.
    - The backend rejects incomplete sprint pages or invalid supplied JSON. To recover, choose a complete JSON file or remove it and import without sprints.
 3. Optionally match Jira assignees with Sprintory project members. Unmatched issues remain unassigned.

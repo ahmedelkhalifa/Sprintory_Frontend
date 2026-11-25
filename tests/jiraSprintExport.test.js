@@ -7,7 +7,7 @@ const expected = "https://example.atlassian.net/rest/agile/1.0/board/42/sprint?s
 test("builds Jira sprint export URL, ignoring board filters and fragments", () => {
   assert.equal(jiraSprintExportUrl(" https://example.atlassian.net/jira/software/projects/ABC/boards/42?filter=1#card "), expected);
 });
-test("accepts team-managed and legacy board links", () => {
+test("accepts company-managed and legacy board links", () => {
   assert.equal(jiraSprintExportUrl("https://example.atlassian.net/jira/software/c/projects/ABC/boards/42/backlog"), expected);
   assert.equal(jiraSprintExportUrl("https://example.atlassian.net/secure/RapidBoard.jspa?rapidView=42"), expected);
 });

@@ -3,7 +3,6 @@ import {
   Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Chip, Divider,
   FormControl, MenuItem, Select, Stack, TextField, Typography,
 } from "@mui/material";
-import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
 import SectionCard from "../general/SectionCard";
 import JiraExportGuide from "./JiraExportGuide";
 import { listProjectMembers } from "../../api/projectsApi";
@@ -15,13 +14,13 @@ const count = (number, word) => `${number} ${word}${number === 1 ? "" : "s"}`;
 
 const StepHeader = ({ number, title, description }) => (
   <Stack direction="row" spacing={1.5} alignItems="flex-start">
-    <Box sx={{ display: "grid", placeItems: "center", bgcolor: "action.hover", width: 34, height: 34,
-      borderRadius: "50%", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+    <Typography component="span" variant="subtitle1" sx={{ display: "grid", placeItems: "center",
+      bgcolor: "action.hover", width: 34, height: 34, borderRadius: "50%", flexShrink: 0 }}>
       {number}
-    </Box>
+    </Typography>
     <Box>
-      <Typography component="h3" sx={{ fontSize: 17, fontWeight: 700 }}>{title}</Typography>
-      {description && <Typography color="text.secondary" sx={{ fontSize: 14, lineHeight: 1.5, mt: 0.25 }}>{description}</Typography>}
+      <Typography component="h3" variant="h6">{title}</Typography>
+      {description && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>{description}</Typography>}
     </Box>
   </Stack>
 );
@@ -29,23 +28,16 @@ const StepHeader = ({ number, title, description }) => (
 const FileCard = ({ title, description, required = false, file, accept, busy, onChange, onRemove }) => (
   <Stack spacing={1.5} sx={{ flex: "1 1 280px", minWidth: 0, p: 2,
     border: 1, borderColor: "divider", borderRadius: 2, bgcolor: "background.paper" }}>
-    <Stack direction="row" spacing={1.25} alignItems="flex-start">
-      <Box sx={{ display: "grid", placeItems: "center", width: 36, height: 36, flexShrink: 0,
-        bgcolor: "action.hover", color: "text.secondary", borderRadius: 1 }}>
-        <InsertDriveFileOutlinedIcon fontSize="small" />
-      </Box>
-      <Box sx={{ minWidth: 0 }}>
-        <Stack direction="row" flexWrap="wrap" gap={0.75} alignItems="center">
-          <Typography sx={{ fontSize: 16, fontWeight: 700 }}>{title}</Typography>
-          <Chip size="small" label={required ? "Required" : "Optional"}
-            color={required ? "primary" : "default"} variant="outlined" />
-        </Stack>
-        <Typography color="text.secondary" sx={{ fontSize: 14, mt: 0.5 }}>{description}</Typography>
-      </Box>
-    </Stack>
+    <Box sx={{ minWidth: 0 }}>
+      <Stack direction="row" flexWrap="wrap" gap={0.75} alignItems="center">
+        <Typography variant="h6" component="h4">{title}</Typography>
+        <Chip size="small" label={required ? "Required" : "Optional"} color="default" variant="outlined" />
+      </Stack>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{description}</Typography>
+    </Box>
     <Box sx={{ flex: 1 }} />
-    <Typography sx={{ fontSize: 14, overflowWrap: "anywhere", color: file ? "text.primary" : "text.secondary",
-      fontWeight: file ? 600 : 400 }} role="status">{fileLabel(file)}</Typography>
+    <Typography variant={file ? "subtitle1" : "body2"} color={file ? "text.primary" : "text.secondary"}
+      sx={{ overflowWrap: "anywhere" }} role="status">{fileLabel(file)}</Typography>
     <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
       <Button variant="outlined" component="label" disabled={busy}>
         {file ? "Replace file" : `Choose ${required ? "CSV" : "JSON"} file`}
@@ -133,7 +125,7 @@ const JiraImportSection = ({ project }) => {
   return (
     <SectionCard title="Import from Jira">
       <Stack spacing={3} sx={{ p: { xs: 2, sm: 3 } }}>
-        <Alert severity="info" sx={{ "& .MuiAlert-message": { fontSize: 14, lineHeight: 1.55 } }}>
+        <Alert severity="info">
           Use a new, empty Scrum project. This is a one-time migration; existing issues will not be updated by later imports.
         </Alert>
         <JiraExportGuide />
@@ -151,7 +143,7 @@ const JiraImportSection = ({ project }) => {
                 onChange={(file) => fileChanged(file, setSprints)}
                 onRemove={() => fileChanged(null, setSprints)} />
             </Box>
-            {!sprints && <Alert severity={csv ? "warning" : "info"} sx={{ "& .MuiAlert-message": { fontSize: 14, lineHeight: 1.55 } }}>
+            {!sprints && <Alert severity={csv ? "warning" : "info"}>
               Without sprint JSON, work items will be imported into the backlog. Original sprints cannot be added later by repeating the import.
             </Alert>}
             <Box>
@@ -189,7 +181,7 @@ const JiraImportSection = ({ project }) => {
                 description={`Source project ${preview.jiraProjectKey} → Sprintory project ${project.key}`} />
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 2, ml: { sm: 5.5 } }}>
                 <Chip size="small" label={`${preview.sourceIssues} source issues`} />
-                <Chip size="small" color="primary" label={`${preview.newTopLevelItems} new items`} />
+                <Chip size="small" label={`${preview.newTopLevelItems} new items`} />
                 <Chip size="small" label={`${preview.newSubtasks} new subtasks`} />
                 <Chip size="small" label={`${preview.newSprints} new sprints`} />
                 <Chip size="small" label={`${preview.alreadyImported} previously imported`} />
@@ -201,9 +193,9 @@ const JiraImportSection = ({ project }) => {
               <Alert key={`block-${index}`} severity="error">{blocker}</Alert>
             ))}
             {preview.warnings.length > 0 && (
-              <Accordion disableGutters variant="outlined" sx={{ borderRadius: "8px !important" }}>
+              <Accordion disableGutters variant="outlined">
                 <AccordionSummary expandIcon={<span aria-hidden="true">▾</span>}>
-                  <Typography variant="body2" fontWeight={600}>
+                  <Typography variant="subtitle1">
                     Import notes and limitations ({preview.warnings.length})
                   </Typography>
                 </AccordionSummary>
@@ -219,10 +211,10 @@ const JiraImportSection = ({ project }) => {
               </Accordion>
             )}
             {preview.assignees.length > 0 && (
-              <Accordion variant="outlined" disableGutters sx={{ borderRadius: "8px !important" }}>
+              <Accordion variant="outlined" disableGutters>
                 <AccordionSummary expandIcon={<span aria-hidden="true">▾</span>}>
                   <Stack>
-                    <Typography fontWeight={600} variant="body2">Match Jira assignees (optional)</Typography>
+                    <Typography variant="subtitle1">Match Jira assignees (optional)</Typography>
                     <Typography variant="caption" color="text.secondary">
                       Unmatched issues will be imported without an assignee.
                     </Typography>
