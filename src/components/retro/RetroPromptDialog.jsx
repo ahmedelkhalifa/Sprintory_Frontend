@@ -30,7 +30,4 @@ const RetroPromptDialog = ({ open = true, sprint, workspace, project, onClose })
     </Dialog>
   );
 };
-
-
-
 export default RetroPromptDialog;
