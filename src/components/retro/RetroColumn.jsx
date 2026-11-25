@@ -7,10 +7,10 @@ import RetroCard from "./RetroCard";
 import RetroCardForm from "./RetroCardForm";
 
 // One of the three columns ("Went well", "To improve", "Ideas") with its cards, already in order, and "Add a card" at
-// the bottom, where a new card lands. `canContribute` and `votesLeft` are the retro's. `onAdd(body)` and
-// `onEdit(itemId, body)` answer an error text or null.
-const RetroColumn = ({ label, items, projectId, canContribute, votesLeft, onAdd, onEdit, onDelete, onVote }) => {
+// the bottom, where a new card lands. `onAdd(body)` answers an error text or null; the other callbacks are the cards'.
+const RetroColumn = ({ label, items, retro, onAdd, ...cardCallbacks }) => {
   const [adding, setAdding] = useState(false);
+  const { canContribute } = retro;
 
   return (
     <Paper
@@ -35,16 +35,7 @@ const RetroColumn = ({ label, items, projectId, canContribute, votesLeft, onAdd,
       {items.length > 0 ? (
         <Box component="ol" sx={{ listStyle: "none", m: 0, p: 1, display: "flex", flexDirection: "column", gap: 1 }}>
           {items.map((item) => (
-            <RetroCard
-              key={item.id}
-              item={item}
-              projectId={projectId}
-              canContribute={canContribute}
-              votesLeft={votesLeft}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onVote={onVote}
-            />
+            <RetroCard key={item.id} item={item} retro={retro} {...cardCallbacks} />
           ))}
         </Box>
       ) : (
@@ -57,7 +48,7 @@ const RetroColumn = ({ label, items, projectId, canContribute, votesLeft, onAdd,
       {adding && (
         <Box sx={{ p: 1 }}>
           <RetroCardForm
-            projectId={projectId}
+            projectId={retro.projectId}
             saveLabel="Add"
             ariaLabel={`New card: ${label}`}
             locked={!canContribute}

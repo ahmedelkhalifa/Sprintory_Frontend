@@ -1,26 +1,32 @@
 import { useState } from "react";
-import { Alert, Box, FormControlLabel, Snackbar, Stack, Switch, Typography } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
+import { Alert, Box, Button, FormControlLabel, Snackbar, Stack, Switch, Typography } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import ConfirmDialog from "../general/ConfirmDialog";
+import RetroActionDialog from "./RetroActionDialog";
+import RetroActions from "./RetroActions";
 import RetroColumn from "./RetroColumn";
 import RetroHeader from "./RetroHeader";
 import { useRetroBoard } from "./useRetroBoard";
 import { useLatched } from "../../hooks/useLatched";
 import { RETRO_COLUMNS } from "../../constants/retro";
-import { columnItems } from "../../utils/retro";
+import { actionCreatedText, columnItems, retroPath } from "../../utils/retro";
 import { revealChildren } from "../../theme/motion";
 
-// The loaded retro: how the sprint ended, then the three columns with their cards. It keeps the retro from here on
-// (useRetroBoard), so a saved card shows without loading the page again.
+// The loaded retro: how the sprint ended, what the retro before it left unfinished, the three columns with their cards,
+// and the actions. It keeps the retro from here on (useRetroBoard), so a saved card shows without loading the page again.
 const RetroBoard = ({ loaded, workspace, project }) => {
-  const { retro, addItem, editItem, deleteItem, toggleVote } = useRetroBoard(loaded);
+  const { retro, addItem, editItem, deleteItem, toggleVote, createAction } = useRetroBoard(loaded);
   const [byVotes, setByVotes] = useState(false);
   const [deleting, setDeleting] = useState(null); // the card being deleted
   const [removing, setRemoving] = useState(false);
   const [removeError, setRemoveError] = useState("");
   const shownDeleting = useLatched(deleting);
-  // at the bottom of the page: the card it's about may be gone, or its vote button with it
-  const [voteError, setVoteError] = useState(null);
-  const shownVoteError = useLatched(voteError);
+  const [making, setMaking] = useState(null); // the action being made: { item: its card or null, openedAt }
+  const shownMaking = useLatched(making);
+  // at the bottom of the page: what it's about may be gone (a vote's card) or out of sight (a new action)
+  const [notice, setNotice] = useState(null); // { severity, text }
+  const shownNotice = useLatched(notice);
 
   const askDelete = (item) => {
     setRemoveError("");
@@ -37,13 +43,41 @@ const RetroBoard = ({ loaded, workspace, project }) => {
 
   const vote = async (item) => {
     const failure = await toggleVote(item);
-    if (failure) setVoteError(failure);
+    if (failure) setNotice({ severity: "error", text: failure });
   };
+
+  const startAction = (item) => setMaking({ item, openedAt: Date.now() });
+
+  const handleCreated = (action) => {
+    setMaking(null);
+    setNotice({ severity: "success", text: actionCreatedText(action) });
+  };
+
+  const previous = retro.previousActions;
 
   return (
     <>
       <Stack spacing={2} sx={revealChildren(0)}>
         <RetroHeader retro={retro} workspace={workspace} project={project} />
+        {previous && (
+          <RetroActions
+            title={`Unfinished actions from ${previous.sprintName}`}
+            actions={previous.actions}
+            workspace={workspace}
+            project={project}
+            action={
+              <Button
+                component={RouterLink}
+                to={retroPath(workspace, project, previous.retroId)}
+                variant="outlined"
+                size="small"
+                aria-label={`Open retro: ${previous.sprintName}`}
+              >
+                Open retro
+              </Button>
+            }
+          />
+        )}
         <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 2, rowGap: 0.5 }}>
           <FormControlLabel
             control={<Switch size="small" checked={byVotes} onChange={(e) => setByVotes(e.target.checked)} />}
@@ -69,16 +103,29 @@ const RetroBoard = ({ loaded, workspace, project }) => {
               key={value}
               label={label}
               items={columnItems(retro.items, value, { byVotes })}
-              projectId={project.id}
-              canContribute={retro.canContribute}
-              votesLeft={retro.votesLeft}
+              retro={retro}
               onAdd={(body) => addItem(value, body)}
               onEdit={editItem}
               onDelete={askDelete}
               onVote={vote}
+              onMakeAction={startAction}
             />
           ))}
         </Box>
+        <RetroActions
+          title="Actions"
+          actions={retro.actions}
+          emptyText={retro.canManage ? "No actions yet. Turn a card into one, or create one here." : "No actions yet"}
+          workspace={workspace}
+          project={project}
+          action={
+            retro.canManage && (
+              <Button variant="outlined" size="small" startIcon={<AddIcon />} onClick={() => startAction(null)}>
+                Create action
+              </Button>
+            )
+          }
+        />
       </Stack>
 
       {shownDeleting && (
@@ -94,14 +141,32 @@ const RetroBoard = ({ loaded, workspace, project }) => {
           onClose={() => setDeleting(null)}
         />
       )}
+      {shownMaking && (
+        <RetroActionDialog
+          // every time it opens it starts fresh, also right after it closed
+          key={shownMaking.openedAt}
+          open={Boolean(making)}
+          retro={retro}
+          item={shownMaking.item}
+          project={project}
+          onCreate={createAction}
+          onCreated={handleCreated}
+          onClose={() => setMaking(null)}
+        />
+      )}
       <Snackbar
-        open={Boolean(voteError)}
+        open={Boolean(notice)}
         autoHideDuration={6000}
-        onClose={() => setVoteError(null)}
+        onClose={() => setNotice(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert severity="error" variant="filled" onClose={() => setVoteError(null)} sx={{ width: "100%" }}>
-          {shownVoteError}
+        <Alert
+          severity={shownNotice?.severity ?? "success"}
+          variant="filled"
+          onClose={() => setNotice(null)}
+          sx={{ width: "100%" }}
+        >
+          {shownNotice?.text}
         </Alert>
       </Snackbar>
     </>

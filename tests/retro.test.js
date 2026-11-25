@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  actionCreatedText,
   actionTitle,
+  addAction,
   applyVote,
   canToggleVote,
   columnItems,
@@ -134,6 +136,33 @@ test("actionTitle is the card's text on one line", () => {
 test("actionTitle is at most 255 characters and never ends in half an emoji", () => {
   assert.equal(actionTitle(doc("a".repeat(300))).length, 255);
   assert.equal(actionTitle(doc(`${"a".repeat(254)}😀`)), "a".repeat(254));
+});
+
+test("actionTitle names mentioned people as they're called now", () => {
+  const body = JSON.stringify({
+    type: "doc",
+    content: [
+      {
+        type: "paragraph",
+        content: [{ type: "text", text: "Ask " }, { type: "mention", attrs: { id: "7", label: "old name", kind: "user" } }],
+      },
+    ],
+  });
+  assert.equal(actionTitle(body, [{ kind: "user", id: 7, name: "Ada Lovelace" }]), "Ask @Ada Lovelace");
+  // not among the mentions: the stored name
+  assert.equal(actionTitle(body, []), "Ask @old name");
+});
+
+test("addAction puts a new action last, and only once", () => {
+  const before = retro({ actions: [{ id: 3 }, { id: 4 }] });
+  assert.deepEqual(addAction(before, { id: 5 }).actions, [{ id: 3 }, { id: 4 }, { id: 5 }]);
+  assert.deepEqual(addAction(before, { id: 4, itemId: 1 }).actions, [{ id: 3 }, { id: 4, itemId: 1 }]);
+  assert.deepEqual(before.actions, [{ id: 3 }, { id: 4 }]);
+});
+
+test("actionCreatedText says where the task went", () => {
+  assert.equal(actionCreatedText({ task: { key: "MOB-61", sprintName: null } }), "MOB-61 was created in the backlog.");
+  assert.equal(actionCreatedText({ task: { key: "MOB-61", sprintName: "MOB Sprint 4" } }), "MOB-61 was created in MOB Sprint 4.");
 });
 
 test("validateRetroAction requires a title, an owner and a chosen sprint", () => {

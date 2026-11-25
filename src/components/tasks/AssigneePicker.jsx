@@ -6,8 +6,17 @@ import { memberLabel } from "../../utils/people";
 
 // "Assignee" field: the project's members, searched on the server as the user types. `value` is a member
 // ({ userId, firstName, ... }) or null for unassigned; a member with only a userId still shows.
-// `label={null}` leaves out the label above it (the task page puts its labels on the left)
-const AssigneePicker = ({ id, projectId, value, onChange, disabled = false, label = "Assignee" }) => {
+// `label={null}` leaves out the label above it (the task page puts its labels on the left); `error` is a text under it
+const AssigneePicker = ({
+  id,
+  projectId,
+  value,
+  onChange,
+  disabled = false,
+  label = "Assignee",
+  placeholder = "Unassigned",
+  error = "",
+}) => {
   const people = usePagedList(
     (params, signal) => listProjectMembers(projectId, params, signal),
     [projectId],
@@ -41,7 +50,9 @@ const AssigneePicker = ({ id, projectId, value, onChange, disabled = false, labe
             {memberLabel(member)}
           </Box>
         )}
-        renderInput={(params) => <TextField {...params} size="small" placeholder="Unassigned" />}
+        renderInput={(params) => (
+          <TextField {...params} size="small" placeholder={placeholder} error={Boolean(error)} helperText={error} />
+        )}
       />
     </Box>
   );

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Box, IconButton, Paper, Tooltip, Typography } from "@mui/material";
+import { Box, Button, IconButton, Paper, Tooltip, Typography } from "@mui/material";
+import AddTaskIcon from "@mui/icons-material/AddTask";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import UserAvatar from "../general/UserAvatar";
@@ -10,9 +11,10 @@ import { formatDate, timeAgo } from "../../utils/format";
 import { votesText } from "../../utils/retro";
 
 // One card: who wrote it (retros aren't anonymous), when, the text and its votes, as a button for whoever may vote
-// (`canContribute`, the retro's). Edit and Delete follow the backend's `canEdit` / `canDelete`. `onEdit(itemId, body)`
-// answers an error text or null; `onDelete(item)` asks first.
-const RetroCard = ({ item, projectId, canContribute, votesLeft, onEdit, onDelete, onVote }) => {
+// (the retro's `canContribute`), and "Make action" for managers (`canManage`). Edit and Delete follow the backend's
+// `canEdit` / `canDelete`. `onEdit(itemId, body)` answers an error text or null; `onDelete(item)` asks first;
+// `onMakeAction(item)` opens the window.
+const RetroCard = ({ item, retro, onEdit, onDelete, onVote, onMakeAction }) => {
   const [editing, setEditing] = useState(false);
   const name = item.author?.name || "Deleted user";
 
@@ -55,7 +57,7 @@ const RetroCard = ({ item, projectId, canContribute, votesLeft, onEdit, onDelete
       </Box>
       {editing ? (
         <RetroCardForm
-          projectId={projectId}
+          projectId={retro.projectId}
           initial={item.body}
           saveLabel="Save"
           ariaLabel="Card text"
@@ -66,13 +68,24 @@ const RetroCard = ({ item, projectId, canContribute, votesLeft, onEdit, onDelete
       ) : (
         <RichText value={item.body} mentions={item.mentions} sx={{ typography: "body2" }} />
       )}
-      <Box sx={{ mt: 1 }}>
-        {canContribute ? (
-          <RetroVoteButton item={item} votesLeft={votesLeft} onVote={onVote} />
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1 }}>
+        {retro.canContribute ? (
+          <RetroVoteButton item={item} votesLeft={retro.votesLeft} onVote={onVote} />
         ) : (
           <Typography variant="caption" color="text.secondary">
             {votesText(item.voteCount)}
           </Typography>
+        )}
+        {retro.canManage && !editing && (
+          <Button
+            size="small"
+            color="inherit"
+            startIcon={<AddTaskIcon />}
+            onClick={() => onMakeAction(item)}
+            sx={{ ml: "auto", color: "text.secondary" }}
+          >
+            Make action
+          </Button>
         )}
       </Box>
     </Paper>

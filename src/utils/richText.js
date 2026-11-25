@@ -24,12 +24,13 @@ export const toDoc = (value) => {
 
 const BLOCKS = new Set(["paragraph", "heading", "blockquote", "codeBlock", "listItem", "bulletList", "orderedList"]);
 
-// the document as plain text: mentions as "@label", blocks on their own lines (like the backend's plain text)
-export const docText = (doc) => {
+// the document as plain text: mentions as "@label", blocks on their own lines (like the backend's plain text).
+// With a response's `mentions` they have their current names instead
+export const docText = (doc, mentions) => {
   const visit = (node) => {
     if (!node || typeof node !== "object") return "";
     if (node.type === "text") return node.text || "";
-    if (node.type === "mention") return `@${node.attrs?.label || node.attrs?.id || ""}`;
+    if (node.type === "mention") return `@${mentions ? mentionName(node, mentions) : node.attrs?.label || node.attrs?.id || ""}`;
     if (node.type === "hardBreak") return "\n";
     const inner = (node.content || []).map(visit).join("");
     return BLOCKS.has(node.type) ? `${inner}\n` : inner;

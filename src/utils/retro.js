@@ -73,13 +73,22 @@ export const applyVote = (retro, { itemId, voteCount, votedByMe, votesLeft }) =>
 export const EMPTY_RETRO_ACTION = { title: "", owner: null, destination: RETRO_DESTINATION.BACKLOG, sprintId: "" };
 
 // a card's text as a task title: one line, cut to the longest title a task can have (never in the middle of an emoji)
-export const actionTitle = (body) =>
-  docText(toDoc(body))
+export const actionTitle = (body, mentions) =>
+  docText(toDoc(body), mentions)
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, TASK_TITLE_MAX)
     .replace(/[\uD800-\uDBFF]$/, "")
     .trim();
+
+// the retro after an action was created: last, and only once when a reload already brought it
+export const addAction = (retro, action) => ({
+  ...retro,
+  actions: [...retro.actions.filter((other) => other.id !== action.id), action],
+});
+
+// what to say after creating one
+export const actionCreatedText = ({ task }) => `${task.key} was created in ${task.sprintName ?? "the backlog"}.`;
 
 // what the "Create action" window has wrong, by the backend's field names: the title and the owner are required,
 // and so is a sprint when that's where the task goes

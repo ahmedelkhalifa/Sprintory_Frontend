@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import {
+  createRetroAction,
   createRetroItem,
   deleteRetroItem,
   getRetro,
@@ -9,12 +10,13 @@ import {
 } from "../../api/retrosApi";
 import { RETRO_ERROR_MESSAGES, RETRO_REFRESH_CODES } from "../../constants/retro";
 import { errorCode, errorMessage } from "../../utils/apiError";
-import { applyVote, removeItem, replaceItem } from "../../utils/retro";
+import { addAction, applyVote, removeItem, replaceItem } from "../../utils/retro";
 import { isRichTextError } from "../../utils/richText";
 
 /**
  * An open retro board's data, starting from the loaded retro. A change goes to the backend first, then its answer is
- * put into the retro, so the page never reloads. Each change answers null, or the text of what went wrong.
+ * put into the retro, so the page never reloads. Each change answers null, or the text of what went wrong;
+ * `createAction` answers the action and throws instead, because its window shows errors next to the fields.
  * The page isn't live, so a refusal that shows it's out of date (RETRO_REFRESH_CODES) loads the retro again.
  */
 export const useRetroBoard = (loaded) => {
@@ -43,8 +45,12 @@ export const useRetroBoard = (loaded) => {
     }
   };
 
-  const failure = (err, fallback) => {
+  const refreshIfStale = (err) => {
     if (RETRO_REFRESH_CODES.includes(errorCode(err))) refresh();
+  };
+
+  const failure = (err, fallback) => {
+    refreshIfStale(err);
     // a refused text: the backend's message says what is wrong with it
     return isRichTextError(err) ? err.response.data.message : errorMessage(err, fallback, RETRO_ERROR_MESSAGES);
   };
@@ -96,5 +102,16 @@ export const useRetroBoard = (loaded) => {
     return lastVote.current;
   };
 
-  return { retro, addItem, editItem, deleteItem, toggleVote };
+  const createAction = async (body) => {
+    try {
+      const action = await createRetroAction(retro.id, body);
+      update((current) => addAction(current, action));
+      return action;
+    } catch (err) {
+      refreshIfStale(err);
+      throw err;
+    }
+  };
+
+  return { retro, addItem, editItem, deleteItem, toggleVote, createAction };
 };
