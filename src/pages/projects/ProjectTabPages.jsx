@@ -12,6 +12,7 @@ import BacklogTab from "../../components/backlog/BacklogTab";
 import BoardTab from "../../components/board/BoardTab";
 import SprintsTab from "../../components/sprints/SprintsTab";
 import SprintSummaryPage from "../../components/sprints/SprintSummaryPage";
+import RetroPage from "../../components/retro/RetroPage";
 import CharterGoals from "../../components/charter/CharterGoals";
 import CharterScope from "../../components/charter/CharterScope";
 import CharterStakeholders from "../../components/charter/CharterStakeholders";
@@ -216,18 +217,47 @@ export const ProjectSettingsPage = () => {
 
 // .../sprints (Scrum only, like the backlog)
 export const ProjectSprintsPage = () => {
+  const { workspace } = useWorkspaceAccess();
   const { project } = useProjectAccess();
   const page = useProjectPage();
-  return <SprintsTab project={project} onOpenBacklog={() => page.goToTab("backlog")} />;
+  return (
+    <SprintsTab
+      workspace={workspace}
+      project={project}
+      writable={page.writable}
+      onOpenBacklog={() => page.goToTab("backlog")}
+    />
+  );
 };
 
 // .../sprints/:sprintId: one sprint's page, ended ones included (the Sprints tab stays selected)
 export const ProjectSprintSummaryPage = () => {
+  const { workspace } = useWorkspaceAccess();
   const { project } = useProjectAccess();
   const { sprintId } = useParams();
   const page = useProjectPage();
   // remounts for another sprint, so nothing of the previous one shows
-  return <SprintSummaryPage key={sprintId} project={project} sprintId={sprintId} onBack={() => page.goToTab("sprints")} />;
+  return (
+    <SprintSummaryPage
+      key={sprintId}
+      workspace={workspace}
+      project={project}
+      sprintId={sprintId}
+      writable={page.writable}
+      onBack={() => page.goToTab("sprints")}
+    />
+  );
+};
+
+// .../sprints/retros/:retroId: a sprint's retrospective (the Sprints tab stays selected)
+export const ProjectRetroPage = () => {
+  const { workspace } = useWorkspaceAccess();
+  const { project } = useProjectAccess();
+  const { retroId } = useParams();
+  const page = useProjectPage();
+  return (
+    <RetroPage key={retroId} workspace={workspace} project={project} retroId={retroId} onBack={() => page.goToTab("sprints")} />
+  );
 };
 
 // .../reports, /files until they are built

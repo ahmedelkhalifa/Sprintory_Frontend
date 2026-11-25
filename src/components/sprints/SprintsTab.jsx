@@ -7,6 +7,7 @@ import ScopeChanges from "./ScopeChanges";
 import { loadWork } from "../tasks/loadWork";
 import { listEndedSprints } from "../../api/sprintsApi";
 import SprintSummary from "./SprintSummary";
+import RetroButton from "../retro/RetroButton";
 import { useAsync } from "../../hooks/useAsync";
 import { PERMISSIONS } from "../../constants/projects";
 import { SPRINT_STATUS, TASK_ERROR_MESSAGES } from "../../constants/tasks";
@@ -76,9 +77,9 @@ const CurrentSprint = ({ sprint, tasks, columns, members, overdue }) => {
   );
 };
 
-// Current and planned sprints, plus read-only completed and cancelled history.
+// Current and planned sprints, plus read-only completed and cancelled history, each with its retro button.
 // History failures must not prevent the active sprint and backlog summaries from loading.
-const SprintsTab = ({ project, onOpenBacklog }) => {
+const SprintsTab = ({ workspace, project, writable, onOpenBacklog }) => {
   const canView = can(project, PERMISSIONS.VIEW_WORK);
   const state = useAsync(async (signal) => {
     const [work, history] = await Promise.all([
@@ -183,7 +184,11 @@ const SprintsTab = ({ project, onOpenBacklog }) => {
         ) : (
           <Stack spacing={2}>
             {[...previousSprints].reverse().map((sprint) => (
-              <SprintSummary key={sprint.id} sprint={sprint} />
+              <SprintSummary
+                key={sprint.id}
+                sprint={sprint}
+                action={<RetroButton sprint={sprint} workspace={workspace} project={project} writable={writable} />}
+              />
             ))}
           </Stack>
         )}
