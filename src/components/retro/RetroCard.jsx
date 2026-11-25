@@ -5,14 +5,14 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import UserAvatar from "../general/UserAvatar";
 import RichText from "../editor/RichText";
 import RetroCardForm from "./RetroCardForm";
+import RetroVoteButton from "./RetroVoteButton";
 import { formatDate, timeAgo } from "../../utils/format";
+import { votesText } from "../../utils/retro";
 
-const votesText = (count) => `${count} ${count === 1 ? "vote" : "votes"}`;
-
-// One card: who wrote it (retros aren't anonymous), when, the text and how many votes it has. Edit and Delete follow
-// the backend's `canEdit` / `canDelete`. `onEdit(itemId, body)` answers an error text or null; `onDelete(item)` asks
-// first.
-const RetroCard = ({ item, projectId, onEdit, onDelete }) => {
+// One card: who wrote it (retros aren't anonymous), when, the text and its votes, as a button for whoever may vote
+// (`canContribute`, the retro's). Edit and Delete follow the backend's `canEdit` / `canDelete`. `onEdit(itemId, body)`
+// answers an error text or null; `onDelete(item)` asks first.
+const RetroCard = ({ item, projectId, canContribute, votesLeft, onEdit, onDelete, onVote }) => {
   const [editing, setEditing] = useState(false);
   const name = item.author?.name || "Deleted user";
 
@@ -66,9 +66,15 @@ const RetroCard = ({ item, projectId, onEdit, onDelete }) => {
       ) : (
         <RichText value={item.body} mentions={item.mentions} sx={{ typography: "body2" }} />
       )}
-      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-        {votesText(item.voteCount)}
-      </Typography>
+      <Box sx={{ mt: 1 }}>
+        {canContribute ? (
+          <RetroVoteButton item={item} votesLeft={votesLeft} onVote={onVote} />
+        ) : (
+          <Typography variant="caption" color="text.secondary">
+            {votesText(item.voteCount)}
+          </Typography>
+        )}
+      </Box>
     </Paper>
   );
 };

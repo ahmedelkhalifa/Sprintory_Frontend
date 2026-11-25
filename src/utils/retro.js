@@ -55,6 +55,12 @@ export const removeItem = (retro, itemId) => {
   };
 };
 
+// "1 vote", "4 votes"
+export const votesText = (count) => `${count} ${count === 1 ? "vote" : "votes"}`;
+
+// may the caller click this card's vote button: their own vote can always be taken back, a new one needs a vote left
+export const canToggleVote = (item, votesLeft) => item.votedByMe || votesLeft > 0;
+
 // the retro after a vote call: the card's new state and the caller's remaining votes, from its answer
 export const applyVote = (retro, { itemId, voteCount, votedByMe, votesLeft }) => ({
   ...retro,

@@ -7,9 +7,9 @@ import RetroCard from "./RetroCard";
 import RetroCardForm from "./RetroCardForm";
 
 // One of the three columns ("Went well", "To improve", "Ideas") with its cards, already in order, and "Add a card" at
-// the bottom, where a new card lands. `canContribute` is the retro's. `onAdd(body)` and `onEdit(itemId, body)` answer
-// an error text or null.
-const RetroColumn = ({ label, items, projectId, canContribute, onAdd, onEdit, onDelete }) => {
+// the bottom, where a new card lands. `canContribute` and `votesLeft` are the retro's. `onAdd(body)` and
+// `onEdit(itemId, body)` answer an error text or null.
+const RetroColumn = ({ label, items, projectId, canContribute, votesLeft, onAdd, onEdit, onDelete, onVote }) => {
   const [adding, setAdding] = useState(false);
 
   return (
@@ -35,7 +35,16 @@ const RetroColumn = ({ label, items, projectId, canContribute, onAdd, onEdit, on
       {items.length > 0 ? (
         <Box component="ol" sx={{ listStyle: "none", m: 0, p: 1, display: "flex", flexDirection: "column", gap: 1 }}>
           {items.map((item) => (
-            <RetroCard key={item.id} item={item} projectId={projectId} onEdit={onEdit} onDelete={onDelete} />
+            <RetroCard
+              key={item.id}
+              item={item}
+              projectId={projectId}
+              canContribute={canContribute}
+              votesLeft={votesLeft}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onVote={onVote}
+            />
           ))}
         </Box>
       ) : (

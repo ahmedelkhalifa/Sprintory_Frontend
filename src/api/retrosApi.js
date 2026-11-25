@@ -1,7 +1,7 @@
 import api from "./client";
 
-// Sprint retrospectives (PMP-148, backend retrospectives-docs.md; the backend, PMP-147, isn't built yet). Scrum only,
-// one per ended sprint. Reading needs VIEW_WORK, cards and votes RETRO_CONTRIBUTE, the rest RETRO_MANAGE. A closed
+// Sprint retrospectives (PMP-148, backend retrospectives-docs.md; the backend, PMP-147, isn't in its main yet). Scrum
+// only, one per ended sprint. Reading needs VIEW_WORK, cards and votes RETRO_CONTRIBUTE, the rest RETRO_MANAGE. A closed
 // retro never changes again (409 RETRO_CLOSED). A project's retros aren't listed: each ended sprint has its `retroId`.
 
 // the sprint's retro: creates it, or answers the one it already has, so every entry point can call this.

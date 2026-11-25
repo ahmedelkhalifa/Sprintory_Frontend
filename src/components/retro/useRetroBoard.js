@@ -1,8 +1,15 @@
 import { useRef, useState } from "react";
-import { createRetroItem, deleteRetroItem, getRetro, updateRetroItem } from "../../api/retrosApi";
+import {
+  createRetroItem,
+  deleteRetroItem,
+  getRetro,
+  unvoteRetroItem,
+  updateRetroItem,
+  voteRetroItem,
+} from "../../api/retrosApi";
 import { RETRO_ERROR_MESSAGES, RETRO_REFRESH_CODES } from "../../constants/retro";
 import { errorCode, errorMessage } from "../../utils/apiError";
-import { removeItem, replaceItem } from "../../utils/retro";
+import { applyVote, removeItem, replaceItem } from "../../utils/retro";
 import { isRichTextError } from "../../utils/richText";
 
 /**
@@ -13,18 +20,24 @@ import { isRichTextError } from "../../utils/richText";
 export const useRetroBoard = (loaded) => {
   const [retro, setRetro] = useState(loaded);
   const changes = useRef(0);
+  const lastVote = useRef(Promise.resolve());
 
   const update = (change) => {
     changes.current += 1;
     setRetro(change);
   };
 
-  // quiet: if it fails the board stays as it is, and one that started before a change never overwrites it
+  // quiet: if it fails the board stays as it is. What loaded while something changed may miss that change, so it
+  // loads again
   const refresh = async () => {
-    const before = changes.current;
     try {
-      const fresh = await getRetro(retro.id);
-      if (changes.current === before) setRetro(fresh);
+      let before;
+      let fresh;
+      do {
+        before = changes.current;
+        fresh = await getRetro(retro.id);
+      } while (changes.current !== before);
+      setRetro(fresh);
     } catch {
       // the user already sees why their change was refused
     }
@@ -66,5 +79,22 @@ export const useRetroBoard = (loaded) => {
     }
   };
 
-  return { retro, addItem, editItem, deleteItem };
+  const sendVote = async (item) => {
+    try {
+      const result = await (item.votedByMe ? unvoteRetroItem : voteRetroItem)(item.id);
+      update((current) => applyVote(current, result));
+      return null;
+    } catch (err) {
+      return failure(err, "Couldn't save your vote. Please try again.");
+    }
+  };
+
+  // votes, or takes the vote back. One at a time: every answer has the votes left, so one that arrives late would
+  // show an old number
+  const toggleVote = (item) => {
+    lastVote.current = lastVote.current.then(() => sendVote(item));
+    return lastVote.current;
+  };
+
+  return { retro, addItem, editItem, deleteItem, toggleVote };
 };

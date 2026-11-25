@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   actionTitle,
   applyVote,
+  canToggleVote,
   columnItems,
   EMPTY_RETRO_ACTION,
   removeItem,
@@ -11,6 +12,7 @@ import {
   retroEntry,
   retroPath,
   validateRetroAction,
+  votesText,
 } from "../src/utils/retro.js";
 
 const doc = (...paragraphs) =>
@@ -109,6 +111,19 @@ test("applyVote takes the card's votes and the remaining votes from the answer",
   assert.equal(after.items[1].voteCount, 5);
   assert.equal(after.items[1].votedByMe, true);
   assert.equal(after.items[0].voteCount, 0);
+});
+
+test("canToggleVote needs a vote left, except to take the own vote back", () => {
+  assert.equal(canToggleVote(card(1), 1), true);
+  assert.equal(canToggleVote(card(1), 0), false);
+  assert.equal(canToggleVote(card(1, { votedByMe: true }), 0), true);
+  assert.equal(canToggleVote(card(1, { votedByMe: true }), 2), true);
+});
+
+test("votesText counts in words", () => {
+  assert.equal(votesText(0), "0 votes");
+  assert.equal(votesText(1), "1 vote");
+  assert.equal(votesText(4), "4 votes");
 });
 
 test("actionTitle is the card's text on one line", () => {
