@@ -37,6 +37,8 @@ Source: `sprintory_backend/docs/roles-docs.md`, as of 24 Oct 2026. Shared rules 
 | `CONFIGURE_BOARD` | board columns, WIP limits | ✓ | | | | | ✓ |
 | `MANAGE_BACKLOG` | order and prioritize the backlog | | ✓ | | | | |
 | `MANAGE_SPRINTS` | plan, start, close sprints | | | ✓ | | | |
+| `RETRO_MANAGE` | create and close a retrospective, make its actions, delete any card | ✓ | ✓ | ✓ | | | |
+| `RETRO_CONTRIBUTE` | write cards and vote in a retrospective | ✓ | ✓ | ✓ | ✓ | | |
 | `EDIT_TASKS` | create, edit, delete tasks | ✓ | ✓ | ✓ | ✓ | | |
 | `COMMENT` | comment on tasks | ✓ | ✓ | ✓ | ✓ | | |
 | `LOG_TIME` | log time | ✓ | ✓ | ✓ | ✓ | | |

@@ -235,6 +235,17 @@ test("each entry reads as one sentence on a phone, with the names stored in it",
     ),
     'Ada Lovelace deleted MOB-42 Fix login in "Mobile App"',
   );
+  assert.equal(
+    auditSentence(
+      entry(7, "2026-11-25T14:05:31Z", {
+        action: "RETRO_CLOSED",
+        area: "PROJECT",
+        target: { type: "SPRINT", id: 42, name: "MOB Sprint 3" },
+        changes: [{ field: "status", oldValue: "OPEN", newValue: "CLOSED" }],
+      }),
+    ),
+    'Ada Lovelace closed the retrospective of "MOB Sprint 3" in "Mobile App"',
+  );
   // an action the app doesn't know yet still reads
   assert.equal(
     auditSentence(entry(6, "2026-11-02T14:05:31Z", { action: "BOARD_COLUMN_MOVED" })),

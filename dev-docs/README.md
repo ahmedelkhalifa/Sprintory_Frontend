@@ -1,7 +1,7 @@
 # Backend contract summaries (frontend view)
 
 Short summaries of the backend API contracts, for whoever works on the frontend (people and Claude).
-**Source of truth:** `sprintory_backend/docs/*.md`. These summaries match those docs as of **26 Oct 2026** (workspaces, teams and roles as of 24 Oct; tasks, comments, mentions, history, board, chat and notifications as of 6 Nov; attachments as of 7 Nov; sprints and the project charter as of 9 Nov). When a backend doc changes, update the matching file here in the same PR.
+**Source of truth:** `sprintory_backend/docs/*.md`. These summaries match those docs as of **26 Oct 2026** (workspaces, teams and roles as of 24 Oct; tasks, comments, mentions, history, board, chat and notifications as of 6 Nov; attachments as of 7 Nov; sprints and the project charter as of 9 Nov; retrospectives and their notifications as of 25 Nov). When a backend doc changes, update the matching file here in the same PR.
 
 | File | Covers | Backend doc |
 | --- | --- | --- |
@@ -11,6 +11,7 @@ Short summaries of the backend API contracts, for whoever works on the frontend 
 | [roles.md](roles.md) | workspace and project roles, permissions, role endpoints | `roles-docs.md` |
 | [tasks.md](tasks.md) | tasks, subtasks, descriptions with @mentions, comments, history and the board | `tasks-docs.md`, `board-docs.md`, `mentions-docs.md`, `comments-docs.md`, `task-history-docs.md` |
 | [sprints.md](sprints.md) | sprints: planning, capacity suggestion and availability, start, close, scope changes; the Backlog, Board and Sprints tabs | `sprints-docs.md` |
+| [retrospectives.md](retrospectives.md) | sprint retrospectives: cards, votes, actions, closing (**backend on its branch, not in main yet**) | `retrospectives-docs.md` |
 | [jira-import.md](jira-import.md) | one-time Jira CSV migration, preview, mapping, permissions and rollout | `jira-import-docs.md` |
 | [attachments.md](attachments.md) | files on tasks and subtasks: upload, preview, download, delete (**backend not built yet**) | `attachments-docs.md` |
 | [charter.md](charter.md) | the project charter: goals, scope, stakeholders, history (Charter tab) | `project-charter-docs.md` |
@@ -77,7 +78,9 @@ Where the frontend is behind these contracts. Fix them, then update this table.
 | Gap | Contract | Affects |
 | --- | --- | --- |
 | Attachments are built from the contract, but the backend (PMP-141) isn't: until it is, the section on every task page shows a load error. Which history value holds the file name is assumed | [attachments.md](attachments.md) | [TaskAttachments](../src/components/tasks/attachments/TaskAttachments.jsx), `historyLine` in [utils/task.js](../src/utils/task.js) |
-| The backend can't list ended sprints (`GET /projects/{id}/sprints` is planned and active only), so the Sprints tab's "Previous sprints" is empty; an ended sprint's page (`…/sprints/:sprintId`) is only reached right after ending it or from a task's "carried over" history line. Sprint notifications carry no sprint id, so they open the Board / Sprints tab, not the sprint. Backend: please add a list of completed and cancelled sprints | [sprints.md](sprints.md) | [SprintsTab](../src/components/sprints/SprintsTab.jsx) |
+| Retrospectives are built from the contract with a fake backend; the real one (PMP-147, branch `features/retrospectives`) isn't in its main, so nothing is tested against it yet. Without it no sprint has a retro button | [retrospectives.md](retrospectives.md) | [src/components/retro/](../src/components/retro/) |
+| A retro card that someone deletes while its author is editing it disappears with the next load, and the edit with it | [retrospectives.md](retrospectives.md) | [RetroCard](../src/components/retro/RetroCard.jsx) |
+| The audit log has no label or filter for `SPRINT_COMPLETED` / `SPRINT_CANCELLED` (they show with a name made from the code) | [audit-log.md](audit-log.md) | [constants/audit.js](../src/constants/audit.js) |
 | A description's mentions show the label stored in the text, which can be out of date after a rename: the task response has no `mentions` list (comments and chat messages have one). Backend: please add it | [tasks.md](tasks.md#descriptions-and-mentions-real-backend-pmp-136-docsmentions-docsmd) | [TaskDescription](../src/components/tasks/TaskDescription.jsx) |
 | Deleted tasks can only be restored right after the delete (the Undo snackbar): the backend has no list of deleted tasks | [tasks.md](tasks.md#tasks-real--the-parts-the-frontend-uses) | [UndoDeleteProvider](../src/context/UndoDeleteProvider.jsx) |
 | Archive / restore / delete a project, project `status` / `createdAt`, and the Archived tab are built against **assumed** endpoints the backend doesn't have yet (R30) | [projects.md](projects.md#assumed-by-the-frontend-not-in-the-backend-yet) | the `ASSUMED` block in [projectsApi.js](../src/api/projectsApi.js) |

@@ -13,7 +13,7 @@ export const NOTIFICATION_CATEGORIES = {
   SPRINT: {
     label: "Sprints",
     description:
-      "A sprint starts, is completed or is cancelled in your projects. Scrum Masters also get a daily reminder while a sprint runs past its end date.",
+      "A sprint starts, is completed or is cancelled in your projects, or its retrospective is opened or closed. Scrum Masters also get a daily reminder while a sprint runs past its end date, and retrospective managers one when a sprint ends.",
   },
   INVITATION: { label: "Workspace invitations", description: "You are invited to a workspace." },
   SECURITY: { label: "Security alerts", description: "Your password changes, or repeated failed sign-ins." },
