@@ -30,6 +30,19 @@ test("notificationTargetPath: sprint notifications open the Board (started, over
   assert.equal(notificationTargetPath(target, workspaces, "SPRINT_CANCELLED"), "/workspaces/acme/projects/15/sprints");
 });
 
+test("notificationTargetPath: a sprint (ended, its retro, a mention on a card) opens the sprint's page", () => {
+  const target = { kind: "SPRINT", workspaceId: 4, projectId: 15, taskId: null, sprintId: 42 };
+  for (const type of ["SPRINT_COMPLETED", "SPRINT_CANCELLED", "RETRO_REMINDER", "RETRO_OPENED", "RETRO_CLOSED", "MENTIONED"]) {
+    assert.equal(notificationTargetPath(target, workspaces, type), "/workspaces/acme/projects/15/sprints/42");
+  }
+  // without its id, at least the list it is in
+  assert.equal(
+    notificationTargetPath({ ...target, sprintId: null }, workspaces, "RETRO_OPENED"),
+    "/workspaces/acme/projects/15/sprints",
+  );
+  assert.equal(notificationTargetPath({ ...target, projectId: null }, workspaces, "RETRO_OPENED"), null);
+});
+
 test("notificationTargetPath: a mention about a project is a chat mention and opens the Chat tab", () => {
   const target = { kind: "PROJECT", workspaceId: 4, projectId: 15, taskId: null };
   assert.equal(notificationTargetPath(target, workspaces, "MENTIONED"), "/workspaces/acme/projects/15/chat");

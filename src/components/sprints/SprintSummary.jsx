@@ -1,5 +1,6 @@
 import { Box, Paper, Stack, Typography } from "@mui/material";
 import ToneChip from "../general/ToneChip";
+import Written from "./Written";
 import { SPRINT_STATUS } from "../../constants/tasks";
 import { formatDate } from "../../utils/format";
 import { goalAchievedLabel, isSprintEnded } from "../../utils/sprint";
@@ -17,22 +18,11 @@ const Stat = ({ value, label, tone = "text.primary" }) => (
   </Box>
 );
 
-// a labelled block of text the team wrote (the goal, the close note, the cancel reason), kept as typed
-const Written = ({ label, children }) => (
-  <Box>
-    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-      {label}
-    </Typography>
-    <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
-      {children}
-    </Typography>
-  </Box>
-);
-
 // What a sprint saved when it ended (PMP-41, sprints-docs §2), from a SprintResponse: status, planned dates and when
 // it ended, the frozen points (done, carried over, committed at the start), and the Scrum Master's goal answer and
 // note for a close, or the reason for a cancel. Only draws: the page around it loads the sprint.
-const SprintSummary = ({ sprint }) => {
+// `action` is a control for its top right corner (the retro button).
+const SprintSummary = ({ sprint, action }) => {
   const status = SPRINT_STATUS[sprint.status] ?? SPRINT_STATUS.PLANNED;
   const ended = isSprintEnded(sprint);
   const cancelled = sprint.status === "CANCELLED";
@@ -43,19 +33,22 @@ const SprintSummary = ({ sprint }) => {
   return (
     <Paper elevation={0} sx={{ p: { xs: 2, sm: 3 }, border: 1, borderColor: "divider", borderRadius: 2 }}>
       <Stack spacing={2.5}>
-        <Box>
-          <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 1.25, rowGap: 0.5 }}>
-            <Typography component="h2" sx={{ fontWeight: 700, fontSize: 20, overflowWrap: "anywhere" }}>
-              {sprint.name}
+        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between", gap: 1.5 }}>
+          <Box sx={{ minWidth: 0 }}>
+            <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 1.25, rowGap: 0.5 }}>
+              <Typography component="h2" sx={{ fontWeight: 700, fontSize: 20, overflowWrap: "anywhere" }}>
+                {sprint.name}
+              </Typography>
+              <ToneChip label={status.label} tone={status.tone} dot />
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              {sprint.startDate && sprint.endDate
+                ? `Planned ${formatDate(sprint.startDate)} – ${formatDate(sprint.endDate)}`
+                : "No dates yet"}
+              {sprint.completedAt && ` · ${cancelled ? "Cancelled" : "Completed"} on ${formatDate(sprint.completedAt)}`}
             </Typography>
-            <ToneChip label={status.label} tone={status.tone} dot />
           </Box>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            {sprint.startDate && sprint.endDate
-              ? `Planned ${formatDate(sprint.startDate)} – ${formatDate(sprint.endDate)}`
-              : "No dates yet"}
-            {sprint.completedAt && ` · ${cancelled ? "Cancelled" : "Completed"} on ${formatDate(sprint.completedAt)}`}
-          </Typography>
+          {action}
         </Box>
 
         {ended ? (

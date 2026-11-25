@@ -69,6 +69,8 @@ export const PERMISSIONS = {
   MANAGE_BACKLOG: "MANAGE_BACKLOG", // order and prioritize the backlog (R13)
   MANAGE_SPRINTS: "MANAGE_SPRINTS", // plan, start and close sprints (R14, R15)
   CANCEL_SPRINTS: "CANCEL_SPRINTS", // cancel the active sprint (PMP-41): Product Owner, Project Manager, not the SM
+  RETRO_MANAGE: "RETRO_MANAGE", // open and close a retrospective, create its actions, delete any card (PMP-44: SM, PO, PM)
+  RETRO_CONTRIBUTE: "RETRO_CONTRIBUTE", // write cards and vote in a retrospective (everyone but Viewers)
   EDIT_TASKS: "EDIT_TASKS", // create, edit and delete tasks (story 9)
   COMMENT: "COMMENT", // comment on tasks (R10) and write in the project chat
   MODERATE_COMMENTS: "MODERATE_COMMENTS", // delete anyone's comment or chat message (the Project Manager)

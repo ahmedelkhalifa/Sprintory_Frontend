@@ -16,7 +16,7 @@ Source: `sprintory_backend/docs/notifications-docs.md` (R27, PMP-32; implemented
 | --- | --- | --- |
 | List | `GET /notifications?unreadOnly=&workspaceId=&page=&size=` | `200` PageResponse of notifications (size 20, max 100) |
 | Unread count | `GET /notifications/unread-count` | `200 { count }` |
-| Open (marks it read) | `POST /notifications/{id}/open` | `200 { kind: TASK \| PROJECT \| NONE, workspaceId, projectId, taskId, taskKey }` |
+| Open (marks it read) | `POST /notifications/{id}/open` | `200 { kind: TASK \| SPRINT \| PROJECT \| NONE, workspaceId, projectId, taskId, taskKey, sprintId }` |
 | Mark all read | `POST /notifications/read-all` | `200 { count: 0 }` |
 | Stream | `GET /notifications/stream` | `text/event-stream`, see below |
 | Read preferences | `GET /notification-preferences` | `200 { preferences: [...] }`, all 8 categories in a fixed order |
@@ -32,7 +32,8 @@ In the frontend: [notificationsApi.js](../src/api/notificationsApi.js) (`listNot
   "actor": { "id": 31, "name": "Damir Gabaidullin" },              // null for security notifications
   "workspace": { "id": 4, "name": "Acme" },                        // null for security notifications
   "project": { "id": 15, "key": "MOB", "name": "Mobile App" },     // null for workspace and security ones
-  "task": { "id": 230, "key": "MOB-42", "title": "Fix login" } }   // null unless it is about a task
+  "task": { "id": 230, "key": "MOB-42", "title": "Fix login" },    // null unless it is about a task
+  "sprint": null }                                                 // { id, name }: an ended sprint or its retro (PMP-44)
 ```
 
 ## The stream
@@ -50,7 +51,7 @@ In the frontend: [notificationsApi.js](../src/api/notificationsApi.js) (`listNot
 
 - The badge is the unread count (hidden at 0, `99+`). Opening loads `page=0&size=10`, "Load more" the next pages; pushed notifications go on top, deduplicated by id (`mergeNotifications` in [utils/notification.js](../src/utils/notification.js)).
 - Each item: `message`, the excerpt, "project · workspace" (`notificationWhere`) and the time ago; unread ones are highlighted.
-- A click calls open, marks the item read locally, then goes to `notificationTargetPath(target, workspaces, type)`: TASK → the task page, PROJECT → the project (a `MENTIONED` about a project is a chat mention: its Chat tab; `SPRINT_STARTED` / `SPRINT_OVERDUE` → the Board tab, `SPRINT_COMPLETED` / `SPRINT_CANCELLED` → the Sprints tab, since they carry no sprint id), NONE (invitations, security) → stays. A `404` shows "This item is no longer available." on the item instead of navigating. This open logic is [useOpenNotification](../src/hooks/useOpenNotification.js), shared with the home page.
+- A click calls open, marks the item read locally, then goes to `notificationTargetPath(target, workspaces, type)`: TASK → the task page, SPRINT → the sprint's page, which has "Open retro" (`SPRINT_COMPLETED` / `SPRINT_CANCELLED`, `RETRO_REMINDER` / `_OPENED` / `_CLOSED`, a mention on a retro card), PROJECT → the project (a `MENTIONED` about a project is a chat mention: its Chat tab; `SPRINT_STARTED` / `SPRINT_OVERDUE` → the Board tab; a completed or cancelled sprint from before sprint ids → the Sprints tab), NONE (invitations, security) → stays. A `404` shows "This item is no longer available." on the item instead of navigating. This open logic is [useOpenNotification](../src/hooks/useOpenNotification.js), shared with the home page.
 - The workspace home page's Recent updates lists the latest 8 with `?workspaceId=` (no Load more, no stream: it loads with the page) and opens them the same way.
 - "Mark all as read" sets every loaded item read and the count to the response's `0`.
 
@@ -61,11 +62,11 @@ In the frontend: [notificationsApi.js](../src/api/notificationsApi.js) (`listNot
 | `category` | Covers | In-app | Email | Locked |
 | --- | --- | --- | --- | --- |
 | `ASSIGNMENT` | `TASK_ASSIGNED` | on | on | no |
-| `MENTION` | `MENTIONED` (comments, descriptions, the project chat) | on | on | no |
+| `MENTION` | `MENTIONED` (comments, descriptions, the project chat, retro cards) | on | on | no |
 | `COMMENT` | `TASK_COMMENTED` | on | off | no |
 | `STATUS_CHANGE` | `TASK_STATUS_CHANGED` | on | off | no |
 | `PROJECT_MEMBERSHIP` | `PROJECT_MEMBER_ADDED`, `PROJECT_ROLES_CHANGED` | on | off | no |
-| `SPRINT` | `SPRINT_STARTED` / `_COMPLETED` / `_CANCELLED`, and `SPRINT_OVERDUE` (daily to the Scrum Masters while the active sprint is past its end date; no actor) | on | off | no |
+| `SPRINT` | `SPRINT_STARTED` / `_COMPLETED` / `_CANCELLED`, and `SPRINT_OVERDUE` (daily to the Scrum Masters while the active sprint is past its end date; no actor), `RETRO_REMINDER` (a sprint ended, to the other people with `RETRO_MANAGE`), `RETRO_OPENED`, `RETRO_CLOSED` | on | off | no |
 | `INVITATION` | `WORKSPACE_INVITATION` | on | on | **yes** |
 | `SECURITY` | `PASSWORD_RESET`, `LOGIN_FAILED_REPEATED` | on | on | **yes** |
 
