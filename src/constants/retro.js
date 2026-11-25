@@ -19,6 +19,9 @@ export const RETRO_CARD_MAX = 1000;
 // where an action's task goes: the end of the backlog, or a planned sprint
 export const RETRO_DESTINATION = { BACKLOG: "backlog", SPRINT: "sprint" };
 
+// refusals that mean the page is out of date (someone closed the retro, deleted the card, or the votes moved on)
+export const RETRO_REFRESH_CODES = ["RETRO_CLOSED", "ALREADY_VOTED", "NO_VOTES_LEFT", "RESOURCE_NOT_FOUND"];
+
 // what to tell the user when something is refused, by error code
 export const RETRO_ERROR_MESSAGES = {
   ACCESS_DENIED: "You don't have permission to do this.",

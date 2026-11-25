@@ -1,17 +1,13 @@
-import { useState } from "react";
-import { Box, Button, FormControlLabel, Paper, Stack, Switch, Typography } from "@mui/material";
+import { Box, Button, Paper, Stack, Typography } from "@mui/material";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import LoadState from "../general/LoadState";
 import NoWorkAccess from "../tasks/NoWorkAccess";
-import RetroColumn from "./RetroColumn";
-import RetroHeader from "./RetroHeader";
+import RetroBoard from "./RetroBoard";
 import { getRetro } from "../../api/retrosApi";
 import { useAsync } from "../../hooks/useAsync";
 import { PERMISSIONS } from "../../constants/projects";
-import { RETRO_COLUMNS } from "../../constants/retro";
 import { can } from "../../utils/project";
-import { columnItems } from "../../utils/retro";
-import { LOADING_DELAY_SX, revealChildren } from "../../theme/motion";
+import { LOADING_DELAY_SX } from "../../theme/motion";
 
 const NotFound = () => (
   <Paper elevation={0} sx={{ p: { xs: 3, sm: 4 }, border: 1, borderColor: "divider", borderRadius: 2 }}>
@@ -23,36 +19,6 @@ const NotFound = () => (
     </Typography>
   </Paper>
 );
-
-// the loaded retro: how the sprint ended, then the three columns
-const RetroBoard = ({ retro, workspace, project }) => {
-  const [byVotes, setByVotes] = useState(false);
-
-  return (
-    <Stack spacing={2} sx={revealChildren(0)}>
-      <RetroHeader retro={retro} workspace={workspace} project={project} />
-      <Box>
-        <FormControlLabel
-          control={<Switch size="small" checked={byVotes} onChange={(e) => setByVotes(e.target.checked)} />}
-          label="Sort by votes"
-          sx={{ ml: 0, gap: 0.75 }}
-        />
-      </Box>
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(3, minmax(0, 1fr))" },
-          gap: 2,
-          alignItems: "start",
-        }}
-      >
-        {RETRO_COLUMNS.map(({ value, label }) => (
-          <RetroColumn key={value} label={label} items={columnItems(retro.items, value, { byVotes })} />
-        ))}
-      </Box>
-    </Stack>
-  );
-};
 
 // A sprint's retrospective (PMP-148, backend retrospectives-docs.md), under the Sprints tab (…/sprints/retros/:retroId).
 // Everyone with VIEW_WORK can read it, also in a read-only project. `onBack` opens the Sprints tab.
@@ -80,7 +46,7 @@ const RetroPage = ({ workspace, project, retroId, onBack }) => {
     // a retro of another project, typed into this project's url
     content = <NotFound />;
   } else {
-    content = <RetroBoard retro={state.data} workspace={workspace} project={project} />;
+    content = <RetroBoard loaded={state.data} workspace={workspace} project={project} />;
   }
 
   return (

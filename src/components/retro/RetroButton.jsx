@@ -16,7 +16,7 @@ const RetroButton = ({ sprint, workspace, project, writable }) => {
       <Button
         component={RouterLink}
         to={retroPath(workspace, project, sprint.retroId)}
-        variant="outlined"
+        variant="contained"
         size="small"
         aria-label={`Open retro: ${sprint.name}`}
       >
@@ -28,7 +28,7 @@ const RetroButton = ({ sprint, workspace, project, writable }) => {
   return (
     <Box>
       <Button
-        variant="outlined"
+        variant="contained"
         size="small"
         loading={opening}
         onClick={() => open(sprint.id)}
