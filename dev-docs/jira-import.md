@@ -16,7 +16,9 @@ Project → Settings → Import from Jira (`settings/jira-import`). The menu ite
 ## User workflow
 
 1. Create a **new, empty Scrum project** and confirm intended workspace/project key.
-2. Upload a Jira issues CSV; optionally provide exported sprint metadata JSON. Preview the counts, skipped items, blockers and limitations.
+2. Open the collapsible export guide for screenshots of Jira Basic search and CSV export. Upload a Jira issues CSV (all fields); optionally provide sprint metadata JSON. The guide generates a sprint export URL from a Jira Cloud board address, opens it in a new tab, and never handles Jira tokens or directly fetches Jira data. Preview the counts, skipped items, blockers and limitations.
+   - Without JSON, imported top-level items go into the backlog with their original statuses and no sprint assignments. A warning is visible before import. Sprint assignments cannot be added later by re-importing.
+   - The backend rejects incomplete sprint pages or invalid supplied JSON. To recover, choose a complete JSON file or remove it and import without sprints.
 3. Optionally match Jira assignees with Sprintory project members. Unmatched issues remain unassigned.
 4. Type `IMPORT` to confirm the one-time migration.
 5. Check sprints, parent-child task relationships, board columns and descriptions. Download the issue mapping for audit.
