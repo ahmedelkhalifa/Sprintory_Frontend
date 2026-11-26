@@ -1,6 +1,7 @@
 // The Board and Backlog filter bar (Jira's "filter by"). The backend does the filtering:
-// GET /projects/{id}/tasks?q=&type=&priority=&statusId=&assigneeId=&label= (backend docs/tasks-docs.md §3.2),
-// one value per filter, every filter that is set narrows the list. q matches the title or the key.
+// GET /projects/{id}/tasks?q=&type=&priority=&statusId=&assigneeId=&label=&blockedOnly= (backend docs/tasks-docs.md
+// §3.2, dependencies-docs.md §4), one value per filter, every filter that is set narrows the list. q matches the
+// title or the key; blockedOnly (the bar's "Blocked only" toggle) keeps the tasks with an open blocker.
 
 // nothing picked: every task shows
 export const EMPTY_TASK_FILTERS = {
@@ -10,6 +11,7 @@ export const EMPTY_TASK_FILTERS = {
   priority: null,
   statusId: null,
   label: null,
+  blockedOnly: false,
 };
 
 const PICKED = ["assigneeId", "type", "priority", "statusId", "label"];
@@ -22,6 +24,8 @@ export const taskFilterParams = (filters) => {
   PICKED.forEach((name) => {
     if (filters[name] !== null && filters[name] !== undefined && filters[name] !== "") params[name] = filters[name];
   });
+  // only sent when on: false or missing means "no dependency filter"
+  if (filters.blockedOnly) params.blockedOnly = true;
   return params;
 };
 
@@ -30,8 +34,9 @@ export const countTaskFilters = (filters) => Object.keys(taskFilterParams(filter
 
 export const hasTaskFilters = (filters) => countTaskFilters(filters) > 0;
 
-// how many filters are picked in the Filter window (everything but the search box), for its button
-export const countPickedFilters = (filters) => countTaskFilters({ ...filters, q: "" });
+// how many filters are picked in the Filter window (everything but the search box and the Blocked only toggle,
+// which sit on the bar), for its button
+export const countPickedFilters = (filters) => countTaskFilters({ ...filters, q: "", blockedOnly: false });
 
 // the name of the option picked in a filter group ({ options: [{ value, label }] }), or "" when nothing is picked
 // (or the picked value isn't an option any more, e.g. a column that was removed)

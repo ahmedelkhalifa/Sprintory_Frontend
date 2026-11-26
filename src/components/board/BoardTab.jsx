@@ -8,7 +8,7 @@ import AddIcon from "@mui/icons-material/Add";
 import LoadState from "../general/LoadState";
 import QuickAddTask from "../tasks/QuickAddTask";
 import TaskDrawer from "../tasks/TaskDrawer";
-import OpenSubtasksDialog from "../tasks/OpenSubtasksDialog";
+import MoveConfirmDialog from "../tasks/MoveConfirmDialog";
 import NoWorkAccess from "../tasks/NoWorkAccess";
 import TaskFilterBar from "../tasks/filters/TaskFilterBar";
 import { collisionDetection, isBelow, dropAnimationFor, DND_MEASURING } from "../tasks/dnd";
@@ -31,7 +31,8 @@ import { errorMessage } from "../../utils/apiError";
 import { can } from "../../utils/project";
 import { boardMove, groupByColumn, wipWarningText } from "../../utils/board";
 import { sprintEndedText, sprintPath } from "../../utils/sprint";
-import { needsSubtaskConfirmation, projectLabels, taskStage } from "../../utils/task";
+import { projectLabels, taskStage } from "../../utils/task";
+import { confirmedMove, moveConfirmation } from "../../utils/dependency";
 import { EMPTY_TASK_FILTERS } from "../../utils/taskFilters";
 import { LOADING_DELAY_SX, reveal, revealChildren } from "../../theme/motion";
 
@@ -111,7 +112,9 @@ const BoardTab = ({
   const [dropAnimation, setDropAnimation] = useState(null);
   const [dragging, setDragging] = useState(null); // { taskId, fromStatusId, byKeyboard }
   const [overStatusId, setOverStatusId] = useState(null);
-  const [confirmMove, setConfirmMove] = useState(null); // { move, before }: a move into Done waiting for a yes
+  // { move, before, confirmation }: a move the backend wants confirmed (a blocked task going forward, or a parent
+  // with open subtasks going into Done), waiting for a yes
+  const [confirmMove, setConfirmMove] = useState(null);
   // the windows render from these (kept a moment after closing, so they can play their close)
   const shownConfirm = useLatched(confirmMove);
   const shownEnding = useLatched(ending);
@@ -190,14 +193,20 @@ const BoardTab = ({
     if (text) setNotice({ severity: "warning", text });
   };
 
-  // sends a move that already shows; `before` is the task list to go back to if it's refused. A parent going into
-  // Done with open subtasks stays where it was dropped while the user confirms (confirmMove)
+  // sends a move that already shows; `before` is the task list to go back to if it's refused. A move the backend
+  // wants confirmed (a blocked task going forward, a parent with open subtasks going into Done) stays where it was
+  // dropped while the user confirms (confirmMove); the retry keeps the flags of earlier confirmations
   const sendMove = async (move, before) => {
     try {
       warnOverWip(await moveOnBoard(project.id, move.taskId, move));
+      // into another column: a task reaching or leaving Done can block or unblock other cards (PMP-45), whose
+      // Blocked marks come from the server, so the board loads again (it stays on screen meanwhile)
+      const was = before.find((task) => task.id === move.taskId);
+      if (was && was.statusId !== move.statusId) reload();
     } catch (err) {
-      if (!move.confirmOpenSubtasks && needsSubtaskConfirmation(err)) {
-        setConfirmMove({ move, before });
+      const confirmation = moveConfirmation(err);
+      if (confirmation && !move[confirmation.flag]) {
+        setConfirmMove({ move, before, confirmation });
         return;
       }
       setOptimistic({ source: data, tasks: before });
@@ -217,9 +226,9 @@ const BoardTab = ({
   };
 
   const moveAnyway = () => {
-    const { move, before } = confirmMove;
+    const { move, before, confirmation } = confirmMove;
     setConfirmMove(null);
-    sendMove({ ...move, confirmOpenSubtasks: true }, before);
+    sendMove(confirmedMove(move, confirmation), before);
   };
 
   const cancelMove = () => {
@@ -396,9 +405,10 @@ const BoardTab = ({
       />
 
       {confirmTask && (
-        <OpenSubtasksDialog
+        <MoveConfirmDialog
           open={Boolean(confirmMove)}
           task={confirmTask}
+          confirmation={shownConfirm.confirmation}
           columnName={columns.find((column) => column.id === shownConfirm.move.statusId)?.name}
           onConfirm={moveAnyway}
           onClose={cancelMove}

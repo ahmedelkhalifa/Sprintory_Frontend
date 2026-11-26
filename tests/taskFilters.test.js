@@ -44,3 +44,12 @@ test("taskFilterParams: every filter together", () => {
   assert.deepEqual(taskFilterParams(filters), filters);
   assert.equal(countTaskFilters(filters), 6);
 });
+
+test("taskFilterParams: Blocked only is sent as blockedOnly=true, and only when on", () => {
+  assert.deepEqual(taskFilterParams({ ...EMPTY_TASK_FILTERS, blockedOnly: true }), { blockedOnly: true });
+  assert.deepEqual(taskFilterParams({ ...EMPTY_TASK_FILTERS, blockedOnly: false }), {});
+  assert.equal(hasTaskFilters({ ...EMPTY_TASK_FILTERS, blockedOnly: true }), true);
+  // the toggle sits on the bar, not in the Filter window
+  assert.equal(countPickedFilters({ ...EMPTY_TASK_FILTERS, blockedOnly: true, type: "BUG" }), 1);
+  assert.deepEqual(taskFilterParams({ ...EMPTY_TASK_FILTERS, blockedOnly: true, label: "api" }), { label: "api", blockedOnly: true });
+});

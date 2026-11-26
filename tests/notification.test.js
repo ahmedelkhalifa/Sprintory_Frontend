@@ -106,3 +106,11 @@ test("preferencesAtDefaults: locked rows don't count", () => {
   assert.equal(preferencesAtDefaults(prefs), false);
   assert.equal(preferencesAtDefaults(prefs.slice(1)), true);
 });
+
+test("a TASK_UNBLOCKED notification opens the task that is no longer blocked", () => {
+  const target = { kind: "TASK", workspaceId: 1, projectId: 5, taskId: 15 };
+  assert.equal(
+    notificationTargetPath(target, [{ id: 1, slug: "acme" }], "TASK_UNBLOCKED"),
+    "/workspaces/acme/projects/5/tasks/15",
+  );
+});

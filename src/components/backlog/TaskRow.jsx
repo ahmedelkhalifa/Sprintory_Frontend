@@ -7,6 +7,7 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutlineOutlined";
 import ToneChip from "../general/ToneChip";
 import UserAvatar from "../general/UserAvatar";
+import BlockedMark from "../tasks/dependencies/BlockedMark";
 import { TASK_PRIORITIES, TASK_STAGES, TASK_TYPES } from "../../constants/tasks";
 import { carriedOverLabel } from "../../utils/sprint";
 import { formatEstimate, labelTone } from "../../utils/task";
@@ -63,6 +64,8 @@ export const TaskRowContent = ({ task, handle, onOpen, actions, raised = false, 
         </Typography>
       </ButtonBase>
 
+      {/* an open blocker (PMP-45): the tooltip lists them */}
+      <BlockedMark task={task} />
       {carried && (
         <Box sx={{ display: { xs: "none", sm: "block" }, flexShrink: 0 }}>
           <ToneChip label={carried} tone="warning.main" />

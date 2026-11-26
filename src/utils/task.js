@@ -1,5 +1,6 @@
 import { PERMISSIONS } from "../constants/projects.js";
 import { can, projectPath } from "./project.js";
+import { dependencyHistoryLine } from "./dependency.js";
 
 // the full task page (built separately); the drawer links to it
 export const taskPath = (workspace, project, taskId) => `${projectPath(workspace, project)}/tasks/${taskId}`;
@@ -298,6 +299,10 @@ export const historyLine = (entry, { subtask = false } = {}) => {
         text: `carried it over from ${oldValue ?? "a sprint"} to ${newValue ?? "the backlog"}`,
         ...(entry.refId != null && { sprintId: entry.refId }),
       };
+    // a dependency added or removed (backend dependencies-docs §7): the other task's key, linked through refId
+    case "DEPENDENCY_ADDED":
+    case "DEPENDENCY_REMOVED":
+      return dependencyHistoryLine(entry);
     case "FIELD_CHANGED":
       break;
     default:

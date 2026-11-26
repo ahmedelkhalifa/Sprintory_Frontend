@@ -19,7 +19,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import FormField from "../forms/FormField";
 import RichTextEditor from "../editor/RichTextEditor";
 import AssigneePicker from "./AssigneePicker";
-import OpenSubtasksDialog from "./OpenSubtasksDialog";
+import MoveConfirmDialog from "./MoveConfirmDialog";
 import TaskDeleteAction from "./TaskDeleteAction";
 import TaskValueSelect from "./TaskValueSelect";
 import TaskWatchToggle from "./TaskWatchToggle";
@@ -29,7 +29,8 @@ import { useAsync } from "../../hooks/useAsync";
 import { useSubmit } from "../../hooks/useSubmit";
 import { useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_TYPES } from "../../constants/tasks";
-import { findAssignee, needsSubtaskConfirmation, taskChanges, taskPath, taskValues } from "../../utils/task";
+import { findAssignee, taskChanges, taskPath, taskValues } from "../../utils/task";
+import { confirmedMove, moveConfirmation } from "../../utils/dependency";
 import { isRichTextError, richTextValue } from "../../utils/richText";
 import { TASK_TITLE_MAX, validateTask } from "../../utils/validation";
 import { useLatched } from "../../hooks/useLatched";
@@ -51,7 +52,8 @@ const fromTask = (task, members) => ({ ...taskValues(task), assignee: findAssign
 const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, onChanged }) => {
   const [values, setValues] = useState(() => fromTask(task, members));
   const [errors, setErrors] = useState({});
-  // a move to Done the backend refused because subtasks are open: the same changes, waiting for a confirmation
+  // a status change the backend wants confirmed (a blocked task going forward, or a parent with open subtasks going
+  // into Done): { changes, confirmation }, waiting for a yes
   const [confirmDone, setConfirmDone] = useState(null);
   const shownConfirmDone = useLatched(confirmDone);
   const save = useSubmit(TASK_ERROR_MESSAGES);
@@ -71,9 +73,13 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
       // a refused description or mention (backend mentions-docs §5) goes under the description
       setErrors({ description: data.message });
       save.clearError();
-    } else if (needsSubtaskConfirmation(error)) {
-      save.clearError();
-      setConfirmDone(changes);
+    } else {
+      // a warning, not a refusal: ask, then send the same changes with its flag (keeping earlier ones)
+      const confirmation = moveConfirmation(error);
+      if (confirmation && !changes[confirmation.flag]) {
+        save.clearError();
+        setConfirmDone({ changes, confirmation });
+      }
     }
   };
 
@@ -97,10 +103,10 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
     send(changes);
   };
 
-  const moveToDoneAnyway = () => {
-    const changes = confirmDone;
+  const moveAnyway = () => {
+    const { changes, confirmation } = confirmDone;
     setConfirmDone(null);
-    send({ ...changes, confirmOpenSubtasks: true });
+    send(confirmedMove(changes, confirmation));
   };
 
   const field = (name) => ({
@@ -208,11 +214,12 @@ const TaskForm = ({ project, task, columns, members, labels, canEdit, onClose, o
       )}
 
       {shownConfirmDone && (
-        <OpenSubtasksDialog
+        <MoveConfirmDialog
           open={Boolean(confirmDone)}
           task={task}
-          columnName={columns.find((column) => column.id === shownConfirmDone.statusId)?.name}
-          onConfirm={moveToDoneAnyway}
+          confirmation={shownConfirmDone.confirmation}
+          columnName={columns.find((column) => column.id === shownConfirmDone.changes.statusId)?.name}
+          onConfirm={moveAnyway}
           onClose={() => setConfirmDone(null)}
         />
       )}

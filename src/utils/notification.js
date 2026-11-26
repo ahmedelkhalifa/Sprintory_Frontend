@@ -10,6 +10,7 @@ import { taskPath } from "./task.js";
 // its retro's button: a completed or cancelled sprint and everything about its retro, a mention on a card too. A
 // started or overdue sprint is about the project and opens the Board (where Complete sprint is); a completed or
 // cancelled one from before sprint ids opens the Sprints tab.
+// TASK_UNBLOCKED (PMP-45, "PMP-15 is no longer blocked.") is about a task, so it opens that task like the others.
 const PROJECT_TAB_BY_TYPE = {
   MENTIONED: "chat",
   SPRINT_STARTED: "board",

@@ -6,7 +6,7 @@ const tasksPath = (projectId) => `/projects/${projectId}/tasks`;
 // the backend's page size limit
 const MAX_PAGE_SIZE = 100;
 
-// params: { q, type, priority, statusId, assigneeId, label, order (newest | board | backlog), page, size }
+// params: { q, type, priority, statusId, assigneeId, label, blockedOnly, order (newest | board | backlog), page, size }
 export const listTasks = (projectId, params, signal) =>
   api.get(tasksPath(projectId), { params, signal }).then((res) => res.data);
 
@@ -30,8 +30,9 @@ export const getTask = (projectId, taskId, signal) =>
 
 // only the fields that change; null means "unchanged", so emptied fields go as clearAssignee / clearEstimate /
 // clearDescription (see taskChanges in utils/task.js). Not for subtasks (updateSubtask): `estimate` is story points.
-// Moving a parent into a Done column while it has open subtasks answers 409 OPEN_SUBTASKS_CONFIRMATION_REQUIRED;
-// the same changes plus `confirmOpenSubtasks: true` go through
+// Moving a parent into a Done column while it has open subtasks answers 409 OPEN_SUBTASKS_CONFIRMATION_REQUIRED,
+// moving a blocked task forward 409 BLOCKED_TASK_CONFIRMATION_REQUIRED; the same changes plus
+// `confirmOpenSubtasks` / `confirmBlocked: true` go through (moveConfirmation in utils/dependency.js)
 export const updateTask = (projectId, taskId, changes) =>
   api.patch(`${tasksPath(projectId)}/${taskId}`, changes).then((res) => res.data);
 
@@ -81,13 +82,19 @@ export const getTaskHistory = (projectId, taskId, { page = 0, size = 20, order =
 
 // one drag on the board: into column `statusId`, right after `afterTaskId` in that column (null = first).
 // Like updateTask, a parent with open subtasks going into a Done column answers 409
-// OPEN_SUBTASKS_CONFIRMATION_REQUIRED; the same move with `confirmOpenSubtasks: true` goes through
-export const moveOnBoard = (projectId, taskId, { statusId, afterTaskId = null, confirmOpenSubtasks = false }) =>
+// OPEN_SUBTASKS_CONFIRMATION_REQUIRED, and a blocked task moving forward 409 BLOCKED_TASK_CONFIRMATION_REQUIRED
+// (dependencies-docs §5); the same move with `confirmOpenSubtasks` / `confirmBlocked: true` goes through
+export const moveOnBoard = (
+  projectId,
+  taskId,
+  { statusId, afterTaskId = null, confirmOpenSubtasks = false, confirmBlocked = false },
+) =>
   api
     .put(`${tasksPath(projectId)}/${taskId}/position`, {
       statusId,
       afterTaskId,
       ...(confirmOpenSubtasks && { confirmOpenSubtasks: true }),
+      ...(confirmBlocked && { confirmBlocked: true }),
     })
     .then((res) => res.data);
 
