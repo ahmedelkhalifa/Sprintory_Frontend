@@ -288,12 +288,13 @@ const BoardTab = ({
 
   const draggedTask = dragging && lookup(dragging.taskId);
 
-  // completed or cancelled: on to the sprint's own page, which shows what was saved, with the message on top. The
-  // board, backlog and Sprints tab load fresh when opened again, so nothing is patched here
+  // completed or cancelled: on to the sprint's own page, which shows what was saved, with the message on top, and asks
+  // a manager to start the retrospective. The board, backlog and Sprints tab load fresh when opened again, so nothing
+  // is patched here
   const handleEnded = (result) => {
     const text = sprintEndedText(result, ending === "cancel" ? "cancelled" : "completed");
     setEnding(null);
-    navigate(sprintPath(workspace, project, result.sprint.id), { state: { notice: text } });
+    navigate(sprintPath(workspace, project, result.sprint.id), { state: { notice: text, askRetro: true } });
   };
 
   // someone else ended the sprint meanwhile, or the project became read-only: say so and show what's there now

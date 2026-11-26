@@ -22,6 +22,7 @@ import {
   ProjectBoardPage,
   ProjectComingSoonPage,
   ProjectOverviewPage,
+  ProjectRetroPage,
   ProjectSettingsPage,
   ProjectSprintsPage,
   ProjectSprintSummaryPage,
@@ -84,6 +85,7 @@ const App = () => {
                     <Route path="board" element={<ProjectBoardPage />} />
                     <Route path="sprints" element={<ProjectSprintsPage />} />
                     <Route path="sprints/:sprintId" element={<ProjectSprintSummaryPage />} />
+                    <Route path="sprints/retros/:retroId" element={<ProjectRetroPage />} />
                     <Route path="reports" element={<ProjectComingSoonPage tab="reports" />} />
                     <Route path="files" element={<ProjectComingSoonPage tab="files" />} />
                     <Route path="settings/:section?" element={<ProjectSettingsPage />} />

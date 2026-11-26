@@ -1,6 +1,6 @@
 # Task dependencies (PMP-45 / PMP-163)
 
-Summary of the backend's `docs/dependencies-docs.md` (PMP-162, branch `features/task-dependencies-pmp-45`, 24 Nov 2026), for the
+Summary of the backend's `docs/dependencies-docs.md` (PMP-162, merged into the backend `main`; as of 24 Nov 2026), for the
 frontend. API calls in [dependenciesApi.js](../src/api/dependenciesApi.js), pure helpers in
 [utils/dependency.js](../src/utils/dependency.js).
 

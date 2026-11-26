@@ -1,13 +1,15 @@
 import { projectPath, projectTabPath } from "./project.js";
+import { sprintPath } from "./sprint.js";
 import { taskPath } from "./task.js";
 
-// Where "open" sends the user ({ kind, workspaceId, projectId, taskId } from POST /notifications/{id}/open),
+// Where "open" sends the user ({ kind, workspaceId, projectId, taskId, sprintId } from POST /notifications/{id}/open),
 // or null for NONE (an invitation or a security notice: there is nothing to open).
 // The url takes the workspace slug; a workspace not in the list yet (e.g. just joined) uses its id,
 // which WorkspaceAccessGuard redirects to the slug. `type` is the notification's: a MENTIONED about a project
-// (not a task) is a mention in the project chat, so it opens the Chat tab. Sprint notifications are about the project
-// (they carry no sprint id): a started or overdue sprint opens the Board (where Complete sprint is), a completed or
-// cancelled one the Sprints tab.
+// (not a task) is a mention in the project chat, so it opens the Chat tab. SPRINT is an ended sprint's page, which has
+// its retro's button: a completed or cancelled sprint and everything about its retro, a mention on a card too. A
+// started or overdue sprint is about the project and opens the Board (where Complete sprint is); a completed or
+// cancelled one from before sprint ids opens the Sprints tab.
 // TASK_UNBLOCKED (PMP-45, "PMP-15 is no longer blocked.") is about a task, so it opens that task like the others.
 const PROJECT_TAB_BY_TYPE = {
   MENTIONED: "chat",
@@ -17,12 +19,15 @@ const PROJECT_TAB_BY_TYPE = {
   SPRINT_CANCELLED: "sprints",
 };
 
+const KINDS = ["TASK", "SPRINT", "PROJECT"];
+
 export const notificationTargetPath = (target, workspaces = [], type = null) => {
-  if (!target || (target.kind !== "TASK" && target.kind !== "PROJECT") || target.projectId == null) return null;
+  if (!KINDS.includes(target?.kind) || target.projectId == null) return null;
   const workspace = workspaces.find((w) => w.id === target.workspaceId) ?? { slug: String(target.workspaceId) };
   const project = { id: target.projectId };
   if (target.kind === "TASK" && target.taskId != null) return taskPath(workspace, project, target.taskId);
-  const tab = PROJECT_TAB_BY_TYPE[type];
+  if (target.kind === "SPRINT" && target.sprintId != null) return sprintPath(workspace, project, target.sprintId);
+  const tab = target.kind === "SPRINT" ? "sprints" : PROJECT_TAB_BY_TYPE[type];
   return tab ? projectTabPath(workspace, project, tab) : projectPath(workspace, project);
 };
 

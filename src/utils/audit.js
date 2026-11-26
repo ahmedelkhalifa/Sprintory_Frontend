@@ -186,6 +186,7 @@ const SENTENCES = {
     const details = [c.key?.newText, c.template?.newText].filter(Boolean).join(", ");
     return `${actor} created the project "${target}"${details ? ` (${details})` : ""}`;
   },
+  RETRO_CLOSED: ({ actor, target, project }) => `${actor} closed the retrospective of "${target}" in "${project}"`,
   PROJECT_SETTINGS_CHANGED: ({ actor, project }) => `${actor} changed the settings of "${project}"`,
   PROJECT_MEMBER_ADDED: ({ actor, target, project, c }) =>
     `${actor} added ${target} to "${project}"${c.viaTeam?.newText ? ` (via team "${c.viaTeam.newText}")` : ""}`,

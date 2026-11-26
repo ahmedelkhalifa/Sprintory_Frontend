@@ -27,6 +27,7 @@ export const AUDIT_ACTIONS = {
   PROJECT_MEMBER_ADDED: { area: "PROJECT", label: "Project member added" },
   PROJECT_MEMBER_REMOVED: { area: "PROJECT", label: "Project member removed" },
   PROJECT_ROLES_CHANGED: { area: "PROJECT", label: "Project roles changed" },
+  RETRO_CLOSED: { area: "PROJECT", label: "Retrospective closed" },
   TASK_DELETED: { area: "TASK", label: "Task deleted" },
   TASK_RESTORED: { area: "TASK", label: "Task restored" },
   PASSWORD_RESET: { area: "SECURITY", label: "Password reset" },

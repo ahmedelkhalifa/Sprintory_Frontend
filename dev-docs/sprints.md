@@ -138,8 +138,10 @@ the backlog); `historyLine` in [utils/task.js](../src/utils/task.js) words them.
     can move into a window if that's ever preferred.
 - **"Carried over ×N"** (`carriedOverLabel`, from `carriedOverCount`) on board cards and backlog rows; never on
   subtasks.
-- **Notifications** have no sprint id: `SPRINT_STARTED` / `SPRINT_OVERDUE` open the Board, `SPRINT_COMPLETED` /
-  `SPRINT_CANCELLED` the Sprints tab (`notificationTargetPath`).
+- **Notifications:** `SPRINT_STARTED` / `SPRINT_OVERDUE` open the Board, `SPRINT_COMPLETED` / `SPRINT_CANCELLED` the
+  sprint's page (`notificationTargetPath`).
+- **Retrospectives:** an ended sprint's page and its row in Previous sprints have Create / Open retro
+  ([retrospectives.md](retrospectives.md)); sprint responses carry `hasRetro` and `retroId`.
 - **Sprints tab** ([SprintsTab](../src/components/sprints/SprintsTab.jsx)), read-only:
   - the current sprint: board header (with "Past end date"), committed / current points, capacity, unestimated, and
     scope changes since the start;
