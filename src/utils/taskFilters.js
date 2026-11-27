@@ -34,9 +34,10 @@ export const countTaskFilters = (filters) => Object.keys(taskFilterParams(filter
 
 export const hasTaskFilters = (filters) => countTaskFilters(filters) > 0;
 
-// how many filters are picked in the Filter window (everything but the search box and the Blocked only toggle,
-// which sit on the bar), for its button
-export const countPickedFilters = (filters) => countTaskFilters({ ...filters, q: "", blockedOnly: false });
+// how many of these filter groups ({ id }) have a value: the Filter window's count. It reads the window's own groups,
+// so the Timeline's filters (milestone, sprint, ...) count as well as the Board's
+export const countSetFilters = (filters, groups) =>
+  groups.filter(({ id }) => filters[id] !== null && filters[id] !== undefined && filters[id] !== "").length;
 
 // the name of the option picked in a filter group ({ options: [{ value, label }] }), or "" when nothing is picked
 // (or the picked value isn't an option any more, e.g. a column that was removed)

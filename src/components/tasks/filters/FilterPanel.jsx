@@ -4,15 +4,16 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import FilterOptionList from "./FilterOptionList";
-import { countPickedFilters, pickedLabel } from "../../../utils/taskFilters";
+import { countSetFilters, pickedLabel } from "../../../utils/taskFilters";
 
 // The "Filter" button and its window, Jira style: the filter types on the left (each showing what is picked),
 // the options of the selected type on the right. Picking applies at once; Done closes, Clear all resets every
-// filter in the window (the search box on the bar stays). `groups` come from TaskFilterBar.
+// filter in the window (the search box on the bar stays). `groups` come from TaskFilterBar or the Timeline's toolbar;
+// the button counts the ones that are set.
 const FilterPanel = ({ filters, onChange, groups }) => {
   const [anchor, setAnchor] = useState(null);
   const [pane, setPane] = useState(groups[0].id);
-  const count = countPickedFilters(filters);
+  const count = countSetFilters(filters, groups);
   const group = groups.find((g) => g.id === pane) ?? groups[0];
 
   const clearAll = () =>
