@@ -252,6 +252,7 @@ const HISTORY_FIELDS = {
   ESTIMATE: "story points",
   ESTIMATE_MINUTES: "time estimate",
   LABELS: "labels",
+  MILESTONE: "milestone",
 };
 
 // enum values come as stored ("HIGHEST"); every type and priority label is the value in sentence case
