@@ -26,6 +26,7 @@ import {
   ProjectSettingsPage,
   ProjectSprintsPage,
   ProjectSprintSummaryPage,
+  ProjectTimelinePage,
 } from "./pages/projects/ProjectTabPages";
 import ProjectsRedirect from "./pages/projects/ProjectsRedirect";
 import HomeRedirect from "./pages/home/HomeRedirect";
@@ -83,6 +84,7 @@ const App = () => {
                     <Route path="chat" element={<ProjectChatPage />} />
                     <Route path="backlog" element={<ProjectBacklogPage />} />
                     <Route path="board" element={<ProjectBoardPage />} />
+                    <Route path="timeline" element={<ProjectTimelinePage />} />
                     <Route path="sprints" element={<ProjectSprintsPage />} />
                     <Route path="sprints/:sprintId" element={<ProjectSprintSummaryPage />} />
                     <Route path="sprints/retros/:retroId" element={<ProjectRetroPage />} />
