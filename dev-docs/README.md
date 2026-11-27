@@ -1,7 +1,8 @@
 # Backend contract summaries (frontend view)
 
 Short summaries of the backend API contracts, for whoever works on the frontend (people and Claude).
-**Source of truth:** `sprintory_backend/docs/*.md`. These summaries match those docs as of **26 Oct 2026** (workspaces, teams and roles as of 24 Oct; tasks, comments, mentions, history, board, chat and notifications as of 6 Nov; attachments as of 7 Nov; sprints and the project charter as of 9 Nov; retrospectives and their notifications as of 25 Nov; task dependencies as of 24 Nov). When a backend doc changes, update the matching file here in the same PR.
+**Source of truth:** `sprintory_backend/docs/*.md`. These summaries match those docs as of **26 Oct 2026** (workspaces, teams and roles as of 24 Oct; tasks, comments, mentions, history, board, chat and notifications as of 6 Nov; attachments as of 7 Nov; sprints and the project charter as of 9 Nov; retrospectives and their notifications as of 25 Nov; task dependencies as of 24 Nov; the timeline, task dates and
+milestones in the schedule as of 27 Nov). When a backend doc changes, update the matching file here in the same PR.
 
 | File | Covers | Backend doc |
 | --- | --- | --- |
@@ -13,6 +14,7 @@ Short summaries of the backend API contracts, for whoever works on the frontend 
 | [sprints.md](sprints.md) | sprints: planning, capacity suggestion and availability, start, close, scope changes; the Backlog, Board and Sprints tabs | `sprints-docs.md` |
 | [retrospectives.md](retrospectives.md) | sprint retrospectives: cards, votes, actions, closing (**backend on its branch, not in main yet**) | `retrospectives-docs.md` |
 | [dependencies.md](dependencies.md) | task dependencies: blocks / blocked by, cycles, the Blocked mark and filter, the move warning | `dependencies-docs.md` |
+| [schedule.md](schedule.md) | the Timeline (Gantt) tab and task start / due dates: bars, arrows, milestones, conflicts, filters | `schedule-docs.md` |
 | [jira-import.md](jira-import.md) | one-time Jira CSV migration, preview, mapping, permissions and rollout | `jira-import-docs.md` |
 | [attachments.md](attachments.md) | files on tasks and subtasks: upload, preview, download, delete (**backend not built yet**) | `attachments-docs.md` |
 | [charter.md](charter.md) | the project charter: goals, scope, stakeholders, history (Charter tab) | `project-charter-docs.md` |
@@ -86,4 +88,6 @@ Where the frontend is behind these contracts. Fix them, then update this table.
 | Deleted tasks can only be restored right after the delete (the Undo snackbar): the backend has no list of deleted tasks | [tasks.md](tasks.md#tasks-real--the-parts-the-frontend-uses) | [UndoDeleteProvider](../src/context/UndoDeleteProvider.jsx) |
 | Archive / restore / delete a project, project `status` / `createdAt`, and the Archived tab are built against **assumed** endpoints the backend doesn't have yet (R30) | [projects.md](projects.md#assumed-by-the-frontend-not-in-the-backend-yet) | the `ASSUMED` block in [projectsApi.js](../src/api/projectsApi.js) |
 | Notifications: no full notifications page (the bell has "Load more" only) and no workspace filter; a subtask's page has no Watch toggle. | [notifications.md](notifications.md) | [NotificationBell](../src/components/layouts/NotificationBell.jsx) |
+| Milestones (PMP-46) have no screens yet: the Timeline shows their diamonds, filter and conflicts, but a diamond can't link to a milestone page, and a task's milestone can't be set from the task page | [schedule.md](schedule.md) | [TimelineChart](../src/components/timeline/TimelineChart.jsx) |
+| The task page can't tell a completed project (no project status yet, PMP-63): its date fields stay open and the backend's `409` explains the refusal | [schedule.md](schedule.md) | [TaskDateFields](../src/components/tasks/TaskDateFields.jsx) |
 | No UI for removing a workspace member or leaving a workspace (changing the workspace role is done: the Members page) | [roles.md](roles.md#endpoints) | `workspacesApi.js`, [WorkspaceMembersPage](../src/pages/workspace/WorkspaceMembersPage.jsx) |

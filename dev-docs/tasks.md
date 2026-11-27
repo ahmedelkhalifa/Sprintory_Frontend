@@ -16,6 +16,8 @@ changing `EDIT_TASKS`; a workspace admin who isn't a member gets `403` on everyt
   "priority": "HIGH",            // HIGHEST | HIGH | MEDIUM | LOW | LOWEST (default MEDIUM)
   "statusId": 12, "statusName": "To Do",   // a board column; new tasks start in the first one
   "assigneeId": 7,               // a project member, or null; the name comes from GET /projects/{id}/members
+  "startDate": "2026-11-10", "dueDate": "2026-11-12",   // the Timeline's dates, both or null ([schedule.md](schedule.md))
+  "milestone": { "id": 4, "name": "Beta release", "targetDate": "2026-12-15" },   // or null (PMP-46)
   "estimate": 3,                 // whole story points >= 0, or null
   "labels": ["R09", "backend"],  // sorted; at most 20, each at most 50 characters
   "description": "{\"type\":\"doc\",…}",  // TipTap JSON as a string (see "Descriptions and @mentions"), or null
