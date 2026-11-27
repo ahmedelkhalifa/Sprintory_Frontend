@@ -26,6 +26,7 @@ import { useSubmit } from "../../hooks/useSubmit";
 import { MILESTONE_ERROR_MESSAGES, MILESTONE_STATUS } from "../../constants/tasks";
 import { milestonePath } from "../../utils/project";
 import { formatDate } from "../../utils/format";
+import FlagOutlinedIcon from "@mui/icons-material/FlagOutlined";
 
 const progressLabel = (progress) => {
     if (!progress) return "";
@@ -181,10 +182,13 @@ const ProjectMilestonesSection = ({ workspace, project, writable }) => {
                     }}
                 >
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 500, fontSize: 16 }}>
-                            Milestones
-                        </Typography>
-                        <ToneChip label={milestones.length} />
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <FlagOutlinedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+                            <Typography variant="h6" sx={{ fontWeight: 500, fontSize: 16 }}>
+                                Milestones
+                            </Typography>
+                            <ToneChip label={milestones.length} />
+                        </Box>
                     </Box>
 
                     {canManage && (

@@ -2,7 +2,7 @@ import api from "./client";
 import { listAllTasks } from "./tasksApi";
 import { columnCategory } from "../utils/task";
 
-export const USE_MOCK = true;
+export const USE_MOCK = false;
 const STORAGE_KEY = "sprintory_mock_milestones_v1";
 
 const loadStore = () => {

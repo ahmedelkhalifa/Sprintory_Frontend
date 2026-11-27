@@ -74,7 +74,6 @@ export const ProjectOverviewPage = () => {
                 canEdit={page.canEdit}
                 onEdit={() => page.openDialog({ type: "edit" })}
               />
-              <ProjectMilestonesSection workspace={workspace} project={project} writable={page.writable} />
               {/* the charter couldn't load: its error and Try again, under the description */}
               {member && !data && (
                 <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2 }}>
@@ -108,6 +107,12 @@ export const ProjectOverviewPage = () => {
                 workspace={workspace}
                 canEdit={page.canEdit}
                 onEdit={() => page.openDialog({ type: "edit" })}
+              />
+              <ProjectMilestonesSection
+                  key={project.id}
+                  workspace={workspace}
+                  project={project}
+                  writable={page.writable}
               />
               <ProjectMembersCard
                 project={project}
