@@ -59,6 +59,8 @@ test("taskValues gives a task's form values, so one changed field becomes the on
     estimate: "",
     labels: ["a"],
     assigneeId: null,
+    startDate: "",
+    dueDate: "",
   });
   assert.deepEqual(taskChanges(current, values), {});
   assert.deepEqual(taskChanges(current, { ...values, priority: "HIGH" }), { priority: "HIGH" });
@@ -200,6 +202,51 @@ test("taskChanges sends only what changed, and clear flags for emptied fields", 
     assigneeId: 9,
     labels: ["c"],
   });
+});
+
+test("taskChanges sends the dates as a pair, and clearDates when both are emptied", () => {
+  const dated = task(1, { startDate: "2026-11-10", dueDate: "2026-11-12" });
+  const values = taskValues(dated);
+  assert.deepEqual(taskChanges(dated, values), {});
+  // one date changed: both go, the backend takes them only together
+  assert.deepEqual(taskChanges(dated, { ...values, dueDate: "2026-11-14" }), { startDate: "2026-11-10", dueDate: "2026-11-14" });
+  assert.deepEqual(taskChanges(dated, { ...values, startDate: "", dueDate: "" }), { clearDates: true });
+
+  const undated = task(2);
+  assert.deepEqual(taskChanges(undated, { ...taskValues(undated), startDate: "2026-11-10", dueDate: "2026-11-10" }), {
+    startDate: "2026-11-10",
+    dueDate: "2026-11-10",
+  });
+  // emptying dates that weren't set changes nothing
+  assert.deepEqual(taskChanges(undated, { ...taskValues(undated), startDate: "", dueDate: "" }), {});
+});
+
+test("taskChanges leaves the dates alone for a form that doesn't have them", () => {
+  const dated = task(1, { type: "TASK", priority: "LOW", statusId: 11, startDate: "2026-11-10", dueDate: "2026-11-12" });
+  const { startDate, dueDate, ...withoutDates } = taskValues(dated);
+  assert.ok(startDate && dueDate);
+  assert.deepEqual(taskChanges(dated, withoutDates), {});
+  assert.deepEqual(taskChanges(dated, { ...withoutDates, priority: "HIGH" }), { priority: "HIGH" });
+});
+
+test("validateTask: start and due dates come as a pair, due on or after start", () => {
+  const base = { title: "Plan", estimate: "" };
+  assert.deepEqual(validateTask({ ...base, startDate: "", dueDate: "" }), {});
+  assert.deepEqual(validateTask({ ...base, startDate: "2026-11-10", dueDate: "2026-11-12" }), {});
+  // the same day is fine
+  assert.deepEqual(validateTask({ ...base, startDate: "2026-11-10", dueDate: "2026-11-10" }), {});
+  // only one of the two: the missing one says so
+  assert.deepEqual(validateTask({ ...base, startDate: "2026-11-10", dueDate: "" }), { dueDate: "Set both dates or none" });
+  assert.deepEqual(validateTask({ ...base, startDate: "", dueDate: "2026-11-10" }), { startDate: "Set both dates or none" });
+  assert.deepEqual(validateTask({ ...base, startDate: "2026-11-12", dueDate: "2026-11-10" }), {
+    dueDate: "Due date must be on or after the start date",
+  });
+  // "YYYY-MM-DD" order across months and years
+  assert.ok(validateTask({ ...base, startDate: "2026-12-01", dueDate: "2026-11-30" }).dueDate);
+  assert.deepEqual(validateTask({ ...base, startDate: "2026-12-31", dueDate: "2027-01-01" }), {});
+  assert.deepEqual(validateTask({ ...base, startDate: "20261-01-01", dueDate: "2026-01-02" }), { startDate: "Enter a valid date" });
+  // a form without dates (the old drawer) has nothing to check
+  assert.deepEqual(validateTask(base), {});
 });
 
 test("projectLabels lists each label once, sorted", () => {

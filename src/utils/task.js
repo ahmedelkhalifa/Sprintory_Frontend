@@ -125,7 +125,21 @@ export const taskValues = (task) => ({
   estimate: task.estimate ?? "",
   labels: task.labels ?? [],
   assigneeId: task.assigneeId ?? null,
+  startDate: task.startDate ?? "",
+  dueDate: task.dueDate ?? "",
 });
+
+// The dates into a PATCH body (backend schedule-docs §1): the backend takes them only as a pair, so both go when
+// either changed, and `clearDates` when both were emptied. Values without dates (a form that doesn't show them)
+// leave them alone. validateTask has already checked the pair
+const datesChange = (task, values, changes) => {
+  if (values.startDate === undefined && values.dueDate === undefined) return;
+  const start = values.startDate ?? "";
+  const due = values.dueDate ?? "";
+  if (start === (task.startDate ?? "") && due === (task.dueDate ?? "")) return;
+  if (!start && !due) changes.clearDates = true;
+  else Object.assign(changes, { startDate: start, dueDate: due });
+};
 
 // the description into a PATCH body (tasks and subtasks): only when it changed, `clearDescription` when emptied.
 // The values hold richTextValue's string: "" or the TipTap JSON
@@ -138,8 +152,9 @@ const descriptionChange = (task, values, changes) => {
 
 /**
  * The PATCH body for the task form: only the fields that changed. Emptied fields are sent as the backend's clear
- * flags (`clearAssignee`, `clearEstimate`, `clearDescription`), because null there means "unchanged".
- * `values` are the form's: strings for title, description and estimate, `assigneeId` a number or null.
+ * flags (`clearAssignee`, `clearEstimate`, `clearDescription`, `clearDates`), because null there means "unchanged".
+ * `values` are the form's: strings for title, description, estimate and the dates ("YYYY-MM-DD" or ""),
+ * `assigneeId` a number or null.
  */
 export const taskChanges = (task, values) => {
   const changes = {};
@@ -164,6 +179,8 @@ export const taskChanges = (task, values) => {
 
   const labels = [...values.labels].sort();
   if (!sameLabels(labels, [...(task.labels ?? [])].sort())) changes.labels = labels;
+
+  datesChange(task, values, changes);
   return changes;
 };
 

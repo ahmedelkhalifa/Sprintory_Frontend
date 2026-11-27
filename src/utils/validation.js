@@ -54,13 +54,30 @@ export const TASK_TITLE_MAX = 255;
 export const TASK_LABELS_MAX = 20;
 export const TASK_LABEL_MAX = 50;
 
+// a date input's value: "YYYY-MM-DD" (the backend takes years 0001–9999)
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+// a task's start and due dates (backend schedule-docs §1): optional, but both or neither, and the due date on or after
+// the start (the same day is fine). The error goes on the date that needs fixing. "YYYY-MM-DD" strings sort like dates
+const taskDateErrors = (startDate, dueDate) => {
+  const start = startDate ?? "";
+  const due = dueDate ?? "";
+  if (start && !ISO_DATE.test(start)) return { startDate: "Enter a valid date" };
+  if (due && !ISO_DATE.test(due)) return { dueDate: "Enter a valid date" };
+  if (start && !due) return { dueDate: "Set both dates or none" };
+  if (due && !start) return { startDate: "Set both dates or none" };
+  if (start && due < start) return { dueDate: "Due date must be on or after the start date" };
+  return {};
+};
+
 // tasks (backend tasks-docs §1): title required, at most 255 characters; estimate story points, a whole number
-// of 0 or more; at most 20 labels of at most 50 characters
+// of 0 or more; at most 20 labels of at most 50 characters; start and due dates as a pair (taskDateErrors)
 export const validateTask = (values) => {
   const title = (values.title ?? "").trim();
   const labels = values.labels ?? [];
   const estimate = nonNegative(values.estimate);
   return onlyErrors({
+    ...taskDateErrors(values.startDate, values.dueDate),
     title: !title ? "Title is required" : title.length > TASK_TITLE_MAX ? `Use at most ${TASK_TITLE_MAX} characters` : "",
     estimate:
       estimate || (values.estimate !== "" && values.estimate != null && !Number.isInteger(Number(values.estimate)))
