@@ -27,21 +27,29 @@ const INITIAL_VALUES = {
   priority: TASK_PRIORITIES.MEDIUM.value,
   estimate: "",
   assignee: null,
+  startDate: "",
+  dueDate: "",
   description: "",
 };
 
-// only what was filled in; the backend defaults the rest (and puts the task in the first column, last in the backlog)
+// the backend takes years 0001–9999; without a max some browsers let the year run to six digits
+const DATE_INPUT = { htmlInput: { min: "0001-01-01", max: "9999-12-31" } };
+
+// only what was filled in; the backend defaults the rest (and puts the task in the first column, last in the backlog).
+// The dates go only as a pair (validateTask has checked that)
 const createBody = (values) => ({
   title: values.title.trim(),
   type: values.type,
   priority: values.priority,
   ...(values.estimate !== "" && { estimate: Number(values.estimate) }),
   ...(values.assignee && { assigneeId: values.assignee.userId }),
+  ...(values.startDate && values.dueDate && { startDate: values.startDate, dueDate: values.dueDate }),
   ...(values.description.trim() && { description: values.description.trim() }),
 });
 
 // "Create task" window from the project page's Quick actions (EDIT_TASKS): title, type, priority, estimate,
-// assignee and description (rich text with @mentions; `description` holds richTextValue's string). Labels and the status are set later in the task's drawer.
+// assignee, optional start and due dates for the Timeline (both or neither) and description (rich text with
+// @mentions; `description` holds richTextValue's string). Labels and the status are set later in the task's drawer.
 // `onCreated(task)` gets the TaskResponse.
 const CreateTaskDialog = ({ open = true, project, onClose, onCreated }) => {
   const [values, setValues] = useState(INITIAL_VALUES);
@@ -83,6 +91,17 @@ const CreateTaskDialog = ({ open = true, project, onClose, onCreated }) => {
     helperText: errors[name],
   });
 
+  // the dates are one pair: changing either clears both their errors
+  const dateField = (name) => ({
+    ...field(name),
+    type: "date",
+    slotProps: DATE_INPUT,
+    onChange: (e) => {
+      setValues((prev) => ({ ...prev, [name]: e.target.value }));
+      if (errors.startDate || errors.dueDate) setErrors((prev) => ({ ...prev, startDate: "", dueDate: "" }));
+    },
+  });
+
   return (
     <Dialog open={open} onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
       <Box component="form" noValidate onSubmit={handleSubmit}>
@@ -113,6 +132,10 @@ const CreateTaskDialog = ({ open = true, project, onClose, onCreated }) => {
               value={values.assignee}
               onChange={(member) => set("assignee", member)}
             />
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+              <FormField {...dateField("startDate")} label="Start date" />
+              <FormField {...dateField("dueDate")} label="Due date" />
+            </Box>
             <Box>
               <FormLabel sx={{ display: "block", mb: 0.5, fontSize: 14, fontWeight: 500, color: "text.primary" }}>
                 Description
