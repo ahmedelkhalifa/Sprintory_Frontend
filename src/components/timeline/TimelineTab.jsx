@@ -6,6 +6,7 @@ import ConflictsPanel from "./ConflictsPanel";
 import TimelineChart from "./TimelineChart";
 import TimelineFilters, { TimelineFilterChips } from "./TimelineFilters";
 import TimelineToolbar from "./TimelineToolbar";
+import UnscheduledPanel from "./UnscheduledPanel";
 import { getSchedule } from "../../api/scheduleApi";
 import { getBoard, listProjectMembers } from "../../api/projectsApi";
 import { listSprints } from "../../api/sprintsApi";
@@ -66,11 +67,12 @@ const Message = ({ title, text, children }) => (
 
 /**
  * The project's Timeline tab (PMP-48, backend docs/schedule-docs.md), for members, in Scrum and Kanban: one bar per
- * scheduled task on a date axis (TimelineChart), with dependency arrows, milestone diamonds, zoom and Go to today.
- * The backend finds the conflicts; they are painted red and listed above the chart (ConflictsPanel), where picking one
- * scrolls to it. The chart is view-only for everyone:
- * dates are changed on the task page, which a bar opens in a new tab. `taskVersion` changes when a task is created
- * from the project header, and the schedule loads again.
+ * scheduled task on a date axis (TimelineChart), with dependency arrows, milestone diamonds, zoom, Go to today and
+ * filters (TimelineFilters, the backend filters). The backend finds the conflicts; they are painted red and listed
+ * above the chart (ConflictsPanel), where picking one scrolls to it. Tasks without dates are listed under it
+ * (UnscheduledPanel). The chart is view-only for everyone: dates are changed on the task page, which a bar opens in a
+ * new tab; coming back to this tab loads the schedule again. `taskVersion` changes when a task is created from the
+ * project header, and the schedule loads again too.
  */
 const TimelineTab = ({ workspace, project, taskVersion }) => {
   const [filters, setFilters] = useState(EMPTY_TIMELINE_FILTERS);
@@ -89,6 +91,15 @@ const TimelineTab = ({ workspace, project, taskVersion }) => {
   const [last, setLast] = useState(null);
   if (state.data && state.data !== last) setLast(state.data);
   const schedule = state.data ?? (state.error ? null : last);
+
+  // a bar opens its task in a new browser tab, where its dates may change: coming back here loads the schedule
+  // again, so the bars and the conflicts are current (AC 21)
+  const { reload } = state;
+  useEffect(() => {
+    const comeBack = () => document.visibilityState === "visible" && reload();
+    document.addEventListener("visibilitychange", comeBack);
+    return () => document.removeEventListener("visibilitychange", comeBack);
+  }, [reload]);
 
   // the conflict's row, briefly highlighted (a new object each pick, so picking it again starts the time again)
   const [highlight, setHighlight] = useState(null);
@@ -147,7 +158,7 @@ const TimelineTab = ({ workspace, project, taskVersion }) => {
     );
   } else {
     content = (
-      <Stack spacing={2} sx={reveal(1)}>
+      <>
         <ConflictsPanel conflicts={schedule.conflicts ?? []} onSelect={selectConflict} />
         <TimelineChart
           ref={chart}
@@ -158,7 +169,7 @@ const TimelineTab = ({ workspace, project, taskVersion }) => {
           members={context.data?.members ?? []}
           highlightId={highlight?.taskId}
         />
-      </Stack>
+      </>
     );
   }
 
@@ -168,13 +179,28 @@ const TimelineTab = ({ workspace, project, taskVersion }) => {
         zoom={zoom}
         onZoomChange={changeZoom}
         onToday={() => chart.current?.scrollToToday()}
+        onRefresh={reload}
         todayDisabled={!scheduled}
         loading={state.loading && Boolean(schedule)}
         chips={filtering && <TimelineFilterChips filters={filters} onChange={setFilters} options={filterOptions} />}
       >
         <TimelineFilters filters={filters} onChange={setFilters} options={filterOptions} />
       </TimelineToolbar>
-      {content}
+      {schedule ? (
+        // the sections come in one after another once the first answer is there
+        <Stack spacing={2} sx={reveal(1)}>
+          {content}
+          {/* project-wide, whatever the filters (backend schedule-docs §2) */}
+          <UnscheduledPanel
+            workspace={workspace}
+            project={project}
+            tasks={schedule.unscheduled ?? []}
+            canEditDates={Boolean(schedule.canEditDates)}
+          />
+        </Stack>
+      ) : (
+        content
+      )}
     </Stack>
   );
 };
