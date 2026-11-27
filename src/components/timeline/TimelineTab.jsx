@@ -1,15 +1,23 @@
 import { useEffect, useRef, useState } from "react";
-import { Paper, Stack, Typography } from "@mui/material";
+import { Button, Paper, Stack, Typography } from "@mui/material";
 import ViewTimelineOutlinedIcon from "@mui/icons-material/ViewTimelineOutlined";
 import LoadState from "../general/LoadState";
 import ConflictsPanel from "./ConflictsPanel";
 import TimelineChart from "./TimelineChart";
+import TimelineFilters, { TimelineFilterChips } from "./TimelineFilters";
 import TimelineToolbar from "./TimelineToolbar";
 import { getSchedule } from "../../api/scheduleApi";
 import { getBoard, listProjectMembers } from "../../api/projectsApi";
 import { listSprints } from "../../api/sprintsApi";
 import { useAsync } from "../../hooks/useAsync";
-import { DEFAULT_ZOOM, EMPTY_TIMELINE_FILTERS, ZOOMS, conflictTarget, scheduleParams } from "../../utils/schedule";
+import {
+  DEFAULT_ZOOM,
+  EMPTY_TIMELINE_FILTERS,
+  ZOOMS,
+  conflictTarget,
+  hasTimelineFilters,
+  scheduleParams,
+} from "../../utils/schedule";
 import { FADE_IN_SX, reveal } from "../../theme/motion";
 import { ZOOM_STORAGE_KEY } from "./timelineLayout";
 
@@ -65,7 +73,7 @@ const Message = ({ title, text, children }) => (
  * from the project header, and the schedule loads again.
  */
 const TimelineTab = ({ workspace, project, taskVersion }) => {
-  const [filters] = useState(EMPTY_TIMELINE_FILTERS);
+  const [filters, setFilters] = useState(EMPTY_TIMELINE_FILTERS);
   const [zoom, setZoom] = useState(storedZoom);
   const chart = useRef(null);
   const params = scheduleParams(filters);
@@ -107,6 +115,13 @@ const TimelineTab = ({ workspace, project, taskVersion }) => {
   };
 
   const scheduled = schedule?.tasks.length > 0;
+  const filtering = hasTimelineFilters(filters);
+  // what the filter groups are made of; the milestones come with the schedule
+  const filterOptions = {
+    ...context.data,
+    milestones: schedule?.milestones ?? [],
+    scrum: project.template === "SCRUM",
+  };
 
   let content;
   if (!schedule) {
@@ -114,6 +129,14 @@ const TimelineTab = ({ workspace, project, taskVersion }) => {
       <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2 }}>
         <LoadState loading={!state.error} error={state.error} onRetry={state.reload} rows={6} />
       </Paper>
+    );
+  } else if (!scheduled && filtering) {
+    content = (
+      <Message title="No scheduled tasks match these filters" text="Try other filters, or show every task again.">
+        <Button variant="outlined" onClick={() => setFilters(EMPTY_TIMELINE_FILTERS)} sx={{ mt: 2 }}>
+          Clear filters
+        </Button>
+      </Message>
     );
   } else if (!scheduled) {
     content = (
@@ -147,7 +170,10 @@ const TimelineTab = ({ workspace, project, taskVersion }) => {
         onToday={() => chart.current?.scrollToToday()}
         todayDisabled={!scheduled}
         loading={state.loading && Boolean(schedule)}
-      />
+        chips={filtering && <TimelineFilterChips filters={filters} onChange={setFilters} options={filterOptions} />}
+      >
+        <TimelineFilters filters={filters} onChange={setFilters} options={filterOptions} />
+      </TimelineToolbar>
       {content}
     </Stack>
   );

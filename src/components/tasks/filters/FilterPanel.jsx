@@ -5,6 +5,7 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import FilterOptionList from "./FilterOptionList";
 import { countSetFilters, pickedLabel } from "../../../utils/taskFilters";
+import { filterButtonSx } from "./filterStyles";
 
 // The "Filter" button and its window, Jira style: the filter types on the left (each showing what is picked),
 // the options of the selected type on the right. Picking applies at once; Done closes, Clear all resets every
@@ -29,12 +30,7 @@ const FilterPanel = ({ filters, onChange, groups }) => {
         onClick={(e) => setAnchor(e.currentTarget)}
         aria-haspopup="dialog"
         aria-expanded={Boolean(anchor)}
-        sx={{
-          height: 40,
-          fontWeight: 600,
-          borderColor: count > 0 ? "primary.main" : "divider",
-          bgcolor: count > 0 ? "navActive.background" : "background.paper",
-        }}
+        sx={filterButtonSx(count > 0)}
       >
         Filter
         {count > 0 && (

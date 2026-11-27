@@ -5,8 +5,9 @@ import { ZOOMS } from "../../utils/schedule";
 const TOOL_SX = { height: 40, fontWeight: 600, borderColor: "divider", bgcolor: "background.paper" };
 
 // The Timeline's toolbar: on the right "Go to today" and the Day / Week / Month zoom (AC 13–14); a thin line under it
-// while a new answer loads, so the chart doesn't look stuck. `children` go on the left (the filters).
-const TimelineToolbar = ({ zoom, onZoomChange, onToday, todayDisabled, loading, children }) => (
+// while a new answer loads, so the chart doesn't look stuck. `children` go on the left (the filters), `chips` (the
+// picked filters) on a row of their own.
+const TimelineToolbar = ({ zoom, onZoomChange, onToday, todayDisabled, loading, chips, children }) => (
   <Box>
     <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.5 }}>
       {children}
@@ -30,6 +31,7 @@ const TimelineToolbar = ({ zoom, onZoomChange, onToday, todayDisabled, loading, 
         </ToggleButtonGroup>
       </Box>
     </Box>
+    {chips && <Box sx={{ mt: 1.25 }}>{chips}</Box>}
     <LinearProgress sx={{ mt: 1, height: 2, borderRadius: 1, visibility: loading ? "visible" : "hidden" }} />
   </Box>
 );
