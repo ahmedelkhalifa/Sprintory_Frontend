@@ -35,6 +35,7 @@ import SettingsPage from "./pages/settings/SettingsPage";
 import AuditLogPage from "./pages/workspace/AuditLogPage";
 import AcceptInvitePage from "./pages/workspace/AcceptInvitePage";
 import { INVITE_PATH } from "./utils/invitation";
+import ProjectMilestonePage from "./pages/projects/ProjectTabPages.jsx"
 
 const App = () => {
   return (
@@ -89,6 +90,7 @@ const App = () => {
                     <Route path="reports" element={<ProjectComingSoonPage tab="reports" />} />
                     <Route path="files" element={<ProjectComingSoonPage tab="files" />} />
                     <Route path="settings/:section?" element={<ProjectSettingsPage />} />
+                    <Route path="milestones/:milestoneId" element={<ProjectMilestonePage />} />
                     {/* anything else: ProjectPage redirects to Overview */}
                     <Route path="*" element={null} />
                   </Route>

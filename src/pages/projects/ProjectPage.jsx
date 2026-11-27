@@ -116,6 +116,8 @@ const ProjectPage = () => {
   if (tab === "members") return <Navigate to={settingsPath("people")} replace />;
   // an unknown tab, or Backlog / Sprints in a Kanban project: Overview instead
   if (!tabs.some((t) => t.id === tab)) return <Navigate to={tabPath("overview")} replace />;
+  // an unknown tab, or Backlog / Sprints in a Kanban project: Overview instead
+  if (tab !== "milestones" && !tabs.some((t) => t.id === tab)) return <Navigate to={tabPath("overview")} replace />;
 
   const page = {
     preview: previewState.data,

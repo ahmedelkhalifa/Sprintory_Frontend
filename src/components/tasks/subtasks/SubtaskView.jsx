@@ -19,6 +19,7 @@ import { useFieldSave } from "../../../hooks/useFieldSave";
 import { findAssignee, formatMinutes, subtaskChanges, subtaskValues, taskPath } from "../../../utils/task";
 import { validateSubtask } from "../../../utils/validation";
 import { revealChildren } from "../../../theme/motion";
+import TaskMilestoneField from "../../milestones/TaskMilestoneField";
 
 // A subtask's own page, opened from its parent's list (like a Jira child issue): only what a subtask has, i.e. its
 // title, description, status, assignee and time estimate in minutes, each saved on its own (useFieldSave) with the
@@ -172,6 +173,14 @@ const SubtaskView = ({ workspace, project, initialTask, parent, columns, members
                   onBlur={saveMinutes}
                   onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
                   slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                />
+              </DetailRow>
+              <DetailRow id="subtask-milestone" label="Milestone">
+                <TaskMilestoneField
+                    id="subtask-milestone"
+                    project={project}
+                    task={task}
+                    writable={false}
                 />
               </DetailRow>
             </AccordionDetails>

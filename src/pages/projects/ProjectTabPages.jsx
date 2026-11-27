@@ -24,6 +24,7 @@ import { projectSettingsPath } from "../../utils/project";
 import { useProjectAccess, useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { useProjectPage } from "../../hooks/useProjectPage";
 import { LOADING_DELAY_SX, reveal, revealChildren } from "../../theme/motion";
+import MilestonePage from "../../components/milestones/MilestonePage";
 
 // The project page's tabs, one route each (see App.jsx), rendered inside ProjectPage's layout.
 // Only the tab's own content mounts and unmounts when the tab changes; what they share comes from useProjectPage().
@@ -40,6 +41,22 @@ export const ProjectOverviewPage = () => {
   const { charter: data, goals, editable } = charter;
   // ready once the charter has loaded or failed (or straight away for someone who can't see it)
   const charterReady = !member || Boolean(data) || Boolean(charter.state.error);
+  export const ProjectMilestonePage = () => {
+    const { workspace } = useWorkspaceAccess();
+    const { project } = useProjectAccess();
+    const { milestoneId } = useParams();
+    const page = useProjectPage();
+    return (
+        <MilestonePage
+            key={milestoneId}
+            workspace={workspace}
+            project={project}
+            milestoneId={milestoneId}
+            writable={page.writable}
+            onBack={() => page.goToTab("overview")}
+        />
+    );
+  };
 
   return (
     <Stack spacing={3}>
