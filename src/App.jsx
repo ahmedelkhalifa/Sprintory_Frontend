@@ -21,6 +21,7 @@ import {
   ProjectBacklogPage,
   ProjectBoardPage,
   ProjectComingSoonPage,
+  ProjectMilestonePage,
   ProjectOverviewPage,
   ProjectRetroPage,
   ProjectSettingsPage,
@@ -35,7 +36,6 @@ import SettingsPage from "./pages/settings/SettingsPage";
 import AuditLogPage from "./pages/workspace/AuditLogPage";
 import AcceptInvitePage from "./pages/workspace/AcceptInvitePage";
 import { INVITE_PATH } from "./utils/invitation";
-import ProjectMilestonePage from "./pages/projects/ProjectTabPages.jsx"
 
 const App = () => {
   return (

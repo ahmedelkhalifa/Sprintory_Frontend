@@ -25,6 +25,7 @@ import { useProjectAccess, useWorkspaceAccess } from "../../hooks/useResourceAcc
 import { useProjectPage } from "../../hooks/useProjectPage";
 import { LOADING_DELAY_SX, reveal, revealChildren } from "../../theme/motion";
 import MilestonePage from "../../components/milestones/MilestonePage";
+import ProjectMilestonesSection from "../../components/milestones/ProjectMilestonesSection";
 
 // The project page's tabs, one route each (see App.jsx), rendered inside ProjectPage's layout.
 // Only the tab's own content mounts and unmounts when the tab changes; what they share comes from useProjectPage().
@@ -41,22 +42,6 @@ export const ProjectOverviewPage = () => {
   const { charter: data, goals, editable } = charter;
   // ready once the charter has loaded or failed (or straight away for someone who can't see it)
   const charterReady = !member || Boolean(data) || Boolean(charter.state.error);
-  export const ProjectMilestonePage = () => {
-    const { workspace } = useWorkspaceAccess();
-    const { project } = useProjectAccess();
-    const { milestoneId } = useParams();
-    const page = useProjectPage();
-    return (
-        <MilestonePage
-            key={milestoneId}
-            workspace={workspace}
-            project={project}
-            milestoneId={milestoneId}
-            writable={page.writable}
-            onBack={() => page.goToTab("overview")}
-        />
-    );
-  };
 
   return (
     <Stack spacing={3}>
@@ -89,6 +74,7 @@ export const ProjectOverviewPage = () => {
                 canEdit={page.canEdit}
                 onEdit={() => page.openDialog({ type: "edit" })}
               />
+              <ProjectMilestonesSection workspace={workspace} project={project} writable={page.writable} />
               {/* the charter couldn't load: its error and Try again, under the description */}
               {member && !data && (
                 <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2 }}>
@@ -279,3 +265,19 @@ export const ProjectRetroPage = () => {
 
 // .../reports, /files until they are built
 export const ProjectComingSoonPage = ({ tab }) => <ComingSoonPanel title={tabLabel(tab)} />;
+export const ProjectMilestonePage = () => {
+  const { workspace } = useWorkspaceAccess();
+  const { project } = useProjectAccess();
+  const { milestoneId } = useParams();
+  const page = useProjectPage();
+  return (
+      <MilestonePage
+          key={milestoneId}
+          workspace={workspace}
+          project={project}
+          milestoneId={milestoneId}
+          writable={page.writable}
+          onBack={() => page.goToTab("overview")}
+      />
+  );
+};

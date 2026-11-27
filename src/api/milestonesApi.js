@@ -2,8 +2,7 @@ import api from "./client";
 import { listAllTasks } from "./tasksApi";
 import { columnCategory } from "../utils/task";
 
-// Переключи на false, когда бэкенд ветки features/milestones будет задеплоен
-const USE_MOCK = true;
+export const USE_MOCK = true;
 const STORAGE_KEY = "sprintory_mock_milestones_v1";
 
 const loadStore = () => {
@@ -93,14 +92,29 @@ export const listMilestones = async (projectId, signal, { columns = [] } = {}) =
         return api.get(`/projects/${projectId}/milestones`, { signal }).then((res) => res.data);
     }
     const store = loadStore();
-    const rawTasks = await listAllTasks(projectId, { order: "board" }, signal).catch(() => []);
-    const tasks = enrichTasksWithMockMilestones(rawTasks);
-    const live = store.items
-        .filter((m) => Number(m.projectId) === Number(projectId) && !m.deletedAt)
-        .map((m) => computeMilestoneStats(m, tasks, columns))
-        .sort((a, b) => a.targetDate.localeCompare(b.targetDate) || a.name.localeCompare(b.name, undefined, { sensitivity: "base" }) || a.id - b.id);
+    const [rawTasks, resolvedColumns] = await Promise.all([
+        listAllTasks(projectId, { order: "board" }, signal).catch(() => []),
+        columns.length
+            ? Promise.resolve(columns)
+            : api
+                .get(`/projects/${projectId}/board`, { signal })
+                .then((res) => res.data?.columns ?? [])
+                .catch(() => []),
+    ]);
 
-    return { milestones: live, canManage: true, canLink: true, limit: 50 };
+    const effectiveColumns = resolvedColumns.length
+        ? resolvedColumns
+        : rawTasks
+            .filter((t) => t.column?.isDone || t.column?.category === "DONE" || /^done$/i.test(t.column?.name ?? ""))
+            .map((t) => ({ id: t.columnId ?? t.column?.id, isDone: true, category: "DONE", name: "Done" }));
+
+    const tasks = enrichTasksWithMockMilestones(rawTasks);
+    const milestones = store.items
+        .filter((m) => Number(m.projectId) === Number(projectId) && !m.deletedAt)
+        .map((m) => computeMilestoneStats(m, tasks, effectiveColumns))
+        .sort((a, b) => a.targetDate.localeCompare(b.targetDate));
+
+    return { milestones, limit: 50, canManage: true };
 };
 
 export const createMilestone = async (projectId, body) => {
@@ -223,17 +237,26 @@ export const linkTasksToMilestone = async (milestoneId, taskIds) => {
 
 export const setTaskMilestone = async (taskId, milestoneId) => {
     if (!USE_MOCK) {
-        return api.put(`/tasks/${taskId}/milestone`, { milestoneId: milestoneId ?? null }).then((res) => res.data);
+        return api.patch(`/tasks/${taskId}/milestone`, { milestoneId }).then((res) => res.data);
     }
+
     const store = loadStore();
     if (milestoneId == null) {
-        delete store.taskLinks[taskId];
+        delete store.taskLinks[String(taskId)];
         saveStore(store);
-        return { id: taskId, milestone: null };
+        return { taskId, milestone: null };
     }
-    const item = store.items.find((m) => Number(m.id) === Number(milestoneId) && !m.deletedAt);
-    if (!item) throw apiErr(400, "BAD_REQUEST", "The milestone does not belong to this project.");
-    store.taskLinks[taskId] = Number(milestoneId);
+
+    const found = store.items.find((m) => Number(m.id) === Number(milestoneId) && !m.deletedAt);
+    if (!found) {
+        throw apiErr(404, "MILESTONE_NOT_FOUND", "Milestone not found.");
+    }
+
+    store.taskLinks[String(taskId)] = Number(milestoneId);
     saveStore(store);
-    return { id: taskId, milestone: { id: item.id, name: item.name, targetDate: item.targetDate } };
+
+    return {
+        taskId,
+        milestone: { id: found.id, name: found.name, targetDate: found.targetDate },
+    };
 };

@@ -18,7 +18,7 @@ import FlagCircleOutlinedIcon from "@mui/icons-material/FlagCircleOutlined";
 import { NO_MILESTONE_VALUE } from "../../../utils/taskFilters";
 
 // the Filter window's types, in order; `id` is the filter's name in EMPTY_TASK_FILTERS
-const filterGroups = ({ members, columns, labels }) => [
+const filterGroups = ({ members, columns, labels, milestones = [] }) => [
   {
     id: "assigneeId",
     name: "Assignee",

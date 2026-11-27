@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { MenuItem, Tooltip } from "@mui/material";
-import FormField from "../forms/FormField";
-import { listMilestones, setTaskMilestone } from "../../api/milestonesApi";
+import { Autocomplete, Box, TextField, Tooltip, Typography } from "@mui/material";
+import { listMilestones, setTaskMilestone, USE_MOCK } from "../../api/milestonesApi";
 import { useAsync } from "../../hooks/useAsync";
 import { useSubmit } from "../../hooks/useSubmit";
 import { PERMISSIONS } from "../../constants/projects";
@@ -11,61 +10,78 @@ import { formatDate } from "../../utils/format";
 
 const TaskMilestoneField = ({ id = "task-milestone", project, task, writable = true, onUpdated }) => {
     const isSubtask = task.parentTaskId != null;
-    const canLink = writable && !isSubtask && can(project, PERMISSIONS.MILESTONE_LINK);
+    const canLink = writable && !isSubtask && (USE_MOCK || can(project, PERMISSIONS.MILESTONE_LINK));
     const [error, setError] = useState("");
+    const [selected, setSelected] = useState(task.milestone ?? null);
+    const [prevTaskId, setPrevTaskId] = useState(task.id);
     const submit = useSubmit(MILESTONE_ERROR_MESSAGES);
 
+    if (task.id !== prevTaskId) {
+        setPrevTaskId(task.id);
+        setSelected(task.milestone ?? null);
+    }
     const milestonesState = useAsync((signal) => listMilestones(project.id, signal), [project.id], {
         enabled: canLink,
     });
 
     const options = milestonesState.data?.milestones ?? [];
-    const currentId = task.milestone?.id ?? "";
-
-    // Чтобы выбранная веха всегда была в списке опций до загрузки списка
     const allOptions =
-        task.milestone && !options.some((m) => m.id === task.milestone.id)
-            ? [task.milestone, ...options]
-            : options;
+        selected && !options.some((m) => m.id === selected.id) ? [selected, ...options] : options;
 
-    const handleChange = async (e) => {
-        const nextVal = e.target.value;
-        const milestoneId = nextVal === "" ? null : Number(nextVal);
+    const handleChange = async (_, next) => {
+        const milestoneId = next?.id ?? null;
         setError("");
         const { ok, error: err, result } = await submit.run(() => setTaskMilestone(task.id, milestoneId));
         if (ok) {
-            const picked = milestoneId ? allOptions.find((m) => m.id === milestoneId) ?? null : null;
-            const updatedMilestone = result?.milestone ?? (picked ? { id: picked.id, name: picked.name, targetDate: picked.targetDate } : null);
+            const updatedMilestone =
+                result?.milestone ?? (next ? { id: next.id, name: next.name, targetDate: next.targetDate } : null);
+            setSelected(updatedMilestone);
             onUpdated?.({ ...task, milestone: updatedMilestone });
         } else if (err) {
             setError(submit.error || "Couldn't update milestone.");
         }
     };
 
-    const tooltipText = task.milestone?.targetDate ? `Target date: ${formatDate(task.milestone.targetDate)}` : "";
+    const tooltipText = selected?.targetDate ? `Target date: ${formatDate(selected.targetDate)}` : "";
 
     return (
         <Tooltip title={tooltipText} placement="left">
             <div>
-                <FormField
+                <Autocomplete
                     id={id}
-                    select
-                    value={currentId}
+                    size="small"
+                    options={allOptions}
+                    value={selected}
                     disabled={!canLink || submit.submitting}
+                    loading={milestonesState.loading}
+                    getOptionLabel={(option) => option.name ?? ""}
+                    isOptionEqualToValue={(option, val) => option.id === val.id}
                     onChange={handleChange}
-                    error={Boolean(error)}
-                    helperText={error || (isSubtask ? "Inherited from parent task" : "")}
-                    SelectProps={{ displayEmpty: true }}
-                >
-                    <MenuItem value="">
-                        <em>None</em>
-                    </MenuItem>
-                    {allOptions.map((m) => (
-                        <MenuItem key={m.id} value={m.id}>
-                            {m.name}
-                        </MenuItem>
-                    ))}
-                </FormField>
+                    noOptionsText="No milestones found"
+                    renderOption={(props, option) => {
+                        const { key, ...rest } = props;
+                        return (
+                            <Box component="li" key={key} {...rest} sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+                                <Typography variant="body2" noWrap>
+                                    {option.name}
+                                </Typography>
+                                {option.targetDate && (
+                                    <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                                        {formatDate(option.targetDate)}
+                                    </Typography>
+                                )}
+                            </Box>
+                        );
+                    }}
+                    renderInput={(params) => (
+                        <TextField
+                            {...params}
+                            placeholder={canLink ? "No milestone" : "None"}
+                            error={Boolean(error)}
+                            helperText={error || (isSubtask ? "Inherited from parent task" : "")}
+                        />
+                    )}
+                />
             </div>
         </Tooltip>
     );
