@@ -1,6 +1,7 @@
 import { PERMISSIONS } from "../constants/projects.js";
 import { can, projectPath } from "./project.js";
 import { dependencyHistoryLine } from "./dependency.js";
+import { formatDate } from "./format.js";
 
 // the full task page (built separately); the drawer links to it
 export const taskPath = (workspace, project, taskId) => `${projectPath(workspace, project)}/tasks/${taskId}`;
@@ -269,7 +270,13 @@ const HISTORY_FIELDS = {
   ESTIMATE: "story points",
   ESTIMATE_MINUTES: "time estimate",
   LABELS: "labels",
+  // the Timeline's dates (backend schedule-docs §1): ISO dates or null
+  START_DATE: "start date",
+  DUE_DATE: "due date",
 };
+
+// fields whose values are ISO dates ("2026-11-10"), shown as "Nov 10, 2026"
+const DATE_FIELDS = new Set(["START_DATE", "DUE_DATE"]);
 
 // enum values come as stored ("HIGHEST"); every type and priority label is the value in sentence case
 const enumLabel = (value) => value.charAt(0) + value.slice(1).toLowerCase();
@@ -278,6 +285,7 @@ const historyValue = (field, value) => {
   if (value == null || value === "") return "None";
   if (field === "TYPE" || field === "PRIORITY") return enumLabel(value);
   if (field === "ESTIMATE_MINUTES") return formatMinutes(value);
+  if (DATE_FIELDS.has(field)) return formatDate(value) || value;
   return value;
 };
 
@@ -331,6 +339,12 @@ export const historyLine = (entry, { subtask = false } = {}) => {
     if (oldValue == null && newValue != null) return { text: `assigned it to ${newValue}` };
     if (newValue == null && oldValue != null) return { text: `unassigned ${oldValue}` };
     return { text: "changed the assignee", from: historyValue(field, oldValue), to: historyValue(field, newValue), kind: "values" };
+  }
+  // linked to a milestone, unlinked, or moved to another (backend milestones-docs §6): the values are milestone names
+  if (field === "MILESTONE") {
+    if (oldValue == null && newValue != null) return { text: `added it to milestone ${newValue}` };
+    if (newValue == null && oldValue != null) return { text: `removed it from milestone ${oldValue}` };
+    return { text: "changed the milestone", from: historyValue(field, oldValue), to: historyValue(field, newValue), kind: "values" };
   }
   const name = HISTORY_FIELDS[field];
   if (!name) return { text: "updated the task" };

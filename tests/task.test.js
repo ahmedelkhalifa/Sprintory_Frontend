@@ -410,6 +410,26 @@ test("historyLine: field changes show both values, empty ones as None", () => {
   assert.deepEqual(historyLine(entry("FIELD_CHANGED", "DESCRIPTION")), { text: "changed the description" });
 });
 
+test("historyLine: start and due dates read as dates, an empty one as None", () => {
+  const start = historyLine(entry("FIELD_CHANGED", "START_DATE", null, "2026-11-10"));
+  assert.deepEqual(start, { text: "changed the start date", from: "None", to: "Nov 10, 2026", kind: "values" });
+  const due = historyLine(entry("FIELD_CHANGED", "DUE_DATE", "2026-11-12", "2026-12-01"));
+  assert.deepEqual([due.text, due.from, due.to], ["changed the due date", "Nov 12, 2026", "Dec 1, 2026"]);
+  // cleared (clearDates)
+  assert.equal(historyLine(entry("FIELD_CHANGED", "DUE_DATE", "2026-11-12", null)).to, "None");
+});
+
+test("historyLine: milestone wording depends on what changed", () => {
+  assert.deepEqual(historyLine(entry("FIELD_CHANGED", "MILESTONE", null, "Beta release")), {
+    text: "added it to milestone Beta release",
+  });
+  assert.deepEqual(historyLine(entry("FIELD_CHANGED", "MILESTONE", "Beta release", null)), {
+    text: "removed it from milestone Beta release",
+  });
+  const moved = historyLine(entry("FIELD_CHANGED", "MILESTONE", "Beta release", "Launch"));
+  assert.deepEqual([moved.text, moved.from, moved.to], ["changed the milestone", "Beta release", "Launch"]);
+});
+
 test("historyLine: assignee wording depends on what changed", () => {
   assert.deepEqual(historyLine(entry("FIELD_CHANGED", "ASSIGNEE", null, "Damir G")), { text: "assigned it to Damir G" });
   assert.deepEqual(historyLine(entry("FIELD_CHANGED", "ASSIGNEE", "Damir G", null)), { text: "unassigned Damir G" });
@@ -419,7 +439,7 @@ test("historyLine: assignee wording depends on what changed", () => {
 
 test("historyLine: types and fields added later still get a line", () => {
   assert.deepEqual(historyLine(entry("SOMETHING_NEW")), { text: "updated the task" });
-  assert.deepEqual(historyLine(entry("FIELD_CHANGED", "DUE_DATE", "a", "b")), { text: "updated the task" });
+  assert.deepEqual(historyLine(entry("FIELD_CHANGED", "SEVERITY", "a", "b")), { text: "updated the task" });
 });
 
 test("mergeHistory keeps each entry once, newest first (same moment: higher id first)", () => {
