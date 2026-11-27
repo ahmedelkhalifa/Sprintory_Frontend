@@ -1,15 +1,26 @@
-import { memo, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef } from "react";
-import { Box, Link, Paper, Typography, useMediaQuery } from "@mui/material";
+import { memo, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Box, Link, Paper, Tooltip, Typography, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CheckIcon from "@mui/icons-material/Check";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import UserAvatar from "../general/UserAvatar";
 import StageIcon from "./StageIcon";
+import TimelineArrows from "./TimelineArrows";
 import TimelineAxis from "./TimelineAxis";
+import TimelineHoverCard from "./TimelineHoverCard";
 import { axisTicks, dayNumber, timelineLayout, timelineRange, zoomOf } from "../../utils/schedule";
 import { taskPath } from "../../utils/task";
 import { formatDate } from "../../utils/format";
 import { hoverTransition, prefersReducedMotion } from "../../theme/motion";
-import { AXIS_HEIGHT, BAR_INSET, LIST_WIDTH, LIST_WIDTH_PHONE, ROW_HEIGHT, STAGE_STYLE } from "./timelineLayout";
+import {
+  AXIS_HEIGHT,
+  BAR_INSET,
+  LIST_WIDTH,
+  LIST_WIDTH_PHONE,
+  MILESTONE_LANE,
+  ROW_HEIGHT,
+  STAGE_STYLE,
+} from "./timelineLayout";
 
 // a task opens in a new browser tab, so the chart stays where it was (PMP-48); it reloads when you come back
 const NEW_TAB = { target: "_blank", rel: "noopener noreferrer" };
@@ -33,14 +44,28 @@ const BAR_BASE = {
   transition: hoverTransition("opacity"),
   "&:focus-visible": { outline: "2px solid", outlineColor: (theme) => theme.palette.primary.main, outlineOffset: 2 },
 };
-// done bars are muted, with a check (AC 12)
+const barSx = (category, conflict) => {
+  const { fill, text } = STAGE_STYLE[category] ?? STAGE_STYLE.TODO;
+  const done = category === "DONE";
+  return {
+    ...BAR_BASE,
+    bgcolor: fill,
+    color: text,
+    // done bars are muted, with a check (AC 12)
+    opacity: done ? 0.55 : 1,
+    "&:hover": { opacity: done ? 0.75 : 0.85 },
+    // a conflict: a red ring and a warning icon (AC 17, 20)
+    ...(conflict && { boxShadow: (theme) => `0 0 0 2px ${theme.palette.error.main}` }),
+  };
+};
 const BAR_SX = Object.fromEntries(
-  Object.entries(STAGE_STYLE).map(([category, { fill, text }]) => {
-    const done = category === "DONE";
-    return [category, { ...BAR_BASE, bgcolor: fill, color: text, opacity: done ? 0.55 : 1, "&:hover": { opacity: done ? 0.75 : 0.85 } }];
-  }),
+  Object.keys(STAGE_STYLE).flatMap((category) => [
+    [category, barSx(category, false)],
+    [`${category}!`, barSx(category, true)],
+  ]),
 );
 const BAR_TEXT_SX = { overflow: "hidden", textOverflow: "ellipsis" };
+const BAR_ICON_SX = { fontSize: 14, flexShrink: 0 };
 
 const ROW_SX = {
   height: ROW_HEIGHT,
@@ -54,31 +79,57 @@ const ROW_SX = {
 const ROW_HIGHLIGHT_SX = { ...ROW_SX, bgcolor: "action.selected" };
 const ROW_KEY_SX = { fontWeight: 700, color: "text.secondary", flexShrink: 0 };
 const ROW_TITLE_SX = { flex: 1, minWidth: 0 };
+const ROW_WARNING_SX = { fontSize: 18, color: "error.main", flexShrink: 0 };
 
 const LINE_SX = { position: "absolute", top: 0, bottom: 0, width: "1px", bgcolor: "divider" };
 const WEEKEND_SX = { position: "absolute", top: 0, bottom: 0, bgcolor: "action.hover" };
-const TODAY_SX = { position: "absolute", top: 0, bottom: 0, width: "2px", ml: "-1px", bgcolor: "warning.main", zIndex: 1, pointerEvents: "none" };
+// under the bars (they come later), so it never cuts through a bar's text
+const TODAY_SX = { position: "absolute", top: 0, bottom: 0, width: "2px", ml: "-1px", bgcolor: "warning.main", pointerEvents: "none" };
 const HIGHLIGHT_SX = { position: "absolute", left: 0, right: 0, height: ROW_HEIGHT, bgcolor: "action.selected", pointerEvents: "none" };
+const MILESTONE_LINE_SX = { position: "absolute", top: 0, bottom: 0, borderLeft: "1px dashed", borderColor: "text.disabled", pointerEvents: "none" };
+const DIAMOND_SIZE = 12;
+const diamondSx = (conflict) => ({
+  position: "absolute",
+  top: (MILESTONE_LANE - DIAMOND_SIZE) / 2,
+  width: DIAMOND_SIZE,
+  height: DIAMOND_SIZE,
+  ml: `${-DIAMOND_SIZE / 2}px`,
+  transform: "rotate(45deg)",
+  borderRadius: "2px",
+  bgcolor: conflict ? "error.main" : "text.primary",
+  cursor: "default",
+  "&:focus-visible": { outline: "2px solid", outlineColor: (theme) => theme.palette.primary.main, outlineOffset: 2 },
+});
+const DIAMOND_SX = diamondSx(false);
+const DIAMOND_CONFLICT_SX = diamondSx(true);
 
-// a bar's text: the dates as people read them
-const barLabel = (task) =>
-  `${task.key} ${task.title}, ${formatDate(task.startDate)} to ${formatDate(task.dueDate)}, ${task.statusName}`;
+// a bar's text: the dates as people read them, and what is wrong with them
+const barLabel = (task, conflicts) =>
+  [`${task.key} ${task.title}, ${formatDate(task.startDate)} to ${formatDate(task.dueDate)}, ${task.statusName}`, ...conflicts].join(". ");
 
 // one task's bar, from the start of its start day to the end of its due day, a link to its page
-const Bar = ({ row, href }) => {
-  const { task, box } = row;
+const Bar = ({ row, href, onHover }) => {
+  const { task, box, conflicts } = row;
   const width = Math.max(box.width, 4);
+  const conflict = conflicts.length > 0;
+  const show = (e) => onHover({ anchor: e.currentTarget, task, conflicts });
   return (
     <Box
       component="a"
       href={href}
       {...NEW_TAB}
-      aria-label={barLabel(task)}
+      aria-label={barLabel(task, conflicts)}
       data-task-id={task.id}
-      sx={BAR_SX[task.statusCategory] ?? BAR_SX.TODO}
+      data-conflict={conflict || undefined}
+      onMouseEnter={show}
+      onFocus={show}
+      onMouseLeave={() => onHover(null)}
+      onBlur={() => onHover(null)}
+      sx={BAR_SX[`${task.statusCategory}${conflict ? "!" : ""}`] ?? BAR_SX.TODO}
       style={{ top: row.top + BAR_INSET, left: box.left, width }}
     >
-      {task.statusCategory === "DONE" && width >= 24 && <CheckIcon sx={{ fontSize: 14, flexShrink: 0 }} />}
+      {conflict && width >= 24 && <WarningAmberRoundedIcon sx={BAR_ICON_SX} />}
+      {!conflict && task.statusCategory === "DONE" && width >= 24 && <CheckIcon sx={BAR_ICON_SX} />}
       {width >= 64 && (
         <Box component="span" sx={BAR_TEXT_SX}>
           {task.key} · {task.title}
@@ -88,8 +139,10 @@ const Bar = ({ row, href }) => {
   );
 };
 
-// every bar; drawn again only when the layout changes, not on scroll
-const Bars = memo(({ rows, hrefFor }) => rows.map((row) => <Bar key={row.task.id} row={row} href={hrefFor(row.task.id)} />));
+// every bar; drawn again only when the layout changes, not on hover or scroll
+const Bars = memo(({ rows, hrefFor, onHover }) =>
+  rows.map((row) => <Bar key={row.task.id} row={row} href={hrefFor(row.task.id)} onHover={onHover} />),
+);
 
 // the lines between days / weeks / months and the weekend columns, under the bars
 const GridLines = memo(({ units, range, dayWidth }) =>
@@ -103,10 +156,12 @@ const GridLines = memo(({ units, range, dayWidth }) =>
   }),
 );
 
-// the list on the left: status icon, key and title (both open the task in a new tab), assignee
+// the list on the left: status icon, key and title (both open the task in a new tab), a warning for a conflict,
+// the assignee
 const RowLabels = memo(({ rows, people, hrefFor, highlightId }) =>
-  rows.map(({ task }) => {
-    const assignee = task.assigneeId == null ? null : (people.get(task.assigneeId) ?? { userId: task.assigneeId, firstName: task.assignee });
+  rows.map(({ task, conflicts }) => {
+    const assignee =
+      task.assigneeId == null ? null : (people.get(task.assigneeId) ?? { userId: task.assigneeId, firstName: task.assignee });
     const href = hrefFor(task.id);
     return (
       <Box key={task.id} sx={task.id === highlightId ? ROW_HIGHLIGHT_SX : ROW_SX}>
@@ -117,24 +172,53 @@ const RowLabels = memo(({ rows, people, hrefFor, highlightId }) =>
         <Typography variant="body2" noWrap title={task.title} sx={ROW_TITLE_SX}>
           {task.title}
         </Typography>
+        {conflicts.length > 0 && (
+          <Tooltip title={conflicts.join(" · ")}>
+            <WarningAmberRoundedIcon role="img" aria-label={conflicts.join(". ")} sx={ROW_WARNING_SX} />
+          </Tooltip>
+        )}
         {assignee && <UserAvatar user={assignee} size={22} />}
       </Box>
     );
   }),
 );
 
+// the milestones' diamonds on their target days (AC 11), red when a task ends after one (AC 20). There is no
+// milestone page in the app yet, so a diamond shows its details on hover and focus instead of linking
+const Diamonds = memo(({ milestones, onHover }) =>
+  milestones.map((milestone) => {
+    const show = (e) => onHover({ anchor: e.currentTarget, milestone, conflicts: milestone.conflicts });
+    return (
+      <Box
+        key={milestone.id}
+        tabIndex={0}
+        role="img"
+        aria-label={[`Milestone ${milestone.name}, ${formatDate(milestone.targetDate)}`, ...milestone.conflicts].join(". ")}
+        onMouseEnter={show}
+        onFocus={show}
+        onMouseLeave={() => onHover(null)}
+        onBlur={() => onHover(null)}
+        sx={milestone.conflicts.length ? DIAMOND_CONFLICT_SX : DIAMOND_SX}
+        style={{ left: milestone.x }}
+      />
+    );
+  }),
+);
+
 /**
- * The Timeline's chart (PMP-48): one scroll area with the task list sticky on the left and the date header sticky on
- * top. Each scheduled task is a row, in the response's order (start date, then id), with its bar placed by
- * timelineLayout; the Today line comes from the server's `today`. `ref` gets { scrollToToday, scrollToRow(id) }. The
- * day in the middle of the view stays there when the zoom changes; the first view is centred on today.
- * `highlightId` marks a row (the conflict the user picked).
+ * The Timeline's chart (PMP-48): one scroll area with the task list sticky on the left and the date header (with the
+ * milestones' diamonds) sticky on top. Each scheduled task is a row, in the response's order (start date, then id),
+ * with its bar placed by timelineLayout; arrows join blockers to the tasks they block, and conflicts are red. The
+ * Today line comes from the server's `today`. `ref` gets { scrollToToday, scrollToRow(id) }. The day in the middle
+ * of the view stays there when the zoom changes; the first view is centred on today. `highlightId` marks a row (the
+ * conflict the user picked).
  */
 const TimelineChart = ({ ref, workspace, project, schedule, zoom, members, highlightId }) => {
   const theme = useTheme();
   const phone = useMediaQuery(theme.breakpoints.down("sm"));
   const listWidth = phone ? LIST_WIDTH_PHONE : LIST_WIDTH;
   const { dayWidth } = zoomOf(zoom);
+  const [hover, setHover] = useState(null);
 
   const range = useMemo(() => timelineRange(schedule, zoom), [schedule, zoom]);
   const ticks = useMemo(() => axisTicks(range, zoom), [range, zoom]);
@@ -142,6 +226,10 @@ const TimelineChart = ({ ref, workspace, project, schedule, zoom, members, highl
   const people = useMemo(() => new Map(members.map((member) => [member.userId, member])), [members]);
   const hrefFor = useCallback((taskId) => taskPath(workspace, project, taskId), [workspace, project]);
   const highlightRow = highlightId == null ? null : layout.byId.get(highlightId);
+  const headerHeight = AXIS_HEIGHT + (layout.milestones.length > 0 ? MILESTONE_LANE : 0);
+  // a hover belongs to the layout it was made on: after a reload or a filter its bar may be gone
+  const showHover = useCallback((next) => setHover(next && { ...next, layout }), [layout]);
+  const shownHover = hover?.layout === layout ? hover : null;
 
   const scrollRef = useRef(null);
   // the day in the middle of the view (a fraction), kept while scrolling so a zoom can put it back in the middle
@@ -172,11 +260,11 @@ const TimelineChart = ({ ref, workspace, project, schedule, zoom, members, highl
         if (!row) return;
         scrollTo({
           left: Math.max(0, row.box.left - 48),
-          top: Math.max(0, row.top - (scrollRef.current.clientHeight - AXIS_HEIGHT - ROW_HEIGHT) / 2),
+          top: Math.max(0, row.top - (scrollRef.current.clientHeight - headerHeight - ROW_HEIGHT) / 2),
         });
       },
     };
-  }, [layout, listWidth]);
+  }, [layout, listWidth, headerHeight]);
 
   return (
     <Paper elevation={0} sx={{ border: 1, borderColor: "divider", borderRadius: 2, overflow: "hidden" }}>
@@ -193,7 +281,6 @@ const TimelineChart = ({ ref, workspace, project, schedule, zoom, members, highl
               top: 0,
               left: 0,
               zIndex: 4,
-              height: AXIS_HEIGHT,
               display: "flex",
               alignItems: "flex-end",
               px: 1.5,
@@ -203,15 +290,21 @@ const TimelineChart = ({ ref, workspace, project, schedule, zoom, members, highl
               borderBottom: 1,
               borderColor: "divider",
             }}
+            style={{ height: headerHeight }}
           >
             <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary" }}>
               {layout.rows.length} {layout.rows.length === 1 ? "task" : "tasks"}
             </Typography>
           </Box>
 
-          {/* the date header: stays on top */}
+          {/* the date header and the milestones: stay on top */}
           <Box sx={{ position: "sticky", top: 0, zIndex: 3, bgcolor: "background.paper", borderBottom: 1, borderColor: "divider" }}>
             <TimelineAxis ticks={ticks} range={range} dayWidth={dayWidth} zoom={zoom} stickyLeft={listWidth + 8} />
+            {layout.milestones.length > 0 && (
+              <Box sx={{ position: "relative", height: MILESTONE_LANE, borderTop: 1, borderColor: "divider" }}>
+                <Diamonds milestones={layout.milestones} onHover={showHover} />
+              </Box>
+            )}
             <Box sx={{ ...TODAY_SX, top: AXIS_HEIGHT / 2 }} style={{ left: layout.todayX }} />
           </Box>
 
@@ -220,7 +313,7 @@ const TimelineChart = ({ ref, workspace, project, schedule, zoom, members, highl
             <RowLabels rows={layout.rows} people={people} hrefFor={hrefFor} highlightId={highlightId} />
           </Box>
 
-          {/* the bars, over the lines and a hairline under every row */}
+          {/* the bars over the arrows, the lines and a hairline under every row */}
           <Box
             sx={(t) => ({
               position: "relative",
@@ -231,16 +324,16 @@ const TimelineChart = ({ ref, workspace, project, schedule, zoom, members, highl
           >
             <GridLines units={ticks.units} range={range} dayWidth={dayWidth} />
             {highlightRow && <Box sx={HIGHLIGHT_SX} style={{ top: highlightRow.top }} />}
-            <Box
-              sx={TODAY_SX}
-              style={{ left: layout.todayX }}
-              role="img"
-              aria-label={`Today, ${formatDate(schedule.today)}`}
-            />
-            <Bars rows={layout.rows} hrefFor={hrefFor} />
+            {layout.milestones.map((milestone) => (
+              <Box key={milestone.id} sx={MILESTONE_LINE_SX} style={{ left: milestone.x }} />
+            ))}
+            <Box sx={TODAY_SX} style={{ left: layout.todayX }} role="img" aria-label={`Today, ${formatDate(schedule.today)}`} />
+            <TimelineArrows arrows={layout.arrows} width={layout.width} height={layout.height} />
+            <Bars rows={layout.rows} hrefFor={hrefFor} onHover={showHover} />
           </Box>
         </Box>
       </Box>
+      <TimelineHoverCard hover={shownHover} milestones={schedule.milestones ?? []} />
     </Paper>
   );
 };

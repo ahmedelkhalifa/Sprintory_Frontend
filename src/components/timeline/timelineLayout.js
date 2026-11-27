@@ -5,6 +5,8 @@ export const ROW_HEIGHT = 40;
 export const BAR_INSET = 9;
 // the date header: months (or years) over days, weeks or months
 export const AXIS_HEIGHT = 52;
+// under it, the milestones' diamonds (only when the project has milestones)
+export const MILESTONE_LANE = 24;
 // the task list on the left, sticky while the chart scrolls sideways
 export const LIST_WIDTH = 300;
 export const LIST_WIDTH_PHONE = 150;

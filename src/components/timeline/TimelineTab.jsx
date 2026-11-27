@@ -1,14 +1,15 @@
-import { useRef, useState } from "react";
-import { Box, Paper, Stack, Typography } from "@mui/material";
+import { useEffect, useRef, useState } from "react";
+import { Paper, Stack, Typography } from "@mui/material";
 import ViewTimelineOutlinedIcon from "@mui/icons-material/ViewTimelineOutlined";
 import LoadState from "../general/LoadState";
+import ConflictsPanel from "./ConflictsPanel";
 import TimelineChart from "./TimelineChart";
 import TimelineToolbar from "./TimelineToolbar";
 import { getSchedule } from "../../api/scheduleApi";
 import { getBoard, listProjectMembers } from "../../api/projectsApi";
 import { listSprints } from "../../api/sprintsApi";
 import { useAsync } from "../../hooks/useAsync";
-import { DEFAULT_ZOOM, EMPTY_TIMELINE_FILTERS, ZOOMS, scheduleParams } from "../../utils/schedule";
+import { DEFAULT_ZOOM, EMPTY_TIMELINE_FILTERS, ZOOMS, conflictTarget, scheduleParams } from "../../utils/schedule";
 import { FADE_IN_SX, reveal } from "../../theme/motion";
 import { ZOOM_STORAGE_KEY } from "./timelineLayout";
 
@@ -17,6 +18,9 @@ const MEMBERS_SIZE = 100;
 
 // the tab is members only; a 404 means the caller isn't (any more)
 const SCHEDULE_MESSAGES = { RESOURCE_NOT_FOUND: "Only members of this project can see its timeline." };
+
+// how long a row picked from the conflicts stays highlighted
+const HIGHLIGHT_MS = 2500;
 
 const storedZoom = () => {
   try {
@@ -54,7 +58,9 @@ const Message = ({ title, text, children }) => (
 
 /**
  * The project's Timeline tab (PMP-48, backend docs/schedule-docs.md), for members, in Scrum and Kanban: one bar per
- * scheduled task on a date axis (TimelineChart), with zoom and Go to today. The chart is view-only for everyone:
+ * scheduled task on a date axis (TimelineChart), with dependency arrows, milestone diamonds, zoom and Go to today.
+ * The backend finds the conflicts; they are painted red and listed above the chart (ConflictsPanel), where picking one
+ * scrolls to it. The chart is view-only for everyone:
  * dates are changed on the task page, which a bar opens in a new tab. `taskVersion` changes when a task is created
  * from the project header, and the schedule loads again.
  */
@@ -75,6 +81,21 @@ const TimelineTab = ({ workspace, project, taskVersion }) => {
   const [last, setLast] = useState(null);
   if (state.data && state.data !== last) setLast(state.data);
   const schedule = state.data ?? (state.error ? null : last);
+
+  // the conflict's row, briefly highlighted (a new object each pick, so picking it again starts the time again)
+  const [highlight, setHighlight] = useState(null);
+  useEffect(() => {
+    if (!highlight) return undefined;
+    const timer = setTimeout(() => setHighlight(null), HIGHLIGHT_MS);
+    return () => clearTimeout(timer);
+  }, [highlight]);
+
+  const selectConflict = (conflict) => {
+    const taskId = conflictTarget(conflict, new Set(schedule.tasks.map((task) => task.id)));
+    if (taskId == null) return;
+    setHighlight({ taskId });
+    chart.current?.scrollToRow(taskId);
+  };
 
   const changeZoom = (value) => {
     setZoom(value);
@@ -103,7 +124,8 @@ const TimelineTab = ({ workspace, project, taskVersion }) => {
     );
   } else {
     content = (
-      <Box sx={reveal(1)}>
+      <Stack spacing={2} sx={reveal(1)}>
+        <ConflictsPanel conflicts={schedule.conflicts ?? []} onSelect={selectConflict} />
         <TimelineChart
           ref={chart}
           workspace={workspace}
@@ -111,8 +133,9 @@ const TimelineTab = ({ workspace, project, taskVersion }) => {
           schedule={schedule}
           zoom={zoom}
           members={context.data?.members ?? []}
+          highlightId={highlight?.taskId}
         />
-      </Box>
+      </Stack>
     );
   }
 

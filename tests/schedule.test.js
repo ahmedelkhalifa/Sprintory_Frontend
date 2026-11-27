@@ -152,7 +152,7 @@ test("conflictIndex groups the messages by task and the arrows and diamonds invo
   assert.deepEqual(index.tasks.get(10), ["PMP-11 starts before PMP-10 ends"]);
   assert.deepEqual(index.tasks.get(11), ["PMP-11 starts before PMP-10 ends", "PMP-11 ends after milestone Beta release"]);
   assert.ok(index.dependencies.has(21) && !index.dependencies.has(22));
-  assert.ok(index.milestones.has(4));
+  assert.deepEqual(index.milestones.get(4), ["PMP-11 ends after milestone Beta release"]);
   assert.equal(conflictIndex().tasks.size, 0);
 });
 
@@ -175,7 +175,7 @@ test("timelineLayout: rows in the response's order, arrows only between shown ro
   const [from, to] = layout.rows;
   assert.ok(layout.arrows[0].d.startsWith(`M ${from.box.left + from.box.width} 18`));
   assert.ok(layout.arrows[0].d.endsWith(`H ${to.box.left}`));
-  assert.equal(layout.milestones[0].conflict, true);
+  assert.deepEqual(layout.milestones[0].conflicts, ["PMP-11 ends after milestone Beta release"]);
   assert.equal(layout.milestones[0].x, dayX(dayNumber("2026-11-20"), range, 14) + 7);
   assert.equal(layout.todayX, dayX(dayNumber("2026-11-26"), range, 14) + 7);
   assert.equal(layout.width, range.days * 14);

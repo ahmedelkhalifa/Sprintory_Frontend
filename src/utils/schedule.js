@@ -121,21 +121,22 @@ export const arrowPath = ({ x1, y1, x2, y2 }, { rowHeight, gap = 8 }) => {
 };
 
 /**
- * The response's conflicts, looked up by what they paint (backend schedule-docs §2): `tasks` maps a task id to the
- * messages of every conflict it is in (a dependency conflict names [blockerId, blockedId], a milestone one the task),
- * `dependencies` and `milestones` hold the ids of the arrows and diamonds involved.
+ * The response's conflicts, looked up by what they paint (backend schedule-docs §2): `tasks` and `milestones` map an
+ * id to the messages of every conflict it is in (a dependency conflict names [blockerId, blockedId], a milestone one
+ * its task), `dependencies` holds the ids of the arrows involved.
  */
 export const conflictIndex = (conflicts = []) => {
   const tasks = new Map();
   const dependencies = new Set();
-  const milestones = new Set();
+  const milestones = new Map();
+  const add = (map, id, message) => {
+    if (!map.has(id)) map.set(id, []);
+    map.get(id).push(message);
+  };
   for (const conflict of conflicts) {
-    for (const id of conflict.taskIds ?? []) {
-      if (!tasks.has(id)) tasks.set(id, []);
-      tasks.get(id).push(conflict.message);
-    }
+    for (const id of conflict.taskIds ?? []) add(tasks, id, conflict.message);
     if (conflict.dependencyId != null) dependencies.add(conflict.dependencyId);
-    if (conflict.milestoneId != null) milestones.add(conflict.milestoneId);
+    if (conflict.milestoneId != null) add(milestones, conflict.milestoneId, conflict.message);
   }
   return { tasks, dependencies, milestones };
 };
@@ -178,11 +179,11 @@ export const timelineLayout = (schedule, range, { dayWidth, rowHeight }) => {
     arrows.push({ id: link.id, d: arrowPath(points, { rowHeight }), conflict: conflicts.dependencies.has(link.id) });
   }
 
-  // a diamond sits in the middle of its target day
+  // a diamond sits in the middle of its target day; `conflicts` are the messages of the tasks that end after it
   const milestones = (schedule.milestones ?? []).map((milestone) => ({
     ...milestone,
     x: dayX(dayNumber(milestone.targetDate), range, dayWidth) + dayWidth / 2,
-    conflict: conflicts.milestones.has(milestone.id),
+    conflicts: conflicts.milestones.get(milestone.id) ?? [],
   }));
 
   return {
