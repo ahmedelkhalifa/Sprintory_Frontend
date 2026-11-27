@@ -30,6 +30,8 @@ const SCHEDULE_MESSAGES = { RESOURCE_NOT_FOUND: "Only members of this project ca
 
 // how long a row picked from the conflicts stays highlighted
 const HIGHLIGHT_MS = 2500;
+// coming back to the tab reloads at most once in this time (the tab showing and the window's focus both say so)
+const RETURN_RELOAD_GAP_MS = 1000;
 
 const storedZoom = () => {
   try {
@@ -92,13 +94,24 @@ const TimelineTab = ({ workspace, project, taskVersion }) => {
   if (state.data && state.data !== last) setLast(state.data);
   const schedule = state.data ?? (state.error ? null : last);
 
-  // a bar opens its task in a new browser tab, where its dates may change: coming back here loads the schedule
-  // again, so the bars and the conflicts are current (AC 21)
+  // a bar opens its task in a new browser tab (or a window beside this one), where its dates may change: coming back
+  // here (the tab shows again, or the window gets the focus back) loads the schedule again, so the bars and the
+  // conflicts are current (AC 21). One return can fire both; the second within a second is skipped, and so is the
+  // focus a page gets right after it opens
   const { reload } = state;
   useEffect(() => {
-    const comeBack = () => document.visibilityState === "visible" && reload();
+    let lastReload = Date.now();
+    const comeBack = () => {
+      if (document.visibilityState !== "visible" || Date.now() - lastReload < RETURN_RELOAD_GAP_MS) return;
+      lastReload = Date.now();
+      reload();
+    };
     document.addEventListener("visibilitychange", comeBack);
-    return () => document.removeEventListener("visibilitychange", comeBack);
+    window.addEventListener("focus", comeBack);
+    return () => {
+      document.removeEventListener("visibilitychange", comeBack);
+      window.removeEventListener("focus", comeBack);
+    };
   }, [reload]);
 
   // the conflict's row, briefly highlighted (a new object each pick, so picking it again starts the time again)

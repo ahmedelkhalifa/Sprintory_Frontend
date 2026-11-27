@@ -1,5 +1,5 @@
 import { memo, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Box, Link, Paper, Tooltip, Typography, useMediaQuery } from "@mui/material";
+import { Box, Link, Paper, Typography, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import CheckIcon from "@mui/icons-material/Check";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
@@ -172,10 +172,11 @@ const RowLabels = memo(({ rows, people, hrefFor, highlightId }) =>
         <Typography variant="body2" noWrap title={task.title} sx={ROW_TITLE_SX}>
           {task.title}
         </Typography>
+        {/* a plain title, not a Tooltip: a project full of conflicts would mount hundreds of them */}
         {conflicts.length > 0 && (
-          <Tooltip title={conflicts.join(" · ")}>
+          <Box component="span" title={conflicts.join(" · ")} sx={{ display: "inline-flex" }}>
             <WarningAmberRoundedIcon role="img" aria-label={conflicts.join(". ")} sx={ROW_WARNING_SX} />
-          </Tooltip>
+          </Box>
         )}
         {assignee && <UserAvatar user={assignee} size={22} />}
       </Box>
