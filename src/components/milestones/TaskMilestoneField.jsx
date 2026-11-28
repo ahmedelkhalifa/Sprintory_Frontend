@@ -1,18 +1,13 @@
 import { useState } from "react";
 import { Autocomplete, Box, TextField, Tooltip, Typography } from "@mui/material";
 import { listMilestones, setTaskMilestone } from "../../api/milestonesApi";
+import { errorMessage } from "../../utils/apiError";
 import { useAsync } from "../../hooks/useAsync";
 import { useSubmit } from "../../hooks/useSubmit";
 import { PERMISSIONS } from "../../constants/projects";
 import { MILESTONE_ERROR_MESSAGES } from "../../constants/tasks";
 import { can } from "../../utils/project";
 import { formatDate } from "../../utils/format";
-
-const resolveMilestoneError = (err) => {
-    const data = err?.response?.data;
-    const mapped = data?.code ? MILESTONE_ERROR_MESSAGES[data.code] : undefined;
-    return mapped || data?.message || "Couldn't update milestone.";
-};
 
 const TaskMilestoneField = ({ id = "task-milestone", project, task, writable = true, onUpdated }) => {
     const isSubtask = task.parentTaskId != null;
@@ -45,7 +40,7 @@ const TaskMilestoneField = ({ id = "task-milestone", project, task, writable = t
             setSelected(updatedMilestone);
             onUpdated?.({ ...task, milestone: updatedMilestone });
         } else if (err) {
-            setError(resolveMilestoneError(err));
+            setError(errorMessage(err, "Couldn't update milestone.", MILESTONE_ERROR_MESSAGES));
         }
     };
 

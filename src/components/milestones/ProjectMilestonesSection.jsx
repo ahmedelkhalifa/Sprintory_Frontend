@@ -27,7 +27,8 @@ import { useLatched } from "../../hooks/useLatched";
 import { useSubmit } from "../../hooks/useSubmit";
 import { MILESTONE_ERROR_MESSAGES, MILESTONE_STATUS } from "../../constants/tasks";
 import { milestonePath } from "../../utils/project";
-import { progressLabel } from "../../utils/milestone";
+import { deleteMilestoneText, progressLabel } from "../../utils/milestone";
+import { errorMessage } from "../../utils/apiError";
 import { formatDate } from "../../utils/format";
 import { revealChildren } from "../../theme/motion";
 
@@ -173,7 +174,7 @@ const ProjectMilestonesSection = ({ workspace, project, writable }) => {
                 id: toast.id,
                 name: toast.name,
                 status: "error",
-                message: restoreSubmit.error || "Couldn't restore milestone.",
+                message: errorMessage(error, "Couldn't restore milestone.", MILESTONE_ERROR_MESSAGES),
             });
             if (isConflictOrArchived(error)) state.reload();
         }
@@ -259,11 +260,7 @@ const ProjectMilestonesSection = ({ workspace, project, writable }) => {
                 <ConfirmDialog
                     open={dialog?.type === "delete"}
                     title={`Delete "${shownDialog.milestone.name}"?`}
-                    message={
-                        (shownDialog.milestone.progress?.totalTasks ?? 0) > 0
-                            ? `${shownDialog.milestone.progress.totalTasks} ${shownDialog.milestone.progress.totalTasks === 1 ? "task" : "tasks"} will be unlinked.`
-                            : "It has no tasks."
-                    }
+                    message={deleteMilestoneText(shownDialog.milestone)}
                     confirmLabel="Delete"
                     tone="danger"
                     loading={removeSubmit.submitting}

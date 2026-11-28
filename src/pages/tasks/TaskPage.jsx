@@ -53,7 +53,7 @@ import { confirmedMove, moveConfirmation } from "../../utils/dependency";
 import { isWorkspaceArchived } from "../../utils/workspace";
 import { useLatched } from "../../hooks/useLatched";
 import { LOADING_DELAY_SX, revealChildren } from "../../theme/motion";
-import TaskMilestoneField from "../../components/milestones/TaskMilestoneField.jsx";
+import TaskMilestoneField from "../../components/milestones/TaskMilestoneField";
 
 // The loaded task and its fields. Every change is saved at once, like in Jira: one field at a time (useFieldSave
 // with validateTask and taskChanges: only what changed, clear flags for emptied fields). Under the description

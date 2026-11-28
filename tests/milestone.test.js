@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
     MILESTONE_DESCRIPTION_MAX,
     MILESTONE_NAME_MAX,
+    deleteMilestoneText,
     milestoneRequest,
     progressLabel,
     validateMilestoneForm,
@@ -20,7 +21,15 @@ test("progressLabel formats task counts and switches to story points when presen
     );
 });
 
+test("deleteMilestoneText describes how many tasks will be unlinked", () => {
+    assert.equal(deleteMilestoneText({ progress: { totalTasks: 0 } }), "It has no tasks.");
+    assert.equal(deleteMilestoneText({}), "It has no tasks.");
+    assert.equal(deleteMilestoneText({ progress: { totalTasks: 1 } }), "1 task will be unlinked.");
+    assert.equal(deleteMilestoneText({ progress: { totalTasks: 4 } }), "4 tasks will be unlinked.");
+});
+
 test("validateMilestoneForm enforces required fields and length limits", () => {
+    assert.equal(MILESTONE_DESCRIPTION_MAX, 500);
     assert.deepEqual(validateMilestoneForm({ name: "   ", targetDate: "", description: "" }), {
         name: "Name is required.",
         targetDate: "Target date is required.",

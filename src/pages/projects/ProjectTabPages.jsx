@@ -108,12 +108,14 @@ export const ProjectOverviewPage = () => {
                 canEdit={page.canEdit}
                 onEdit={() => page.openDialog({ type: "edit" })}
               />
-              <ProjectMilestonesSection
-                  key={project.id}
-                  workspace={workspace}
-                  project={project}
-                  writable={page.writable}
-              />
+              {member && (
+                  <ProjectMilestonesSection
+                      key={project.id}
+                      workspace={workspace}
+                      project={project}
+                      writable={page.writable}
+                  />
+              )}
               <ProjectMembersCard
                 project={project}
                 preview={page.preview}

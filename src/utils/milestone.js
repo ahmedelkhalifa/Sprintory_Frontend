@@ -1,7 +1,7 @@
 // Milestone helpers and form validation (PMP-150). Pure, so they can be unit tested.
 
 export const MILESTONE_NAME_MAX = 100;
-export const MILESTONE_DESCRIPTION_MAX = 1000;
+export const MILESTONE_DESCRIPTION_MAX = 500;
 export const MILESTONE_LIMIT = 50;
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -13,6 +13,13 @@ export const progressLabel = (progress) => {
     return progress.basis === "POINTS"
         ? `${progress.donePoints} / ${progress.totalPoints} pts (${tasksPart})`
         : tasksPart;
+};
+
+export const deleteMilestoneText = (milestone) => {
+    const count = milestone?.progress?.totalTasks ?? 0;
+    return count > 0
+        ? `${count} ${count === 1 ? "task" : "tasks"} will be unlinked.`
+        : "It has no tasks.";
 };
 
 // Returns { name?, targetDate?, description? } keyed by backend field names

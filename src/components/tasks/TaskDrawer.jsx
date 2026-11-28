@@ -34,7 +34,7 @@ import { confirmedMove, moveConfirmation } from "../../utils/dependency";
 import { isRichTextError, richTextValue } from "../../utils/richText";
 import { TASK_TITLE_MAX, validateTask } from "../../utils/validation";
 import { useLatched } from "../../hooks/useLatched";
-import TaskMilestoneField from "../milestones/TaskMilestoneField.jsx";
+import TaskMilestoneField from "../milestones/TaskMilestoneField";
 
 // a label above a field that isn't a FormField (the pickers)
 const Field = ({ id, label, children }) => (

@@ -29,10 +29,10 @@ import { useLatched } from "../../hooks/useLatched";
 import { useSubmit } from "../../hooks/useSubmit";
 import { MILESTONE_ERROR_MESSAGES, MILESTONE_STATUS, TASK_TYPES } from "../../constants/tasks";
 import { EMPTY_TASK_FILTERS, taskFilterParams } from "../../utils/taskFilters";
-import { progressLabel } from "../../utils/milestone";
 import { projectLabels, taskPath } from "../../utils/task";
 import { formatDate } from "../../utils/format";
 import { reveal, revealChildren } from "../../theme/motion";
+import { deleteMilestoneText, progressLabel } from "../../utils/milestone";
 
 const MEMBERS_SIZE = 100;
 const TASKS_PAGE_SIZE = 100;
@@ -344,11 +344,7 @@ const MilestonePage = ({ workspace, project, milestoneId, writable, onBack }) =>
                 <ConfirmDialog
                     open={dialog === "delete"}
                     title={`Delete "${milestone.name}"?`}
-                    message={
-                        (milestone.progress?.totalTasks ?? 0) > 0
-                            ? `${milestone.progress.totalTasks} ${milestone.progress.totalTasks === 1 ? "task" : "tasks"} will be unlinked.`
-                            : "It has no tasks."
-                    }
+                    message={deleteMilestoneText(milestone)}
                     confirmLabel="Delete"
                     tone="danger"
                     loading={removeSubmit.submitting}
