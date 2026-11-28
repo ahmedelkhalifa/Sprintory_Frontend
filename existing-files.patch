@@ -1,0 +1,43 @@
+--- a/src/components/board/BoardTab.jsx
++++ b/src/components/board/BoardTab.jsx
+@@ -1,5 +1,5 @@
+ import { useEffect, useRef, useState } from "react";
+-import { useNavigate } from "react-router-dom";
++import { Link as RouterLink, useNavigate } from "react-router-dom";
+ import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+ import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+ import { Alert, Box, Button, Paper, Snackbar, Typography } from "@mui/material";
+@@ -28,7 +28,7 @@
+ import { PERMISSIONS } from "../../constants/projects";
+ import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
+ import { errorMessage } from "../../utils/apiError";
+-import { can } from "../../utils/project";
++import { can, projectTabPath } from "../../utils/project";
+ import { boardMove, groupByColumn, wipWarningText } from "../../utils/board";
+ import { sprintEndedText, sprintPath } from "../../utils/sprint";
+ import { projectLabels, taskStage } from "../../utils/task";
+@@ -320,6 +320,13 @@
+             onCancelSprint={() => setEnding("cancel")}
+           />
+         )}
++        {sprint && (
++          <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
++            <Button component={RouterLink} to={`${projectTabPath(workspace, project, "reports")}/burndown?sprint=${sprint.id}`}>
++              View burndown
++            </Button>
++          </Box>
++        )}
+ 
+         <TaskFilterBar
+           filters={filters}
+--- a/src/components/projects/overview/tabList.js
++++ b/src/components/projects/overview/tabList.js
+@@ -17,7 +17,7 @@
+   { id: "backlog", label: "Backlog", Icon: ViewListOutlinedIcon, scrumOnly: true },
+   { id: "board", label: "Board", Icon: ViewColumnOutlinedIcon },
+   { id: "sprints", label: "Sprints", Icon: TimerOutlinedIcon, scrumOnly: true },
+-  { id: "reports", label: "Reports", Icon: BarChartOutlinedIcon },
++  { id: "reports", label: "Reports", Icon: BarChartOutlinedIcon, scrumOnly: true },
+   { id: "files", label: "Files", Icon: FolderOpenOutlinedIcon },
+   // also the members ("People and access"), at settings/people
+   { id: "settings", label: "Settings", Icon: SettingsOutlinedIcon },

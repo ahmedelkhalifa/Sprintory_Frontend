@@ -35,6 +35,7 @@ import SettingsPage from "./pages/settings/SettingsPage";
 import AuditLogPage from "./pages/workspace/AuditLogPage";
 import AcceptInvitePage from "./pages/workspace/AcceptInvitePage";
 import { INVITE_PATH } from "./utils/invitation";
+import ReportsTab from "./components/reports/ReportsTab";
 
 const App = () => {
   return (
@@ -86,7 +87,7 @@ const App = () => {
                     <Route path="sprints" element={<ProjectSprintsPage />} />
                     <Route path="sprints/:sprintId" element={<ProjectSprintSummaryPage />} />
                     <Route path="sprints/retros/:retroId" element={<ProjectRetroPage />} />
-                    <Route path="reports" element={<ProjectComingSoonPage tab="reports" />} />
+                    <Route path="reports/:view?" element={<ReportsTab />} />
                     <Route path="files" element={<ProjectComingSoonPage tab="files" />} />
                     <Route path="settings/:section?" element={<ProjectSettingsPage />} />
                     {/* anything else: ProjectPage redirects to Overview */}
