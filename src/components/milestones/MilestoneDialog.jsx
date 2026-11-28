@@ -4,8 +4,14 @@ import FormField from "../forms/FormField";
 import { createMilestone, updateMilestone } from "../../api/milestonesApi";
 import { useSubmit } from "../../hooks/useSubmit";
 import { MILESTONE_ERROR_MESSAGES } from "../../constants/tasks";
+import {
+    MILESTONE_DESCRIPTION_MAX,
+    MILESTONE_NAME_MAX,
+    milestoneRequest,
+    validateMilestoneForm,
+} from "../../utils/milestone";
 
-const MilestoneDialog = ({ projectId, milestone = null, onClose, onSaved }) => {
+const MilestoneDialog = ({ open = true, projectId, milestone = null, onClose, onSaved }) => {
     const isEdit = Boolean(milestone);
     const [values, setValues] = useState({
         name: milestone?.name ?? "",
@@ -22,22 +28,11 @@ const MilestoneDialog = ({ projectId, milestone = null, onClose, onSaved }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const found = {};
-        const trimmedName = values.name.trim();
-        if (!trimmedName) found.name = "Name is required.";
-        else if (trimmedName.length > 100) found.name = "Maximum 100 characters.";
-        if (!values.targetDate) found.targetDate = "Target date is required.";
-        if (values.description.length > 500) found.description = "Maximum 500 characters.";
-
+        const found = validateMilestoneForm(values);
         setErrors(found);
         if (Object.keys(found).length > 0) return;
 
-        const payload = {
-            name: trimmedName,
-            targetDate: values.targetDate,
-            description: values.description.trim() || null,
-        };
-
+        const payload = milestoneRequest(values);
         const { ok, error, result } = await submit.run(() =>
             isEdit ? updateMilestone(milestone.id, payload) : createMilestone(projectId, payload),
         );
@@ -57,9 +52,9 @@ const MilestoneDialog = ({ projectId, milestone = null, onClose, onSaved }) => {
     };
 
     return (
-        <Dialog open onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
+        <Dialog open={open} onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
             <Box component="form" noValidate onSubmit={handleSubmit}>
-                <DialogTitle sx={{ fontWeight: 700, pb: 0.5 }}>{isEdit ? "Edit milestone" : "Add milestone"}</DialogTitle>
+                <DialogTitle sx={{ pb: 0.5 }}>{isEdit ? "Edit milestone" : "Add milestone"}</DialogTitle>
                 <DialogContent>
                     <Stack spacing={2} sx={{ mt: 1 }}>
                         <FormField
@@ -71,7 +66,7 @@ const MilestoneDialog = ({ projectId, milestone = null, onClose, onSaved }) => {
                             onChange={change("name")}
                             error={Boolean(errors.name)}
                             helperText={errors.name}
-                            slotProps={{ htmlInput: { maxLength: 100 } }}
+                            slotProps={{ htmlInput: { maxLength: MILESTONE_NAME_MAX } }}
                         />
                         <FormField
                             id="milestone-target-date"
@@ -92,8 +87,8 @@ const MilestoneDialog = ({ projectId, milestone = null, onClose, onSaved }) => {
                             value={values.description}
                             onChange={change("description")}
                             error={Boolean(errors.description)}
-                            helperText={errors.description || `${values.description.length} / 500`}
-                            slotProps={{ htmlInput: { maxLength: 500 } }}
+                            helperText={errors.description || `${values.description.length} / ${MILESTONE_DESCRIPTION_MAX}`}
+                            slotProps={{ htmlInput: { maxLength: MILESTONE_DESCRIPTION_MAX } }}
                         />
                         {submit.error && <Alert severity="error">{submit.error}</Alert>}
                     </Stack>

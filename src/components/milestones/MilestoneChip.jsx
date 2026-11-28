@@ -1,21 +1,16 @@
-import { Tooltip } from "@mui/material";
-import FlagOutlinedIcon from "@mui/icons-material/FlagOutlined";
+import { Box, Tooltip } from "@mui/material";
 import ToneChip from "../general/ToneChip";
 import { formatDate } from "../../utils/format";
 
 const MilestoneChip = ({ milestone }) => {
     if (!milestone) return null;
-    const dateText = milestone.targetDate ? `Target date: ${formatDate(milestone.targetDate)}` : "";
+    const title = milestone.targetDate ? `Target date: ${formatDate(milestone.targetDate)}` : "";
 
     return (
-        <Tooltip title={dateText}>
-      <span style={{ display: "inline-flex" }}>
-        <ToneChip
-            label={milestone.name}
-            tone="primary.main"
-            icon={<FlagOutlinedIcon sx={{ fontSize: "14px !important" }} />}
-        />
-      </span>
+        <Tooltip title={title}>
+            <Box component="span" sx={{ display: "inline-flex" }}>
+                <ToneChip label={milestone.name} />
+            </Box>
         </Tooltip>
     );
 };

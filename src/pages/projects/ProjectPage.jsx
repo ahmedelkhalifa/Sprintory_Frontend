@@ -167,7 +167,7 @@ const ProjectPage = () => {
         </Alert>
       )}
 
-      <ProjectTabs value={tab} tabs={tabs} pathFor={tabPath} />
+      <ProjectTabs value={tab === "milestones" ? "overview" : tab} tabs={tabs} pathFor={tabPath} />
 
       {/* a new tab follows the underline: it comes in from the side the underline went to (keyed on the tab, so
           Settings sections and a sprint's page don't move) */}

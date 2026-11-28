@@ -187,6 +187,10 @@ const SENTENCES = {
     return `${actor} created the project "${target}"${details ? ` (${details})` : ""}`;
   },
   RETRO_CLOSED: ({ actor, target, project }) => `${actor} closed the retrospective of "${target}" in "${project}"`,
+  MILESTONE_CREATED: ({ actor, target, project }) => `${actor} created the milestone "${target}" in "${project}"`,
+  MILESTONE_UPDATED: ({ actor, target, project }) => `${actor} updated the milestone "${target}" in "${project}"`,
+  MILESTONE_DELETED: ({ actor, target, project }) => `${actor} deleted the milestone "${target}" in "${project}"`,
+  MILESTONE_RESTORED: ({ actor, target, project }) => `${actor} restored the milestone "${target}" in "${project}"`,
   PROJECT_SETTINGS_CHANGED: ({ actor, project }) => `${actor} changed the settings of "${project}"`,
   PROJECT_MEMBER_ADDED: ({ actor, target, project, c }) =>
     `${actor} added ${target} to "${project}"${c.viaTeam?.newText ? ` (via team "${c.viaTeam.newText}")` : ""}`,

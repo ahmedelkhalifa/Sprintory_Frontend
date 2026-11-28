@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Autocomplete, Box, TextField, Tooltip, Typography } from "@mui/material";
-import { listMilestones, setTaskMilestone, USE_MOCK } from "../../api/milestonesApi";
+import { listMilestones, setTaskMilestone } from "../../api/milestonesApi";
 import { useAsync } from "../../hooks/useAsync";
 import { useSubmit } from "../../hooks/useSubmit";
 import { PERMISSIONS } from "../../constants/projects";
@@ -8,9 +8,15 @@ import { MILESTONE_ERROR_MESSAGES } from "../../constants/tasks";
 import { can } from "../../utils/project";
 import { formatDate } from "../../utils/format";
 
+const resolveMilestoneError = (err) => {
+    const data = err?.response?.data;
+    const mapped = data?.code ? MILESTONE_ERROR_MESSAGES[data.code] : undefined;
+    return mapped || data?.message || "Couldn't update milestone.";
+};
+
 const TaskMilestoneField = ({ id = "task-milestone", project, task, writable = true, onUpdated }) => {
     const isSubtask = task.parentTaskId != null;
-    const canLink = writable && !isSubtask && (USE_MOCK || can(project, PERMISSIONS.MILESTONE_LINK));
+    const canLink = writable && !isSubtask && can(project, PERMISSIONS.MILESTONE_LINK);
     const [error, setError] = useState("");
     const [selected, setSelected] = useState(task.milestone ?? null);
     const [prevTaskId, setPrevTaskId] = useState(task.id);
@@ -20,6 +26,7 @@ const TaskMilestoneField = ({ id = "task-milestone", project, task, writable = t
         setPrevTaskId(task.id);
         setSelected(task.milestone ?? null);
     }
+
     const milestonesState = useAsync((signal) => listMilestones(project.id, signal), [project.id], {
         enabled: canLink,
     });
@@ -38,7 +45,7 @@ const TaskMilestoneField = ({ id = "task-milestone", project, task, writable = t
             setSelected(updatedMilestone);
             onUpdated?.({ ...task, milestone: updatedMilestone });
         } else if (err) {
-            setError(submit.error || "Couldn't update milestone.");
+            setError(resolveMilestoneError(err));
         }
     };
 

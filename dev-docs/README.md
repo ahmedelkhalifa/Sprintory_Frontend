@@ -1,7 +1,7 @@
 # Backend contract summaries (frontend view)
 
 Short summaries of the backend API contracts, for whoever works on the frontend (people and Claude).
-**Source of truth:** `sprintory_backend/docs/*.md`. These summaries match those docs as of **26 Oct 2026** (workspaces, teams and roles as of 24 Oct; tasks, comments, mentions, history, board, chat and notifications as of 6 Nov; attachments as of 7 Nov; sprints and the project charter as of 9 Nov; retrospectives and their notifications as of 25 Nov; task dependencies as of 24 Nov). When a backend doc changes, update the matching file here in the same PR.
+**Source of truth:** `sprintory_backend/docs/*.md`. These summaries match those docs as of **26 Oct 2026** (workspaces, teams and roles as of 24 Oct; tasks, comments, mentions, history, board, chat and notifications as of 6 Nov; attachments as of 7 Nov; sprints and the project charter as of 9 Nov; retrospectives and their notifications as of 25 Nov; task dependencies as of 24 Nov; milestones as of 28 Nov). When a backend doc changes, update the matching file here in the same PR.
 
 | File | Covers | Backend doc |
 | --- | --- | --- |
@@ -11,6 +11,7 @@ Short summaries of the backend API contracts, for whoever works on the frontend 
 | [roles.md](roles.md) | workspace and project roles, permissions, role endpoints | `roles-docs.md` |
 | [tasks.md](tasks.md) | tasks, subtasks, descriptions with @mentions, comments, history and the board | `tasks-docs.md`, `board-docs.md`, `mentions-docs.md`, `comments-docs.md`, `task-history-docs.md` |
 | [sprints.md](sprints.md) | sprints: planning, capacity suggestion and availability, start, close, scope changes; the Backlog, Board and Sprints tabs | `sprints-docs.md` |
+| [milestones.md](milestones.md) | project milestones: target dates, progress, linking top-level tasks, soft delete and restore | `milestones-docs.md` |
 | [retrospectives.md](retrospectives.md) | sprint retrospectives: cards, votes, actions, closing (**backend on its branch, not in main yet**) | `retrospectives-docs.md` |
 | [dependencies.md](dependencies.md) | task dependencies: blocks / blocked by, cycles, the Blocked mark and filter, the move warning | `dependencies-docs.md` |
 | [jira-import.md](jira-import.md) | one-time Jira CSV migration, preview, mapping, permissions and rollout | `jira-import-docs.md` |

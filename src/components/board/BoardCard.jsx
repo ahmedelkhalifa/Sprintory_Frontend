@@ -13,6 +13,7 @@ import { formatEstimate, subtaskProgress } from "../../utils/task";
 import { memberLabel } from "../../utils/people";
 import { rowId } from "../tasks/dnd";
 import { hoverTransition, lifted } from "../../theme/motion";
+import MilestoneChip from "../milestones/MilestoneChip";
 
 // the visible card: used in the columns and as the picture that follows the pointer while dragging.
 // `task` comes from describeTasks (utils/task.js), so it has its `assignee`
@@ -60,6 +61,12 @@ export const BoardCardContent = ({ task, raised = false, lift = true, draggable 
           <ToneChip label={carried} tone="warning.main" />
         </Box>
       )}
+        {(carried || task.milestone) && (
+            <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+                {carried && <ToneChip label={carried} tone="warning.main" />}
+                <MilestoneChip milestone={task.milestone} />
+            </Box>
+        )}
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1.25 }}>
         <Tooltip title={type.label}>

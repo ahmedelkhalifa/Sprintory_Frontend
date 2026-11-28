@@ -67,7 +67,7 @@ export const COLUMN_ERROR_MESSAGES = {
 };
 export const MILESTONE_STATUS = {
   EMPTY: { value: "EMPTY", label: "No tasks yet", tone: "text.secondary" },
-  UPCOMING: { value: "UPCOMING", label: "Upcoming", tone: "info.main" },
+  UPCOMING: { value: "UPCOMING", label: "Upcoming", tone: "text.secondary" },
   OVERDUE: { value: "OVERDUE", label: "Overdue", tone: "error.main" },
   REACHED: { value: "REACHED", label: "Reached", tone: "success.main" },
 };

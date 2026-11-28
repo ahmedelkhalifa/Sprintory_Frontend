@@ -22,7 +22,7 @@ import { useAsync } from "../../hooks/useAsync";
 import { useSubmit } from "../../hooks/useSubmit";
 import { MILESTONE_ERROR_MESSAGES, TASK_TYPES } from "../../constants/tasks";
 
-const LinkTasksDialog = ({ projectId, milestone, onClose, onLinked }) => {
+const LinkTasksDialog = ({ open = true, projectId, milestone, onClose, onLinked }) => {
     const [search, setSearch] = useState("");
     const [selected, setSelected] = useState(new Set());
     const submit = useSubmit(MILESTONE_ERROR_MESSAGES);
@@ -51,8 +51,8 @@ const LinkTasksDialog = ({ projectId, milestone, onClose, onLinked }) => {
     };
 
     return (
-        <Dialog open onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
-            <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Add tasks to {milestone.name}</DialogTitle>
+        <Dialog open={open} onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
+            <DialogTitle sx={{ pb: 1 }}>Add tasks to {milestone.name}</DialogTitle>
             <DialogContent dividers>
                 <Box sx={{ mb: 2 }}>
                     <SearchField value={search} onChange={setSearch} placeholder="Search tasks by title or key…" />

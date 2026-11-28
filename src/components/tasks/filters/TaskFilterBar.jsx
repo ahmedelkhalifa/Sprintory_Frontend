@@ -18,7 +18,7 @@ import FlagCircleOutlinedIcon from "@mui/icons-material/FlagCircleOutlined";
 import { NO_MILESTONE_VALUE } from "../../../utils/taskFilters";
 
 // the Filter window's types, in order; `id` is the filter's name in EMPTY_TASK_FILTERS
-const filterGroups = ({ members, columns, labels, milestones = [] }) => [
+const filterGroups = ({ members, columns, labels, milestones = [], hideMilestone = false }) => [
   {
     id: "assigneeId",
     name: "Assignee",
@@ -64,18 +64,22 @@ const filterGroups = ({ members, columns, labels, milestones = [] }) => [
     emptyText: "No labels used yet. Add one to a task to filter by it.",
     options: labels.map((label) => ({ value: label, label, dotTone: labelTone(label) })),
   },
-  {
-    id: "milestoneId",
-    name: "Milestone",
-    anyLabel: "Any milestone",
-    Icon: FlagCircleOutlinedIcon,
-    searchPlaceholder: "Search milestones…",
-    emptyText: "No milestones in this project yet.",
-    options: [
-      { value: NO_MILESTONE_VALUE, label: "No milestone" },
-      ...milestones.map((m) => ({ value: m.id, label: m.name })),
-    ],
-  },
+  (!hideMilestone
+      ? [
+        {
+          id: "milestoneId",
+          name: "Milestone",
+          anyLabel: "Any milestone",
+          Icon: FlagCircleOutlinedIcon,
+          searchPlaceholder: "Search milestones…",
+          emptyText: "No milestones in this project yet.",
+          options: [
+            { value: NO_MILESTONE_VALUE, label: "No milestone" },
+            ...milestones.map((m) => ({ value: m.id, label: m.name })),
+          ],
+        },
+      ]
+      : [])
 ];
 
 // The Board and Backlog's filter row (Jira's "filter by"): the search box (title or key), the Filter button with
@@ -84,8 +88,8 @@ const filterGroups = ({ members, columns, labels, milestones = [] }) => [
 // matching (useTaskFilterMatches).
 // `match` is that hook's result, `shown` / `total` count the tasks for "Showing 4 of 23 tasks",
 // `actions` sits on the right (e.g. Create sprint, Create task).
-const TaskFilterBar = ({ filters, onChange, members, columns, milestones = [], labels, match, shown, total, actions }) => {
-  const groups = filterGroups({ members, columns, labels, milestones });
+const TaskFilterBar = ({ filters, onChange, members, columns, milestones = [], hideMilestone = false, labels, match, shown, total, actions }) => {
+  const groups = filterGroups({ members, columns, labels, milestones, hideMilestone });
   const filtering = hasTaskFilters(filters);
 
   return (

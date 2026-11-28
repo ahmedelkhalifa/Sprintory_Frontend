@@ -324,7 +324,7 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
                     id="task-milestone"
                     project={project}
                     task={task}
-                    writable={canEdit} // или !workspaceArchived && !projectArchived
+                    writable={canEdit} // !workspaceArchived && !projectArchived
                     onUpdated={(updated) => {
                       setTask(updated);
                       setHistoryChanges((c) => c + 1);

@@ -15,25 +15,26 @@ import {
     Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import FlagOutlinedIcon from "@mui/icons-material/FlagOutlined";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ToneChip from "../general/ToneChip";
 import LoadState from "../general/LoadState";
 import ConfirmDialog from "../general/ConfirmDialog";
 import MilestoneDialog from "./MilestoneDialog";
-import { deleteMilestone, listMilestones, restoreMilestone, USE_MOCK } from "../../api/milestonesApi";
+import { deleteMilestone, listMilestones, restoreMilestone } from "../../api/milestonesApi";
 import { useAsync } from "../../hooks/useAsync";
+import { useLatched } from "../../hooks/useLatched";
 import { useSubmit } from "../../hooks/useSubmit";
 import { MILESTONE_ERROR_MESSAGES, MILESTONE_STATUS } from "../../constants/tasks";
 import { milestonePath } from "../../utils/project";
+import { progressLabel } from "../../utils/milestone";
 import { formatDate } from "../../utils/format";
-import FlagOutlinedIcon from "@mui/icons-material/FlagOutlined";
+import { revealChildren } from "../../theme/motion";
 
-const progressLabel = (progress) => {
-    if (!progress) return "";
-    const tasksPart = `${progress.doneTasks} / ${progress.totalTasks} tasks`;
-    return progress.basis === "POINTS"
-        ? `${progress.donePoints} / ${progress.totalPoints} pts (${tasksPart})`
-        : tasksPart;
+const isConflictOrArchived = (err) => {
+    const status = err?.response?.status;
+    const code = err?.response?.data?.code;
+    return status === 409 || code === "WORKSPACE_ARCHIVED";
 };
 
 const MilestoneRow = ({ workspace, project, milestone, canManage, onEdit, onDelete }) => {
@@ -60,7 +61,8 @@ const MilestoneRow = ({ workspace, project, milestone, canManage, onEdit, onDele
                     <Typography
                         component={RouterLink}
                         to={milestonePath(workspace, project, milestone.id)}
-                        sx={{ fontWeight: 600, fontSize: 15, color: "text.primary", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
+                        variant="body1"
+                        sx={{ fontWeight: 600, color: "text.primary", textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
                     >
                         {milestone.name}
                     </Typography>
@@ -126,20 +128,21 @@ const MilestoneRow = ({ workspace, project, milestone, canManage, onEdit, onDele
 };
 
 const ProjectMilestonesSection = ({ workspace, project, writable }) => {
-    const state = useAsync((signal) => listMilestones(project.id, signal, { columns: project.columns }), [project.id, project.columns],  {
+    const state = useAsync((signal) => listMilestones(project.id, signal), [project.id], {
         fallback: "Couldn't load milestones. Please try again.",
         messages: MILESTONE_ERROR_MESSAGES,
     });
 
     const [dialog, setDialog] = useState(null); // { type: "create" | "edit" | "delete", milestone? }
-    const [deletedToast, setDeletedToast] = useState(null); // { id, name, restored? }
+    const shownDialog = useLatched(dialog);
+    const [toast, setToast] = useState(null); // { id, name, status: "deleted" | "restored" | "error", message? }
     const removeSubmit = useSubmit(MILESTONE_ERROR_MESSAGES);
     const restoreSubmit = useSubmit(MILESTONE_ERROR_MESSAGES);
 
     const data = state.data;
     const milestones = data?.milestones ?? [];
     const limit = data?.limit ?? 50;
-    const canManage = writable && (USE_MOCK || Boolean(data?.canManage));
+    const canManage = writable && Boolean(data?.canManage);
     const limitReached = milestones.length >= limit;
 
     const afterSaved = () => {
@@ -149,20 +152,30 @@ const ProjectMilestonesSection = ({ workspace, project, writable }) => {
 
     const handleDelete = async () => {
         const target = dialog.milestone;
-        const { ok } = await removeSubmit.run(() => deleteMilestone(target.id));
+        const { ok, error } = await removeSubmit.run(() => deleteMilestone(target.id));
         if (ok) {
             setDialog(null);
             state.reload();
-            setDeletedToast({ id: target.id, name: target.name, restored: false });
+            setToast({ id: target.id, name: target.name, status: "deleted" });
+        } else if (isConflictOrArchived(error)) {
+            state.reload();
         }
     };
 
     const handleUndo = async () => {
-        if (!deletedToast) return;
-        const { ok } = await restoreSubmit.run(() => restoreMilestone(deletedToast.id));
+        if (!toast || toast.status !== "deleted") return;
+        const { ok, error } = await restoreSubmit.run(() => restoreMilestone(toast.id));
         if (ok) {
-            setDeletedToast({ id: deletedToast.id, name: deletedToast.name, restored: true });
+            setToast({ id: toast.id, name: toast.name, status: "restored" });
             state.reload();
+        } else {
+            setToast({
+                id: toast.id,
+                name: toast.name,
+                status: "error",
+                message: restoreSubmit.error || "Couldn't restore milestone.",
+            });
+            if (isConflictOrArchived(error)) state.reload();
         }
     };
 
@@ -181,20 +194,17 @@ const ProjectMilestonesSection = ({ workspace, project, writable }) => {
                         borderColor: "divider",
                     }}
                 >
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                            <FlagOutlinedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                            <Typography variant="h6" sx={{ fontWeight: 500, fontSize: 16 }}>
-                                Milestones
-                            </Typography>
-                            <ToneChip label={milestones.length} />
-                        </Box>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <FlagOutlinedIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                        <Typography variant="h6">Milestones</Typography>
+                        <ToneChip label={milestones.length} />
                     </Box>
 
                     {canManage && (
                         <Tooltip title={limitReached ? `Maximum ${limit} milestones per project reached` : ""}>
               <span>
                 <Button
+                    size="small"
                     variant="contained"
                     startIcon={<AddIcon />}
                     disabled={limitReached}
@@ -219,7 +229,7 @@ const ProjectMilestonesSection = ({ workspace, project, writable }) => {
                         </Typography>
                     </Box>
                 ) : (
-                    <Stack>
+                    <Stack sx={revealChildren(1)}>
                         {milestones.map((m) => (
                             <MilestoneRow
                                 key={m.id}
@@ -235,21 +245,23 @@ const ProjectMilestonesSection = ({ workspace, project, writable }) => {
                 )}
             </Paper>
 
-            {(dialog?.type === "create" || dialog?.type === "edit") && (
+            {(shownDialog?.type === "create" || shownDialog?.type === "edit") && (
                 <MilestoneDialog
+                    open={dialog?.type === "create" || dialog?.type === "edit"}
                     projectId={project.id}
-                    milestone={dialog.milestone}
+                    milestone={shownDialog.milestone}
                     onClose={() => setDialog(null)}
                     onSaved={afterSaved}
                 />
             )}
 
-            {dialog?.type === "delete" && (
+            {shownDialog?.type === "delete" && (
                 <ConfirmDialog
-                    title={`Delete "${dialog.milestone.name}"?`}
+                    open={dialog?.type === "delete"}
+                    title={`Delete "${shownDialog.milestone.name}"?`}
                     message={
-                        (dialog.milestone.progress?.totalTasks ?? 0) > 0
-                            ? `${dialog.milestone.progress.totalTasks} ${dialog.milestone.progress.totalTasks === 1 ? "task" : "tasks"} will be unlinked.`
+                        (shownDialog.milestone.progress?.totalTasks ?? 0) > 0
+                            ? `${shownDialog.milestone.progress.totalTasks} ${shownDialog.milestone.progress.totalTasks === 1 ? "task" : "tasks"} will be unlinked.`
                             : "It has no tasks."
                     }
                     confirmLabel="Delete"
@@ -265,26 +277,28 @@ const ProjectMilestonesSection = ({ workspace, project, writable }) => {
             )}
 
             <Snackbar
-                open={Boolean(deletedToast)}
+                open={Boolean(toast)}
                 autoHideDuration={6000}
-                onClose={() => setDeletedToast(null)}
+                onClose={() => setToast(null)}
                 anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
             >
                 <Alert
-                    severity="info"
+                    severity={toast?.status === "error" ? "error" : "info"}
                     variant="filled"
-                    onClose={() => setDeletedToast(null)}
+                    onClose={() => setToast(null)}
                     action={
-                        deletedToast && !deletedToast.restored ? (
+                        toast?.status === "deleted" ? (
                             <Button color="inherit" size="small" disabled={restoreSubmit.submitting} onClick={handleUndo}>
                                 Undo
                             </Button>
                         ) : null
                     }
                 >
-                    {deletedToast?.restored
-                        ? `Milestone "${deletedToast.name}" restored (former tasks remain unlinked).`
-                        : "Milestone deleted."}
+                    {toast?.status === "error"
+                        ? toast.message
+                        : toast?.status === "restored"
+                            ? `Milestone "${toast.name}" restored (former tasks remain unlinked).`
+                            : "Milestone deleted."}
                 </Alert>
             </Snackbar>
         </>
