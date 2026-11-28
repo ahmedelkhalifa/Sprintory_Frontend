@@ -1,5 +1,4 @@
 import api from "./client";
-import { enrichTasksWithMockMilestones } from "./milestonesApi";
 
 // Tasks (story 9), see the backend's docs/tasks-docs.md. Reading needs VIEW_WORK, changing EDIT_TASKS.
 const tasksPath = (projectId) => `/projects/${projectId}/tasks`;
@@ -9,17 +8,7 @@ const MAX_PAGE_SIZE = 100;
 
 // params: { q, type, priority, statusId, assigneeId, label, blockedOnly, order (newest | board | backlog), page, size }
 export const listTasks = (projectId, params, signal) =>
-    api.get(tasksPath(projectId), { params, signal }).then((res) => {
-        const data = res.data;
-        if (!data?.content) return data;
-        let content = enrichTasksWithMockMilestones(data.content);
-        if (params?.milestoneId != null) {
-            content = content.filter((t) => Number(t.milestone?.id) === Number(params.milestoneId));
-        } else if (params?.noMilestone) {
-            content = content.filter((t) => !t.milestone);
-        }
-        return { ...data, content, totalElements: content.length };
-    });
+  api.get(tasksPath(projectId), { params, signal }).then((res) => res.data);
 
 // every task of the project that matches `params`, fetching page after page.
 // params: { order ("board" | "backlog"), and optionally the filters q, type, priority, statusId, assigneeId, label }
@@ -37,7 +26,7 @@ export const listAllTasks = async (projectId, params, signal) => {
 export const createTask = (projectId, body) => api.post(tasksPath(projectId), body).then((res) => res.data);
 
 export const getTask = (projectId, taskId, signal) =>
-    api.get(`${tasksPath(projectId)}/${taskId}`, { signal }).then((res) => enrichTasksWithMockMilestones([res.data])[0]);
+  api.get(`${tasksPath(projectId)}/${taskId}`, { signal }).then((res) => res.data);
 
 // only the fields that change; null means "unchanged", so emptied fields go as clearAssignee / clearEstimate /
 // clearDescription (see taskChanges in utils/task.js). Not for subtasks (updateSubtask): `estimate` is story points.
