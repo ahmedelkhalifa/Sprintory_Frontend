@@ -17,13 +17,13 @@ const dates = ["2026-12-04", "2026-12-04", "2026-12-05", "2026-12-06", "2026-12-
 test("options default, persist and survive broken storage", () => {
   const original = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
   const saved = new Map();
-  const use = (value) => Object.defineProperty(globalThis, "localStorage", { value, configurable: true });
+  const setStorage = (value) => Object.defineProperty(globalThis, "localStorage", { value, configurable: true });
   try {
-    use({ getItem: (k) => saved.get(k) ?? null, setItem: (k, v) => saved.set(k, v) });
+    setStorage({ getItem: (k) => saved.get(k) ?? null, setItem: (k, v) => saved.set(k, v) });
     assert.deepEqual(loadOptions(), { unit: "points", days: "working" });
     saveOptions({ unit: "tasks", days: "calendar" });
     assert.deepEqual(loadOptions(), { unit: "tasks", days: "calendar" });
-    use(undefined);
+    setStorage(undefined);
     assert.doesNotThrow(() => saveOptions({ unit: "tasks", days: "calendar" }));
     assert.deepEqual(loadOptions(), { unit: "points", days: "working" });
   } finally {
@@ -34,11 +34,11 @@ test("options default, persist and survive broken storage", () => {
 
 test("only started sprints: active first, then the latest ended", () => {
   const result = startedSprints(
-    [{ id: 1, status: "PLANNED" }, { id: 2, status: "ACTIVE" }],
-    [
-      { id: 3, status: "COMPLETED", completedAt: "2026-10-01T00:00:00Z" },
-      { id: 4, status: "CANCELLED", completedAt: "2026-11-01T00:00:00Z" },
-    ],
+      [{ id: 1, status: "PLANNED" }, { id: 2, status: "ACTIVE" }],
+      [
+        { id: 3, status: "COMPLETED", completedAt: "2026-10-01T00:00:00Z" },
+        { id: 4, status: "CANCELLED", completedAt: "2026-11-01T00:00:00Z" },
+      ],
   );
   assert.deepEqual(result.map((s) => s.id), [2, 4, 3]);
 });
