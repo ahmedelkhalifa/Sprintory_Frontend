@@ -17,7 +17,7 @@ const TABS = [
   { id: "backlog", label: "Backlog", Icon: ViewListOutlinedIcon, scrumOnly: true },
   { id: "board", label: "Board", Icon: ViewColumnOutlinedIcon },
   { id: "sprints", label: "Sprints", Icon: TimerOutlinedIcon, scrumOnly: true },
-  { id: "reports", label: "Reports", Icon: BarChartOutlinedIcon },
+  { id: "reports", label: "Reports", Icon: BarChartOutlinedIcon, scrumOnly: true },
   { id: "files", label: "Files", Icon: FolderOpenOutlinedIcon },
   // also the members ("People and access"), at settings/people
   { id: "settings", label: "Settings", Icon: SettingsOutlinedIcon },

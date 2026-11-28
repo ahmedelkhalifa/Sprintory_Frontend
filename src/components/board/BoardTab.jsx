@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Alert, Box, Button, Paper, Snackbar, Typography } from "@mui/material";
@@ -28,7 +28,7 @@ import { useTaskFilterMatches } from "../../hooks/useTaskFilterMatches";
 import { PERMISSIONS } from "../../constants/projects";
 import { TASK_ERROR_MESSAGES } from "../../constants/tasks";
 import { errorMessage } from "../../utils/apiError";
-import { can } from "../../utils/project";
+import { can, projectTabPath } from "../../utils/project";
 import { boardMove, groupByColumn, wipWarningText } from "../../utils/board";
 import { sprintEndedText, sprintPath } from "../../utils/sprint";
 import { projectLabels, taskStage } from "../../utils/task";
@@ -319,6 +319,13 @@ const BoardTab = ({
             onCompleteSprint={() => setEnding("complete")}
             onCancelSprint={() => setEnding("cancel")}
           />
+        )}
+        {sprint && (
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
+            <Button component={RouterLink} to={`${projectTabPath(workspace, project, "reports")}/burndown?sprint=${sprint.id}`}>
+              View burndown
+            </Button>
+          </Box>
         )}
 
         <TaskFilterBar
