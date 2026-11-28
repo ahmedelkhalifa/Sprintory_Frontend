@@ -35,6 +35,7 @@ import { projectLabels, taskStage } from "../../utils/task";
 import { confirmedMove, moveConfirmation } from "../../utils/dependency";
 import { EMPTY_TASK_FILTERS } from "../../utils/taskFilters";
 import { LOADING_DELAY_SX, reveal, revealChildren } from "../../theme/motion";
+import { listMilestones } from "../../api/milestonesApi";
 
 // Scrum without an active sprint: nothing to work on yet, the sprint is started from the backlog.
 // `onOpenSettings` (people who configure the board) links to the columns in Settings, which work without a sprint
@@ -94,6 +95,9 @@ const BoardTab = ({
   const { reload: reloadBoard } = boardState;
   // no filter requests for someone who can't see the work
   const match = useTaskFilterMatches(project.id, "board", canView ? filters : EMPTY_TASK_FILTERS);
+  const milestonesState = useAsync((signal) => listMilestones(project.id, signal), [project.id], {
+    enabled: canView,
+  });
   const { reload: reloadMatches } = match;
   // only changes while the tab is open: the first load already has every task created before it
   const seenTaskVersion = useRef(taskVersion);
@@ -328,6 +332,7 @@ const BoardTab = ({
           columns={columns}
           labels={projectLabels(allTasks)}
           match={match}
+          milestones={milestonesState.data?.milestones ?? []}
           shown={visible.length}
           total={tasks.length}
           // Kanban has no backlog page: new tasks start in the board's first column. The button (on the filter

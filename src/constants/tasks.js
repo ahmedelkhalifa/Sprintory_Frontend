@@ -65,3 +65,16 @@ export const COLUMN_ERROR_MESSAGES = {
   ...TASK_ERROR_MESSAGES,
   RESOURCE_NOT_FOUND: "This project no longer exists, or you no longer have access to it.",
 };
+export const MILESTONE_STATUS = {
+  EMPTY: { value: "EMPTY", label: "No tasks yet", tone: "text.secondary" },
+  UPCOMING: { value: "UPCOMING", label: "Upcoming", tone: "text.secondary" },
+  OVERDUE: { value: "OVERDUE", label: "Overdue", tone: "error.main" },
+  REACHED: { value: "REACHED", label: "Reached", tone: "success.main" },
+};
+
+export const MILESTONE_ERROR_MESSAGES = {
+  ...TASK_ERROR_MESSAGES,
+  RESOURCE_NOT_FOUND: "Milestone not found.",
+  MILESTONE_NAME_TAKEN: "A milestone with this name already exists in this project.",
+  MILESTONE_LIMIT_REACHED: "A project can have at most 50 milestones.",
+};

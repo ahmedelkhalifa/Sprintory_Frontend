@@ -1,0 +1,109 @@
+import { useState } from "react";
+import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack } from "@mui/material";
+import FormField from "../forms/FormField";
+import { createMilestone, updateMilestone } from "../../api/milestonesApi";
+import { useSubmit } from "../../hooks/useSubmit";
+import { MILESTONE_ERROR_MESSAGES } from "../../constants/tasks";
+import {
+    MILESTONE_DESCRIPTION_MAX,
+    MILESTONE_NAME_MAX,
+    milestoneRequest,
+    validateMilestoneForm,
+} from "../../utils/milestone";
+
+const MilestoneDialog = ({ open = true, projectId, milestone = null, onClose, onSaved }) => {
+    const isEdit = Boolean(milestone);
+    const [values, setValues] = useState({
+        name: milestone?.name ?? "",
+        targetDate: milestone?.targetDate ?? "",
+        description: milestone?.description ?? "",
+    });
+    const [errors, setErrors] = useState({});
+    const submit = useSubmit(MILESTONE_ERROR_MESSAGES);
+
+    const change = (field) => (e) => {
+        setValues((prev) => ({ ...prev, [field]: e.target.value }));
+        if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const found = validateMilestoneForm(values);
+        setErrors(found);
+        if (Object.keys(found).length > 0) return;
+
+        const payload = milestoneRequest(values);
+        const { ok, error, result } = await submit.run(() =>
+            isEdit ? updateMilestone(milestone.id, payload) : createMilestone(projectId, payload),
+        );
+        if (ok) {
+            onSaved(result);
+            return;
+        }
+
+        const data = error?.response?.data;
+        if (data?.code === "VALIDATION_ERROR" && data.fieldErrors) {
+            setErrors(data.fieldErrors);
+            submit.clearError();
+        } else if (data?.code === "MILESTONE_NAME_TAKEN") {
+            setErrors({ name: MILESTONE_ERROR_MESSAGES.MILESTONE_NAME_TAKEN });
+            submit.clearError();
+        }
+    };
+
+    return (
+        <Dialog open={open} onClose={submit.submitting ? undefined : onClose} maxWidth="sm" fullWidth>
+            <Box component="form" noValidate onSubmit={handleSubmit}>
+                <DialogTitle sx={{ pb: 0.5 }}>{isEdit ? "Edit milestone" : "Add milestone"}</DialogTitle>
+                <DialogContent>
+                    <Stack spacing={2} sx={{ mt: 1 }}>
+                        <FormField
+                            id="milestone-name"
+                            label="Name"
+                            required
+                            placeholder="e.g. Beta release"
+                            value={values.name}
+                            onChange={change("name")}
+                            error={Boolean(errors.name)}
+                            helperText={errors.name}
+                            slotProps={{ htmlInput: { maxLength: MILESTONE_NAME_MAX } }}
+                        />
+                        <FormField
+                            id="milestone-target-date"
+                            label="Target date"
+                            type="date"
+                            required
+                            value={values.targetDate}
+                            onChange={change("targetDate")}
+                            error={Boolean(errors.targetDate)}
+                            helperText={errors.targetDate}
+                        />
+                        <FormField
+                            id="milestone-description"
+                            label="Description"
+                            placeholder="Optional description"
+                            multiline
+                            minRows={3}
+                            value={values.description}
+                            onChange={change("description")}
+                            error={Boolean(errors.description)}
+                            helperText={errors.description || `${values.description.length} / ${MILESTONE_DESCRIPTION_MAX}`}
+                            slotProps={{ htmlInput: { maxLength: MILESTONE_DESCRIPTION_MAX } }}
+                        />
+                        {submit.error && <Alert severity="error">{submit.error}</Alert>}
+                    </Stack>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2.5 }}>
+                    <Button onClick={onClose} disabled={submit.submitting} color="inherit">
+                        Cancel
+                    </Button>
+                    <Button type="submit" variant="contained" loading={submit.submitting}>
+                        {isEdit ? "Save" : "Create milestone"}
+                    </Button>
+                </DialogActions>
+            </Box>
+        </Dialog>
+    );
+};
+
+export default MilestoneDialog;

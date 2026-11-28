@@ -24,6 +24,8 @@ import { projectSettingsPath } from "../../utils/project";
 import { useProjectAccess, useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { useProjectPage } from "../../hooks/useProjectPage";
 import { LOADING_DELAY_SX, reveal, revealChildren } from "../../theme/motion";
+import MilestonePage from "../../components/milestones/MilestonePage";
+import ProjectMilestonesSection from "../../components/milestones/ProjectMilestonesSection";
 
 // The project page's tabs, one route each (see App.jsx), rendered inside ProjectPage's layout.
 // Only the tab's own content mounts and unmounts when the tab changes; what they share comes from useProjectPage().
@@ -106,6 +108,14 @@ export const ProjectOverviewPage = () => {
                 canEdit={page.canEdit}
                 onEdit={() => page.openDialog({ type: "edit" })}
               />
+              {member && (
+                  <ProjectMilestonesSection
+                      key={project.id}
+                      workspace={workspace}
+                      project={project}
+                      writable={page.writable}
+                  />
+              )}
               <ProjectMembersCard
                 project={project}
                 preview={page.preview}
@@ -262,3 +272,19 @@ export const ProjectRetroPage = () => {
 
 // .../reports, /files until they are built
 export const ProjectComingSoonPage = ({ tab }) => <ComingSoonPanel title={tabLabel(tab)} />;
+export const ProjectMilestonePage = () => {
+  const { workspace } = useWorkspaceAccess();
+  const { project } = useProjectAccess();
+  const { milestoneId } = useParams();
+  const page = useProjectPage();
+  return (
+      <MilestonePage
+          key={milestoneId}
+          workspace={workspace}
+          project={project}
+          milestoneId={milestoneId}
+          writable={page.writable}
+          onBack={() => page.goToTab("overview")}
+      />
+  );
+};

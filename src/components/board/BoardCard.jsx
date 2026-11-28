@@ -7,6 +7,7 @@ import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import ToneChip from "../general/ToneChip";
 import UserAvatar from "../general/UserAvatar";
 import BlockedMark from "../tasks/dependencies/BlockedMark";
+import MilestoneChip from "../milestones/MilestoneChip";
 import { TASK_PRIORITIES, TASK_TYPES } from "../../constants/tasks";
 import { carriedOverLabel } from "../../utils/sprint";
 import { formatEstimate, subtaskProgress } from "../../utils/task";
@@ -18,168 +19,169 @@ import { hoverTransition, lifted } from "../../theme/motion";
 // `task` comes from describeTasks (utils/task.js), so it has its `assignee`
 // `raised`: the dragged copy (`lift` false for a keyboard drag, which doesn't animate)
 export const BoardCardContent = ({ task, raised = false, lift = true, draggable = false }) => {
-  const type = TASK_TYPES[task.type] ?? TASK_TYPES.TASK;
-  const priority = TASK_PRIORITIES[task.priority] ?? TASK_PRIORITIES.MEDIUM;
-  const estimate = formatEstimate(task.estimate);
-  // subtasks aren't cards of their own (PMP-132): the parent shows how many are done
-  const subtasks = subtaskProgress(task);
-  // left unfinished by an earlier sprint (PMP-41)
-  const carried = carriedOverLabel(task);
+    const type = TASK_TYPES[task.type] ?? TASK_TYPES.TASK;
+    const priority = TASK_PRIORITIES[task.priority] ?? TASK_PRIORITIES.MEDIUM;
+    const estimate = formatEstimate(task.estimate);
+    // subtasks aren't cards of their own (PMP-132): the parent shows how many are done
+    const subtasks = subtaskProgress(task);
+    // left unfinished by an earlier sprint (PMP-41)
+    const carried = carriedOverLabel(task);
 
-  return (
-    <Box
-      sx={{
-        p: 1.5,
-        bgcolor: "background.paper",
-        border: 1,
-        borderColor: raised ? "primary.light" : "divider",
-        borderRadius: 1.5,
-        boxShadow: 1,
-        cursor: draggable ? "grab" : "pointer",
-        transition: hoverTransition("border-color"),
-        "&:hover": { borderColor: "primary.light" },
-        ...(raised && lifted(1.03, lift)),
-      }}
-    >
-      <Typography
-        variant="body2"
-        sx={{
-          fontWeight: 500,
-          overflowWrap: "anywhere",
-          display: "-webkit-box",
-          WebkitLineClamp: 3,
-          WebkitBoxOrient: "vertical",
-          overflow: "hidden",
-        }}
-      >
-        {task.title}
-      </Typography>
-
-      {carried && (
-        <Box sx={{ mt: 1 }}>
-          <ToneChip label={carried} tone="warning.main" />
-        </Box>
-      )}
-
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1.25 }}>
-        <Tooltip title={type.label}>
-          <type.Icon fontSize="small" sx={{ color: type.tone }} aria-label={type.label} />
-        </Tooltip>
-        <Typography variant="caption" color="text.secondary" noWrap sx={{ fontWeight: 600, flexGrow: 1 }}>
-          {task.key}
-        </Typography>
-        {/* an open blocker (PMP-45): the tooltip lists them */}
-        <BlockedMark task={task} />
-        <Tooltip title={`${priority.label} priority`}>
-          <priority.Icon fontSize="small" sx={{ color: priority.tone }} aria-label={`${priority.label} priority`} />
-        </Tooltip>
-        {subtasks.total > 0 && (
-          <Tooltip title={`${subtasks.done} of ${subtasks.total} subtasks done`}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 0.25,
-                fontSize: 12,
-                fontWeight: 600,
-                color: subtasks.done === subtasks.total ? "success.main" : "text.secondary",
-              }}
-            >
-              <AccountTreeOutlinedIcon sx={{ fontSize: 14 }} />
-              {subtasks.done}/{subtasks.total}
-            </Box>
-          </Tooltip>
-        )}
-        {estimate && (
-          <Tooltip title="Estimate">
-            <Box
-              sx={{
-                minWidth: 24,
-                px: 0.75,
-                py: 0.25,
-                borderRadius: 3,
-                textAlign: "center",
-                fontSize: 12,
-                fontWeight: 600,
-                bgcolor: "background.default",
-              }}
-            >
-              {estimate}
-            </Box>
-          </Tooltip>
-        )}
-        {/* the Box holds the tooltip's ref, which UserAvatar doesn't pass on */}
-        <Tooltip title={task.assignee ? memberLabel(task.assignee) : "Unassigned"}>
-          <Box sx={{ display: "flex" }}>
-            {task.assignee ? (
-              <UserAvatar user={task.assignee} size={24} />
-            ) : (
-              <Box
+    return (
+        <Box
+            sx={{
+                p: 1.5,
+                bgcolor: "background.paper",
+                border: 1,
+                borderColor: raised ? "primary.light" : "divider",
+                borderRadius: 1.5,
+                boxShadow: 1,
+                cursor: draggable ? "grab" : "pointer",
+                transition: hoverTransition("border-color"),
+                "&:hover": { borderColor: "primary.light" },
+                ...(raised && lifted(1.03, lift)),
+            }}
+        >
+            <Typography
+                variant="body2"
                 sx={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: "50%",
-                  border: 1,
-                  borderStyle: "dashed",
-                  borderColor: "text.disabled",
-                  color: "text.disabled",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                    fontWeight: 500,
+                    overflowWrap: "anywhere",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
                 }}
-              >
-                <PersonOutlineIcon sx={{ fontSize: 15 }} />
-              </Box>
+            >
+                {task.title}
+            </Typography>
+
+            {(carried || task.milestone) && (
+                <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+                    {carried && <ToneChip label={carried} tone="warning.main" />}
+                    <MilestoneChip milestone={task.milestone} />
+                </Box>
             )}
-          </Box>
-        </Tooltip>
-      </Box>
-    </Box>
-  );
+
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1.25 }}>
+                <Tooltip title={type.label}>
+                    <type.Icon fontSize="small" sx={{ color: type.tone }} aria-label={type.label} />
+                </Tooltip>
+                <Typography variant="caption" color="text.secondary" noWrap sx={{ fontWeight: 600, flexGrow: 1 }}>
+                    {task.key}
+                </Typography>
+                {/* an open blocker (PMP-45): the tooltip lists them */}
+                <BlockedMark task={task} />
+                <Tooltip title={`${priority.label} priority`}>
+                    <priority.Icon fontSize="small" sx={{ color: priority.tone }} aria-label={`${priority.label} priority`} />
+                </Tooltip>
+                {subtasks.total > 0 && (
+                    <Tooltip title={`${subtasks.done} of ${subtasks.total} subtasks done`}>
+                        <Box
+                            sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.25,
+                                fontSize: 12,
+                                fontWeight: 600,
+                                color: subtasks.done === subtasks.total ? "success.main" : "text.secondary",
+                            }}
+                        >
+                            <AccountTreeOutlinedIcon sx={{ fontSize: 14 }} />
+                            {subtasks.done}/{subtasks.total}
+                        </Box>
+                    </Tooltip>
+                )}
+                {estimate && (
+                    <Tooltip title="Estimate">
+                        <Box
+                            sx={{
+                                minWidth: 24,
+                                px: 0.75,
+                                py: 0.25,
+                                borderRadius: 3,
+                                textAlign: "center",
+                                fontSize: 12,
+                                fontWeight: 600,
+                                bgcolor: "background.default",
+                            }}
+                        >
+                            {estimate}
+                        </Box>
+                    </Tooltip>
+                )}
+                {/* the Box holds the tooltip's ref, which UserAvatar doesn't pass on */}
+                <Tooltip title={task.assignee ? memberLabel(task.assignee) : "Unassigned"}>
+                    <Box sx={{ display: "flex" }}>
+                        {task.assignee ? (
+                            <UserAvatar user={task.assignee} size={24} />
+                        ) : (
+                            <Box
+                                sx={{
+                                    width: 24,
+                                    height: 24,
+                                    borderRadius: "50%",
+                                    border: 1,
+                                    borderStyle: "dashed",
+                                    borderColor: "text.disabled",
+                                    color: "text.disabled",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                }}
+                            >
+                                <PersonOutlineIcon sx={{ fontSize: 15 }} />
+                            </Box>
+                        )}
+                    </Box>
+                </Tooltip>
+            </Box>
+        </Box>
+    );
 };
 
 // the wrapper's fixed styles; what changes while dragging goes in `style`, which skips the sx / Emotion work
 const wrapperSx = {
-  borderRadius: 1.5,
-  outline: "none",
-  "&:focus-visible": { boxShadow: (theme) => `0 0 0 2px ${theme.palette.primary.main}` },
+    borderRadius: 1.5,
+    outline: "none",
+    "&:focus-visible": { boxShadow: (theme) => `0 0 0 2px ${theme.palette.primary.main}` },
 };
 
 // One task on the board. The whole card is dragged when `canDrag`; a click (or Enter) opens it (`onOpen(taskId)`),
 // Space picks it up with the keyboard. Memoized: the tab re-renders when a drag starts or crosses into another
 // column, and a card only needs to when its own props change.
 const BoardCard = ({ task, canDrag, onOpen }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: rowId(task.id),
-    disabled: !canDrag,
-    data: { taskId: task.id },
-  });
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: rowId(task.id),
+        disabled: !canDrag,
+        data: { taskId: task.id },
+    });
 
-  // dnd-kit re-renders the dragged card on every pointer move (it reads the drag position from context);
-  // the content only changes with the task, so the same element is reused and React skips it
-  const content = useMemo(() => <BoardCardContent task={task} draggable={canDrag} />, [task, canDrag]);
+    // dnd-kit re-renders the dragged card on every pointer move (it reads the drag position from context);
+    // the content only changes with the task, so the same element is reused and React skips it
+    const content = useMemo(() => <BoardCardContent task={task} draggable={canDrag} />, [task, canDrag]);
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") onOpen(task.id);
-    else listeners?.onKeyDown?.(e);
-  };
+    const handleKeyDown = (e) => {
+        if (e.key === "Enter") onOpen(task.id);
+        else listeners?.onKeyDown?.(e);
+    };
 
-  return (
-    <Box
-      ref={setNodeRef}
-      {...attributes}
-      {...listeners}
-      onKeyDown={handleKeyDown}
-      onClick={() => onOpen(task.id)}
-      tabIndex={0}
-      role="button"
-      aria-label={`${task.key} ${task.title}`}
-      style={{ transform: CSS.Translate.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
-      sx={wrapperSx}
-    >
-      {content}
-    </Box>
-  );
+    return (
+        <Box
+            ref={setNodeRef}
+            {...attributes}
+            {...listeners}
+            onKeyDown={handleKeyDown}
+            onClick={() => onOpen(task.id)}
+            tabIndex={0}
+            role="button"
+            aria-label={`${task.key} ${task.title}`}
+            style={{ transform: CSS.Translate.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+            sx={wrapperSx}
+        >
+            {content}
+        </Box>
+    );
 };
 
 export default memo(BoardCard);

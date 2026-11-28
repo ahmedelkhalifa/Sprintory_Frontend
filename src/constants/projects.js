@@ -77,4 +77,6 @@ export const PERMISSIONS = {
   LOG_TIME: "LOG_TIME", // log time on tasks (R19)
   EDIT_CHARTER: "EDIT_CHARTER", // goals, scope and stakeholders of the charter (PMP-116: Project Manager, Scrum Product Owner)
   DEPENDENCY_MANAGE: "DEPENDENCY_MANAGE", // add and remove task dependencies (PMP-45: every role but Viewer)
+  MILESTONE_MANAGE: "MILESTONE_MANAGE", // create, edit, delete, restore milestones (PMP-46: PM, PO)
+  MILESTONE_LINK: "MILESTONE_LINK", // link and unlink tasks to milestones (PMP-46: all roles except Viewer)
 };

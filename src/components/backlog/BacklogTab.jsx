@@ -44,6 +44,7 @@ import {
 } from "../../utils/task";
 import { EMPTY_TASK_FILTERS, hasTaskFilters } from "../../utils/taskFilters";
 import { LOADING_DELAY_SX, reveal, revealChildren } from "../../theme/motion";
+import { listMilestones } from "../../api/milestonesApi";
 
 // why a drop was refused, by the permission it needed
 const NOT_ALLOWED = {
@@ -70,6 +71,9 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
   const { reload: reloadBacklog } = backlogState;
   // no filter requests for someone who can't see the work
   const match = useTaskFilterMatches(project.id, "backlog", canView ? filters : EMPTY_TASK_FILTERS);
+  const milestonesState = useAsync((signal) => listMilestones(project.id, signal), [project.id], {
+    enabled: canView,
+  });
   const { reload: reloadMatches } = match;
   // only changes while the tab is open: the first load already has every task created before it
   const seenTaskVersion = useRef(taskVersion);
@@ -276,6 +280,7 @@ const BacklogTab = ({ project, writable, taskVersion = 0, onCreateTask, filters,
           columns={data.columns}
           labels={projectLabels(state.tasks)}
           match={match}
+          milestones={milestonesState.data?.milestones ?? []}
           shown={keep(state.tasks).length}
           total={state.tasks.length}
           actions={

@@ -21,6 +21,7 @@ import {
   ProjectBacklogPage,
   ProjectBoardPage,
   ProjectComingSoonPage,
+  ProjectMilestonePage,
   ProjectOverviewPage,
   ProjectRetroPage,
   ProjectSettingsPage,
@@ -89,6 +90,7 @@ const App = () => {
                     <Route path="reports" element={<ProjectComingSoonPage tab="reports" />} />
                     <Route path="files" element={<ProjectComingSoonPage tab="files" />} />
                     <Route path="settings/:section?" element={<ProjectSettingsPage />} />
+                    <Route path="milestones/:milestoneId" element={<ProjectMilestonePage />} />
                     {/* anything else: ProjectPage redirects to Overview */}
                     <Route path="*" element={null} />
                   </Route>

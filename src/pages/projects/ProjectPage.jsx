@@ -115,7 +115,7 @@ const ProjectPage = () => {
   // the members used to be their own tab: old links land on Settings → People and access
   if (tab === "members") return <Navigate to={settingsPath("people")} replace />;
   // an unknown tab, or Backlog / Sprints in a Kanban project: Overview instead
-  if (!tabs.some((t) => t.id === tab)) return <Navigate to={tabPath("overview")} replace />;
+  if (tab !== "milestones" && !tabs.some((t) => t.id === tab)) return <Navigate to={tabPath("overview")} replace />;
 
   const page = {
     preview: previewState.data,
@@ -167,7 +167,7 @@ const ProjectPage = () => {
         </Alert>
       )}
 
-      <ProjectTabs value={tab} tabs={tabs} pathFor={tabPath} />
+      <ProjectTabs value={tab === "milestones" ? "overview" : tab} tabs={tabs} pathFor={tabPath} />
 
       {/* a new tab follows the underline: it comes in from the side the underline went to (keyed on the tab, so
           Settings sections and a sprint's page don't move) */}

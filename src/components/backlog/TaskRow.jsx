@@ -14,6 +14,7 @@ import { formatEstimate, labelTone } from "../../utils/task";
 import { memberLabel } from "../../utils/people";
 import { rowId } from "../tasks/dnd";
 import { lifted } from "../../theme/motion";
+import MilestoneChip from "../milestones/MilestoneChip";
 
 // the visible row: used in the lists and as the picture that follows the pointer while dragging.
 // `task` comes from describeTasks (utils/task.js), so it has its `assignee` and `stage`
@@ -65,7 +66,12 @@ export const TaskRowContent = ({ task, handle, onOpen, actions, raised = false, 
       </ButtonBase>
 
       {/* an open blocker (PMP-45): the tooltip lists them */}
-      <BlockedMark task={task} />
+        <BlockedMark task={task} />
+        {task.milestone && (
+            <Box sx={{ display: { xs: "none", sm: "block" }, flexShrink: 0 }}>
+                <MilestoneChip milestone={task.milestone} />
+            </Box>
+        )}
       {carried && (
         <Box sx={{ display: { xs: "none", sm: "block" }, flexShrink: 0 }}>
           <ToneChip label={carried} tone="warning.main" />

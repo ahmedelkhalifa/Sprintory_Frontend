@@ -82,3 +82,5 @@ export const projectSettingsPath = (workspace, project, section = "general") => 
 
 // the tab in a url under `basePath` (the project's path): the segment right after it, Overview when there is none
 export const projectTabOf = (pathname, basePath) => pathname.slice(basePath.length).split("/")[1] || "overview";
+export const milestonePath = (workspace, project, milestoneId) =>
+    `${projectPath(workspace, project)}/milestones/${milestoneId}`;

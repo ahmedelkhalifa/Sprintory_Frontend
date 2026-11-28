@@ -246,6 +246,50 @@ test("each entry reads as one sentence on a phone, with the names stored in it",
     ),
     'Ada Lovelace closed the retrospective of "MOB Sprint 3" in "Mobile App"',
   );
+    assert.equal(
+        auditSentence(
+            entry(8, "2026-11-28T14:05:31Z", {
+                action: "MILESTONE_CREATED",
+                area: "PROJECT",
+                target: { type: "MILESTONE", id: 5, name: "Beta release" },
+                changes: [],
+            }),
+        ),
+        'Ada Lovelace created the milestone "Beta release" in "Mobile App"',
+    );
+    assert.equal(
+        auditSentence(
+            entry(9, "2026-11-28T14:05:31Z", {
+                action: "MILESTONE_UPDATED",
+                area: "PROJECT",
+                target: { type: "MILESTONE", id: 5, name: "Beta release" },
+                changes: [],
+            }),
+        ),
+        'Ada Lovelace updated the milestone "Beta release" in "Mobile App"',
+    );
+    assert.equal(
+        auditSentence(
+            entry(10, "2026-11-28T14:05:31Z", {
+                action: "MILESTONE_DELETED",
+                area: "PROJECT",
+                target: { type: "MILESTONE", id: 5, name: "Beta release" },
+                changes: [],
+            }),
+        ),
+        'Ada Lovelace deleted the milestone "Beta release" in "Mobile App"',
+    );
+    assert.equal(
+        auditSentence(
+            entry(11, "2026-11-28T14:05:31Z", {
+                action: "MILESTONE_RESTORED",
+                area: "PROJECT",
+                target: { type: "MILESTONE", id: 5, name: "Beta release" },
+                changes: [],
+            }),
+        ),
+        'Ada Lovelace restored the milestone "Beta release" in "Mobile App"',
+    );
   // an action the app doesn't know yet still reads
   assert.equal(
     auditSentence(entry(6, "2026-11-02T14:05:31Z", { action: "BOARD_COLUMN_MOVED" })),

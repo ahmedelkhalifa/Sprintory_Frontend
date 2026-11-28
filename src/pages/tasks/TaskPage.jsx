@@ -53,6 +53,7 @@ import { confirmedMove, moveConfirmation } from "../../utils/dependency";
 import { isWorkspaceArchived } from "../../utils/workspace";
 import { useLatched } from "../../hooks/useLatched";
 import { LOADING_DELAY_SX, revealChildren } from "../../theme/motion";
+import TaskMilestoneField from "../../components/milestones/TaskMilestoneField";
 
 // The loaded task and its fields. Every change is saved at once, like in Jira: one field at a time (useFieldSave
 // with validateTask and taskChanges: only what changed, clear flags for emptied fields). Under the description
@@ -316,6 +317,18 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
                   onBlur={saveEstimate}
                   onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
                   slotProps={{ htmlInput: { min: 0, step: 1 } }}
+                />
+              </DetailRow>
+              <DetailRow id="task-milestone" label="Milestone">
+                <TaskMilestoneField
+                    id="task-milestone"
+                    project={project}
+                    task={task}
+                    writable={canEdit} // !workspaceArchived && !projectArchived
+                    onUpdated={(updated) => {
+                      setTask(updated);
+                      setHistoryChanges((c) => c + 1);
+                    }}
                 />
               </DetailRow>
             </AccordionDetails>
