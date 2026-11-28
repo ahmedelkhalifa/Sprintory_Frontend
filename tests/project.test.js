@@ -4,6 +4,7 @@ import { errorMessage } from "../src/utils/apiError.js";
 import {
   can,
   isProjectArchived,
+  isProjectCompleted,
   isProjectManager,
   parseProjectId,
   projectPath,
@@ -43,6 +44,11 @@ test("a project without a status counts as active", () => {
   assert.equal(isProjectArchived({ status: "ARCHIVED" }), true);
   assert.equal(isProjectArchived({ status: "ACTIVE" }), false);
   assert.equal(isProjectArchived({}), false);
+  // a completed project is not archived; only its dates and dependencies are locked
+  assert.equal(isProjectCompleted({ status: "COMPLETED" }), true);
+  assert.equal(isProjectArchived({ status: "COMPLETED" }), false);
+  assert.equal(isProjectCompleted({ status: "ACTIVE" }), false);
+  assert.equal(isProjectCompleted({}), false);
 });
 
 test("project urls live under their workspace", () => {

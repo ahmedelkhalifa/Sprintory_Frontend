@@ -1,6 +1,7 @@
 import { PERMISSIONS } from "../constants/projects.js";
 import { can, projectPath } from "./project.js";
 import { dependencyHistoryLine } from "./dependency.js";
+import { formatDate } from "./format.js";
 
 // the full task page (built separately); the drawer links to it
 export const taskPath = (workspace, project, taskId) => `${projectPath(workspace, project)}/tasks/${taskId}`;
@@ -125,7 +126,21 @@ export const taskValues = (task) => ({
   estimate: task.estimate ?? "",
   labels: task.labels ?? [],
   assigneeId: task.assigneeId ?? null,
+  startDate: task.startDate ?? "",
+  dueDate: task.dueDate ?? "",
 });
+
+// The dates into a PATCH body (backend schedule-docs §1): the backend takes them only as a pair, so both go when
+// either changed, and `clearDates` when both were emptied. Values without dates (a form that doesn't show them)
+// leave them alone. validateTask has already checked the pair
+const datesChange = (task, values, changes) => {
+  if (values.startDate === undefined && values.dueDate === undefined) return;
+  const start = values.startDate ?? "";
+  const due = values.dueDate ?? "";
+  if (start === (task.startDate ?? "") && due === (task.dueDate ?? "")) return;
+  if (!start && !due) changes.clearDates = true;
+  else Object.assign(changes, { startDate: start, dueDate: due });
+};
 
 // the description into a PATCH body (tasks and subtasks): only when it changed, `clearDescription` when emptied.
 // The values hold richTextValue's string: "" or the TipTap JSON
@@ -138,8 +153,9 @@ const descriptionChange = (task, values, changes) => {
 
 /**
  * The PATCH body for the task form: only the fields that changed. Emptied fields are sent as the backend's clear
- * flags (`clearAssignee`, `clearEstimate`, `clearDescription`), because null there means "unchanged".
- * `values` are the form's: strings for title, description and estimate, `assigneeId` a number or null.
+ * flags (`clearAssignee`, `clearEstimate`, `clearDescription`, `clearDates`), because null there means "unchanged".
+ * `values` are the form's: strings for title, description, estimate and the dates ("YYYY-MM-DD" or ""),
+ * `assigneeId` a number or null.
  */
 export const taskChanges = (task, values) => {
   const changes = {};
@@ -164,6 +180,8 @@ export const taskChanges = (task, values) => {
 
   const labels = [...values.labels].sort();
   if (!sameLabels(labels, [...(task.labels ?? [])].sort())) changes.labels = labels;
+
+  datesChange(task, values, changes);
   return changes;
 };
 
@@ -252,7 +270,13 @@ const HISTORY_FIELDS = {
   ESTIMATE: "story points",
   ESTIMATE_MINUTES: "time estimate",
   LABELS: "labels",
+  // the Timeline's dates (backend schedule-docs §1): ISO dates or null
+  START_DATE: "start date",
+  DUE_DATE: "due date",
 };
+
+// fields whose values are ISO dates ("2026-11-10"), shown as "Nov 10, 2026"
+const DATE_FIELDS = new Set(["START_DATE", "DUE_DATE"]);
 
 // enum values come as stored ("HIGHEST"); every type and priority label is the value in sentence case
 const enumLabel = (value) => value.charAt(0) + value.slice(1).toLowerCase();
@@ -261,6 +285,7 @@ const historyValue = (field, value) => {
   if (value == null || value === "") return "None";
   if (field === "TYPE" || field === "PRIORITY") return enumLabel(value);
   if (field === "ESTIMATE_MINUTES") return formatMinutes(value);
+  if (DATE_FIELDS.has(field)) return formatDate(value) || value;
   return value;
 };
 
@@ -314,6 +339,12 @@ export const historyLine = (entry, { subtask = false } = {}) => {
     if (oldValue == null && newValue != null) return { text: `assigned it to ${newValue}` };
     if (newValue == null && oldValue != null) return { text: `unassigned ${oldValue}` };
     return { text: "changed the assignee", from: historyValue(field, oldValue), to: historyValue(field, newValue), kind: "values" };
+  }
+  // linked to a milestone, unlinked, or moved to another (backend milestones-docs §6): the values are milestone names
+  if (field === "MILESTONE") {
+    if (oldValue == null && newValue != null) return { text: `added it to milestone ${newValue}` };
+    if (newValue == null && oldValue != null) return { text: `removed it from milestone ${oldValue}` };
+    return { text: "changed the milestone", from: historyValue(field, oldValue), to: historyValue(field, newValue), kind: "values" };
   }
   const name = HISTORY_FIELDS[field];
   if (!name) return { text: "updated the task" };

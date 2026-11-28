@@ -49,6 +49,10 @@ export const can = (project, permission) => Boolean(project?.permissions?.includ
 // ASSUMED until R30: the backend has no project status yet, so today every project is active
 export const isProjectArchived = (project) => project?.status === "ARCHIVED";
 
+// ASSUMED like isProjectArchived (PMP-63). A completed project keeps most task edits, but its task dates and
+// dependencies are read-only (backend schedule-docs §1, dependencies-docs §1)
+export const isProjectCompleted = (project) => project?.status === "COMPLETED";
+
 // a key suggested from the name while the user hasn't typed one: "Mobile App" -> "MA", "Website" -> "WEB".
 // only letters and digits count; the key must start with a letter, so leading digits are dropped.
 // "" when nothing usable is left (the field then stays empty for the user to fill)

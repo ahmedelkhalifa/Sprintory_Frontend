@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   EMPTY_TASK_FILTERS,
-  countPickedFilters,
+  countSetFilters,
   countTaskFilters,
   hasTaskFilters,
   pickedLabel,
@@ -27,9 +27,18 @@ test("taskFilterParams: sends only the filters that are set", () => {
   assert.equal(hasTaskFilters(filters), true);
 });
 
-test("countPickedFilters: the Filter button's count leaves the search out", () => {
-  assert.equal(countPickedFilters({ ...EMPTY_TASK_FILTERS, q: "login" }), 0);
-  assert.equal(countPickedFilters({ ...EMPTY_TASK_FILTERS, q: "login", type: "BUG", assigneeId: 7 }), 2);
+// the Board and Backlog's Filter window groups (TaskFilterBar)
+const BOARD_GROUPS = ["assigneeId", "type", "priority", "statusId", "label"].map((id) => ({ id }));
+
+test("countSetFilters: the Filter button counts its own groups, leaving the search out", () => {
+  assert.equal(countSetFilters({ ...EMPTY_TASK_FILTERS, q: "login" }, BOARD_GROUPS), 0);
+  assert.equal(countSetFilters({ ...EMPTY_TASK_FILTERS, q: "login", type: "BUG", assigneeId: 7 }, BOARD_GROUPS), 2);
+});
+
+test("countSetFilters counts the Timeline's groups too (milestone, sprint)", () => {
+  const groups = ["assigneeId", "milestoneId", "type", "statusId", "sprintId"].map((id) => ({ id }));
+  assert.equal(countSetFilters({ milestoneId: 4, sprintId: 2, assigneeId: null, hideDone: true }, groups), 2);
+  assert.equal(countSetFilters({ type: "" }, groups), 0);
 });
 
 test("pickedLabel: the picked option's name, or empty", () => {
@@ -50,6 +59,6 @@ test("taskFilterParams: Blocked only is sent as blockedOnly=true, and only when 
   assert.deepEqual(taskFilterParams({ ...EMPTY_TASK_FILTERS, blockedOnly: false }), {});
   assert.equal(hasTaskFilters({ ...EMPTY_TASK_FILTERS, blockedOnly: true }), true);
   // the toggle sits on the bar, not in the Filter window
-  assert.equal(countPickedFilters({ ...EMPTY_TASK_FILTERS, blockedOnly: true, type: "BUG" }), 1);
+  assert.equal(countSetFilters({ ...EMPTY_TASK_FILTERS, blockedOnly: true, type: "BUG" }, BOARD_GROUPS), 1);
   assert.deepEqual(taskFilterParams({ ...EMPTY_TASK_FILTERS, blockedOnly: true, label: "api" }), { label: "api", blockedOnly: true });
 });

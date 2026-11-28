@@ -21,15 +21,16 @@ export const listAllTasks = async (projectId, params, signal) => {
   }
 };
 
-// body: { title, type?, priority?, assigneeId?, estimate?, labels?, description? }; it starts in the first column
-// and last in the backlog
+// body: { title, type?, priority?, assigneeId?, estimate?, labels?, description?, startDate?, dueDate? }; it starts
+// in the first column and last in the backlog. The dates ("YYYY-MM-DD", for the Timeline) come both or neither
 export const createTask = (projectId, body) => api.post(tasksPath(projectId), body).then((res) => res.data);
 
 export const getTask = (projectId, taskId, signal) =>
   api.get(`${tasksPath(projectId)}/${taskId}`, { signal }).then((res) => res.data);
 
 // only the fields that change; null means "unchanged", so emptied fields go as clearAssignee / clearEstimate /
-// clearDescription (see taskChanges in utils/task.js). Not for subtasks (updateSubtask): `estimate` is story points.
+// clearDescription / clearDates (see taskChanges in utils/task.js). `startDate` and `dueDate` always go together
+// (backend schedule-docs §1). Not for subtasks (updateSubtask): `estimate` is story points.
 // Moving a parent into a Done column while it has open subtasks answers 409 OPEN_SUBTASKS_CONFIRMATION_REQUIRED,
 // moving a blocked task forward 409 BLOCKED_TASK_CONFIRMATION_REQUIRED; the same changes plus
 // `confirmOpenSubtasks` / `confirmBlocked: true` go through (moveConfirmation in utils/dependency.js)

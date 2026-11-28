@@ -13,6 +13,7 @@ import BoardTab from "../../components/board/BoardTab";
 import SprintsTab from "../../components/sprints/SprintsTab";
 import SprintSummaryPage from "../../components/sprints/SprintSummaryPage";
 import RetroPage from "../../components/retro/RetroPage";
+import TimelineTab from "../../components/timeline/TimelineTab";
 import CharterGoals from "../../components/charter/CharterGoals";
 import CharterScope from "../../components/charter/CharterScope";
 import CharterStakeholders from "../../components/charter/CharterStakeholders";
@@ -184,6 +185,14 @@ export const ProjectBoardPage = () => {
       onOpenSettings={() => page.goToSettings("board")}
     />
   );
+};
+
+// .../timeline (members only: ProjectPage sends anyone else to Overview)
+export const ProjectTimelinePage = () => {
+  const { workspace } = useWorkspaceAccess();
+  const { project } = useProjectAccess();
+  const page = useProjectPage();
+  return <TimelineTab workspace={workspace} project={project} taskVersion={page.taskVersion} />;
 };
 
 // .../settings and .../settings/:section (people, board, archive); the old .../members url lands on people

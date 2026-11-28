@@ -2,6 +2,7 @@ import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
 import ViewListOutlinedIcon from "@mui/icons-material/ViewListOutlined";
 import ViewColumnOutlinedIcon from "@mui/icons-material/ViewColumnOutlined";
+import ViewTimelineOutlinedIcon from "@mui/icons-material/ViewTimelineOutlined";
 import TimerOutlinedIcon from "@mui/icons-material/TimerOutlined";
 import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 import FolderOpenOutlinedIcon from "@mui/icons-material/FolderOpenOutlined";
@@ -16,6 +17,8 @@ const TABS = [
   { id: "chat", label: "Chat", Icon: ChatBubbleOutlineIcon, membersOnly: true },
   { id: "backlog", label: "Backlog", Icon: ViewListOutlinedIcon, scrumOnly: true },
   { id: "board", label: "Board", Icon: ViewColumnOutlinedIcon },
+  // the Gantt chart (PMP-48), Scrum and Kanban; members only, like the chat (the schedule answers anyone else 404)
+  { id: "timeline", label: "Timeline", Icon: ViewTimelineOutlinedIcon, membersOnly: true },
   { id: "sprints", label: "Sprints", Icon: TimerOutlinedIcon, scrumOnly: true },
   { id: "reports", label: "Reports", Icon: BarChartOutlinedIcon },
   { id: "files", label: "Files", Icon: FolderOpenOutlinedIcon },

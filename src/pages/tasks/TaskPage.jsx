@@ -21,6 +21,7 @@ import NoWorkAccess from "../../components/tasks/NoWorkAccess";
 import MoveConfirmDialog from "../../components/tasks/MoveConfirmDialog";
 import TaskActivity from "../../components/tasks/TaskActivity";
 import TaskBreadcrumbs from "../../components/tasks/TaskBreadcrumbs";
+import TaskDateFields from "../../components/tasks/TaskDateFields";
 import TaskDates from "../../components/tasks/TaskDates";
 import TaskDeleteAction from "../../components/tasks/TaskDeleteAction";
 import TaskDescription from "../../components/tasks/TaskDescription";
@@ -39,7 +40,7 @@ import { useFieldSave } from "../../hooks/useFieldSave";
 import { useProjectAccess, useWorkspaceAccess } from "../../hooks/useResourceAccess";
 import { PERMISSIONS } from "../../constants/projects";
 import { TASK_ERROR_MESSAGES, TASK_PRIORITIES, TASK_TYPES } from "../../constants/tasks";
-import { can, isProjectArchived, projectPath } from "../../utils/project";
+import { can, isProjectArchived, isProjectCompleted, projectPath } from "../../utils/project";
 import { wipWarningText } from "../../utils/board";
 import {
   findAssignee,
@@ -87,6 +88,8 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
   });
   // one save at a time: each change is computed from the task the last save returned
   const locked = !canEdit || fields.submitting;
+  // a completed project keeps other task edits, but not the dates (backend schedule-docs §1)
+  const datesEditable = canEdit && !isProjectCompleted(project);
 
   // `patch` = the edited field(s), see useFieldSave
   const saveFields = async (patch) => {
@@ -318,6 +321,15 @@ const TaskView = ({ workspace, project, initialTask, columns, members, labels, c
                   slotProps={{ htmlInput: { min: 0, step: 1 } }}
                 />
               </DetailRow>
+              <TaskDateFields
+                task={task}
+                canEdit={datesEditable}
+                disabled={fields.submitting}
+                errors={errors}
+                onEdit={fields.clearFieldError}
+                onSave={(dates) => saveFields(dates)}
+                readOnlyNote={canEdit && !datesEditable ? "Dates can't change in a completed project." : null}
+              />
             </AccordionDetails>
           </Accordion>
 

@@ -10,6 +10,7 @@ import SearchField from "../../general/SearchField";
 import UserAvatar from "../../general/UserAvatar";
 import FilterPanel from "./FilterPanel";
 import ActiveFilterChips from "./ActiveFilterChips";
+import { filterButtonSx } from "./filterStyles";
 import { TASK_PRIORITIES, TASK_TYPES } from "../../../constants/tasks";
 import { memberLabel } from "../../../utils/people";
 import { labelTone } from "../../../utils/task";
@@ -84,12 +85,7 @@ const TaskFilterBar = ({ filters, onChange, members, columns, labels, match, sho
           startIcon={<BlockIcon />}
           aria-pressed={Boolean(filters.blockedOnly)}
           onClick={() => onChange({ ...filters, blockedOnly: !filters.blockedOnly })}
-          sx={{
-            height: 40,
-            fontWeight: 600,
-            borderColor: filters.blockedOnly ? "primary.main" : "divider",
-            bgcolor: filters.blockedOnly ? "navActive.background" : "background.paper",
-          }}
+          sx={filterButtonSx(filters.blockedOnly)}
         >
           Blocked only
         </Button>
